@@ -67,10 +67,6 @@ export default async function handler(req,res) {
   }
 
 
-
-    if (body.confirm !== 'RESET_DEMO_DATA') return res.status(400).json({error:'Подтверди очистку тестовых ставок'});
-    const {data,error}=await db.rpc('reset_demo_data',{p_admin_telegram_id:user.id});
-    if (error) {
       console.error('reset_demo_data failed:',error.message);
       return res.status(500).json({error:'Не удалось очистить тестовые ставки. Проверь миграцию launch-reset-and-approval.sql в Supabase.'});
     }
