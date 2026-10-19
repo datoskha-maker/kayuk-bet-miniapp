@@ -45,9 +45,10 @@ export default async function handler(req,res) {
   const action=String(body?.action||'');
   if (action==='saveMatch') {
     const league=String(body.league||'').trim(), home_team=String(body.home_team||'').trim(), away_team=String(body.away_team||'').trim();
-    const start_time=new Date(body.start_time).toISOString();
+    const parsedStart = Date.parse(body.start_time);
     const markets=body.markets;
-    if (!league || !home_team || !away_team || home_team===away_team || !Number.isFinite(Date.parse(body.start_time)) || !markets || typeof markets!=='object') return res.status(400).json({error:'Заполни лигу, команды, дату и коэффициенты'});
+    if (!league || !home_team || !away_team || home_team===away_team || !Number.isFinite(parsedStart) || !markets || typeof markets!=='object') return res.status(400).json({error:'Заполни лигу, команды, дату и коэффициенты'});
+    const start_time=new Date(parsedStart).toISOString();
     const clean={};
     for (const k of ['П1','X','П2']) {
       const v=markets[k];
