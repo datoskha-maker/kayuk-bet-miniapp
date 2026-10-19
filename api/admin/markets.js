@@ -107,7 +107,8 @@ export default async function handler(req,res) {
     if (error) return res.status(500).json({error:'Не удалось опубликовать матч'});
     return res.status(200).json({ok:true,match:data});
   }
-\n  if (action==='toggleMatch') {
+
+  if (action==='toggleMatch') {
     if (!body.id || !['NS','CLOSED'].includes(body.status)) return res.status(400).json({error:'Некорректный статус матча'});
     const existing=await db.from('manual_matches').select('result').eq('id',body.id).maybeSingle();
     if(existing.error || !existing.data) return res.status(404).json({error:'Матч не найден'});
