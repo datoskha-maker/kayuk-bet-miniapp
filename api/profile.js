@@ -117,6 +117,7 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     profile,
+    isAdmin: Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID)),
     balance: balanceRow?.balance ?? 0,
     history: bets || [],
     leaders
