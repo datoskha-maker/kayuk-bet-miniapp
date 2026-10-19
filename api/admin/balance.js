@@ -9,7 +9,7 @@ function verifyTelegramInitData(initData, botToken) {
   params.delete('hash');
   const authDate = Number(params.get('auth_date'));
   if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
-  const dataCheckString = [...params.entries()].sort(([a], [b]) => a.localeCompare(b))
+  const dataCheckString = [...params.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join('\n');
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
