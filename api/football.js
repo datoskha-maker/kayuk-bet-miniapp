@@ -109,16 +109,27 @@ export default async function handler(req, res) {
   const errors = [];
 
   try {
-    if (stale(cache.fixtures_updated_at, 6 * 60 * 60 * 1000)) {
-      const raw = await api('/fixtures?from=' + isoDate(0) + '&to=' + isoDate(7) + '&timezone=Europe%2FMoscow', apiKey);
-      fixtures = raw.map(normalizeFixture).filter(f => LEAGUES.has(f.leagueId));
-      updates.fixtures = fixtures;
-      updates.fixtures_updated_at = new Date().toISOString();
+    if (stale(cache.fixtures_updated_at, 12 * 60 * 60 * 1000)) {
+      const season = new Date().getUTCFullYear();
+      const results = await Promise.all([...LEAGUES].map(async leagueId => {
+        try {
+          return await api('/fixtures?league=' + leagueId + '&season=' + season + '&from=' + isoDate(0) + '&to=' + isoDate(7) + '&timezone=Europe%2FMoscow', apiKey);
+        } catch (e) {
+          errors.push('Календарь ' + (LEAGUE_NAMES[leagueId] || leagueId) + ': ' + e.message);
+          return null;
+        }
+      }));
+      const successful = results.filter(Array.isArray).flat();
+      if (successful.length) {
+        fixtures = successful.map(normalizeFixture).filter(f => LEAGUES.has(f.leagueId));
+        updates.fixtures = fixtures;
+        updates.fixtures_updated_at = new Date().toISOString();
+      }
     }
   } catch (e) { errors.push('Календарь: ' + e.message); }
 
   try {
-    if (stale(cache.odds_updated_at, 4 * 60 * 60 * 1000)) {
+    if (stale(cache.odds_updated_at, 8 * 60 * 60 * 1000)) {
       const [today, tomorrow] = await Promise.all([
         api('/odds?date=' + isoDate(0), apiKey),
         api('/odds?date=' + isoDate(1), apiKey)
@@ -130,7 +141,7 @@ export default async function handler(req, res) {
   } catch (e) { errors.push('Коэффициенты: ' + e.message); }
 
   try {
-    if (stale(cache.live_updated_at, 20 * 60 * 1000)) {
+    if (stale(cache.live_updated_at, 30 * 60 * 1000)) {
       const rawLive = await api('/fixtures?live=all&timezone=Europe%2FMoscow', apiKey);
       live = rawLive.map(normalizeFixture).filter(f => LEAGUES.has(f.leagueId));
       updates.live = live;
