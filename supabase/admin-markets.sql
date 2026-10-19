@@ -42,7 +42,7 @@ begin
   end if;
   update public.bets set status = p_result, settled_at = now() where id = p_bet_id;
   insert into public.transactions(user_id, amount, type, note, admin_telegram_id)
-    values (b.user_id, v_payout, 'settlement',
+    values (b.user_id, v_payout, 'bet',
       case p_result when 'won' then 'Выигрыш по ставке ' || b.id
         when 'void' then 'Возврат ставки ' || b.id else 'Проигрыш по ставке ' || b.id end,
       p_admin_telegram_id);
