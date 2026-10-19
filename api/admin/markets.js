@@ -17,6 +17,19 @@ function verifyTelegramInitData(initData, botToken) {
   try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
 }
 
+async function notifyBetOwner(db, betId, status, payout) {
+  try {
+    const { data: bet } = await db.from('bets').select('id,user_id,event_title,selection,stake').eq('id', betId).maybeSingle();
+    if (!bet) return;
+    const { data: player } = await db.from('profiles').select('telegram_id,display_name').eq('id', bet.user_id).maybeSingle();
+    if (!player?.telegram_id) return;
+    const resultText = status === 'won' ? '🎉 СТАВКА ВЫИГРАЛА' : status === 'lost' ? '😬 Ставка проиграла' : '↩️ Ставка возвращена';
+    const payoutText = Number(payout) > 0 ? `Начислено: ${Number(payout).toLocaleString('ru-RU')} ₽\n` : '';
+    const message = `${resultText} · КАЮК BET\nМатч(и): ${bet.event_title}\nИсход: ${bet.selection}\nСумма ставки: ${Number(bet.stake).toLocaleString('ru-RU')} ₽\n${payoutText}Баланс обновлён. Только виртуальные средства.`;
+    await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: player.telegram_id, text: message, disable_web_page_preview: true }) });
+  } catch (error) { console.warn('Settlement notification failed:', error?.message || error); }
+}
+
 export default async function handler(req,res) {
   res.setHeader('Cache-Control','no-store');
   const { TELEGRAM_BOT_TOKEN: token, SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key, ADMIN_TELEGRAM_ID: adminId } = process.env;
@@ -100,7 +113,7 @@ export default async function handler(req,res) {
     if(matchesError) return res.status(500).json({error:'Не удалось загрузить результаты матчей'});
     const resultByTitle=new Map((allMatches||[]).filter(m=>m.result).map(m=>[m.home_team+' — '+m.away_team,m.result]));
     const {data: pending,error: pendingError}=await db.from('bets')
-      .select('id,event_title,selection,status').eq('status','pending').order('created_at',{ascending:true}).limit(1000);
+      .select('id,user_id,event_title,selection,status,stake,potential_payout').eq('status','pending').order('created_at',{ascending:true}).limit(1000);
     if(pendingError) return res.status(500).json({error:'Итог сохранён, но не удалось загрузить ставки для расчёта. Повтори расчёт.'});
     let won=0,lost=0,waiting=0,skipped=0;
     for(const bet of pending||[]) {
@@ -120,11 +133,11 @@ export default async function handler(req,res) {
       }
       if(!related) continue;
       if(hasLost) {
-        const {error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'lost',p_admin_telegram_id:user.id});
-        if(error) { console.error('settle lost bet failed',bet.id,error.message); skipped++; } else lost++;
+        const {data:settlement,error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'lost',p_admin_telegram_id:user.id});
+        if(error) { console.error('settle lost bet failed',bet.id,error.message); skipped++; } else { lost++; await notifyBetOwner(db,bet.id,'lost',settlement?.payout||0); }
       } else if(allResolved && allWon) {
-        const {error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'won',p_admin_telegram_id:user.id});
-        if(error) { console.error('settle won bet failed',bet.id,error.message); skipped++; } else won++;
+        const {data:settlement,error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'won',p_admin_telegram_id:user.id});
+        if(error) { console.error('settle won bet failed',bet.id,error.message); skipped++; } else { won++; await notifyBetOwner(db,bet.id,'won',settlement?.payout||bet.potential_payout||0); }
       } else waiting++;
     }
     return res.status(200).json({ok:true,matchId:body.id,result:body.result,won,lost,waiting,skipped});
@@ -134,6 +147,7 @@ export default async function handler(req,res) {
     if (!body.id || !['won','lost','void'].includes(body.result)) return res.status(400).json({error:'Выбери результат расчёта'});
     const {data,error}=await db.rpc('admin_settle_bet',{p_bet_id:body.id,p_result:body.result,p_admin_telegram_id:user.id});
     if (error) return res.status(400).json({error:error.message==='Bet already settled'?'Эта ставка уже рассчитана':'Не удалось рассчитать ставку. Проверь SQL в Supabase.'});
+    await notifyBetOwner(db,body.id,body.result,data?.payout||0);
     return res.status(200).json(data);
   }
   return res.status(400).json({error:'Неизвестное действие администратора'});
