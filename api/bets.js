@@ -91,9 +91,26 @@ export default async function handler(req, res) {
   });
 
   if (error) {
-    const insufficient = /Insufficient balance|balance not found/i.test(error.message || '');
+    // Keep the detailed database error in Vercel logs so failed bets can be diagnosed.
+    console.error('place_virtual_bet failed', {
+      code: error.code || null,
+      message: error.message || null,
+      details: error.details || null,
+      hint: error.hint || null
+    });
+    const message = String(error.message || '');
+    const insufficient = /Insufficient balance|balance not found/i.test(message);
+    const missingFunction = /Could not find the function|function .* does not exist/i.test(message);
+    const permission = /permission denied|not authorized/i.test(message);
     return res.status(insufficient ? 400 : 500).json({
-      error: insufficient ? 'Недостаточно виртуальных средств или баланс не создан' : 'Не удалось принять ставку'
+      error: insufficient
+        ? 'Недостаточно виртуальных средств или баланс не создан'
+        : missingFunction
+          ? 'На сервере не настроена функция приёма ставок. Нужно проверить SQL в Supabase.'
+          : permission
+            ? 'У базы нет разрешения на приём ставок. Нужно проверить права функции в Supabase.'
+            : 'Не удалось принять ставку. Причина записана в лог сервера.',
+      code: error.code || undefined
     });
   }
   return res.status(200).json({ ok: true, bet: data, odds: Number(odds.toFixed(4)) });
