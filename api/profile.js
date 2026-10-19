@@ -129,7 +129,7 @@ export default async function handler(req, res) {
   }, { totalBets: 0, turnover: 0, payouts: 0 });
   const leaders = (balances || []).map(row => {
     const p = leaderProfiles.find(item => item.id === row.user_id);
-    return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id, ...(statsByUser.get(row.user_id) || { bets: 0, won: 0, lost: 0, pending: 0, profit: 0 }) };
+    const stats = statsByUser.get(row.user_id) || { bets: 0, won: 0, lost: 0, pending: 0, profit: 0 }; return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id, ...stats, winRate: stats.won + stats.lost ? Math.round(stats.won / (stats.won + stats.lost) * 100) : 0 };
   }).sort((a, b) => b.balance - a.balance);
 
   const isAdmin = Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID));
