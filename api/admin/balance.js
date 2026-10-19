@@ -7,7 +7,6 @@ function verifyTelegramInitData(initData, botToken) {
   const hash = params.get('hash');
   if (!hash) return null;
   params.delete('hash');
-  params.delete('signature');
   const authDate = Number(params.get('auth_date'));
   if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
   const dataCheckString = [...params.entries()].sort(([a], [b]) => a.localeCompare(b))
