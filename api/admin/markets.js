@@ -31,7 +31,7 @@ export default async function handler(req,res) {
     if (error) return res.status(500).json({error:'Не удалось загрузить матчи'});
     let pendingBets = [];
     if (isAdmin) {
-      const {data,error: betError} = await db.from('bets').select('id,user_id,event_title,selection,stake,odds,status,created_at,potential_payout').eq('status','pending').order('created_at',{ascending:true}).limit(100);
+      const {data,error: betError} = await db.from('bets').select('id,user_id,event_title,selection,stake,odds,status,created_at,potential_payout').eq('status','pending').order('created_at',{ascending:true}).limit(1000);
       if (betError) return res.status(500).json({error:'Не удалось загрузить ставки для расчёта'});
       pendingBets = data || [];
     }
@@ -61,17 +61,75 @@ export default async function handler(req,res) {
     if (!Object.keys(clean).length) return res.status(400).json({error:'Добавь хотя бы один коэффициент'});
     const row={league,home_team,away_team,start_time,status:body.status==='CLOSED'?'CLOSED':'NS',markets:clean,created_by:user.id,updated_at:new Date().toISOString()};
     let query;
-    if (body.id) query=await db.from('manual_matches').update(row).eq('id',body.id).select('*').single();
+    if (body.id) {
+      const existing=await db.from('manual_matches').select('result').eq('id',body.id).maybeSingle();
+      if(existing.error || !existing.data) return res.status(404).json({error:'Матч не найден'});
+      if(existing.data.result) return res.status(409).json({error:'Итог уже рассчитан. Матч нельзя редактировать.'});
+      query=await db.from('manual_matches').update(row).eq('id',body.id).select('*').single();
+    }
     else query=await db.from('manual_matches').insert(row).select('*').single();
     if (query.error) return res.status(500).json({error:'Не удалось сохранить матч'});
     return res.status(200).json({ok:true,match:query.data});
   }
   if (action==='toggleMatch') {
     if (!body.id || !['NS','CLOSED'].includes(body.status)) return res.status(400).json({error:'Некорректный статус матча'});
+    const existing=await db.from('manual_matches').select('result').eq('id',body.id).maybeSingle();
+    if(existing.error || !existing.data) return res.status(404).json({error:'Матч не найден'});
+    if(existing.data.result && body.status==='NS') return res.status(409).json({error:'Рассчитанный матч нельзя открыть повторно'});
     const {data,error}=await db.from('manual_matches').update({status:body.status,updated_at:new Date().toISOString()}).eq('id',body.id).select('*').single();
     if (error) return res.status(500).json({error:'Не удалось изменить статус матча'});
     return res.status(200).json({ok:true,match:data});
   }
+
+  if (action==='settleMatch') {
+    if (!body.id || !['П1','X','П2'].includes(body.result)) return res.status(400).json({error:'Выбери итоговый исход матча'});
+    const {data: target,error: targetError}=await db.from('manual_matches').select('*').eq('id',body.id).maybeSingle();
+    if(targetError || !target) return res.status(404).json({error:'Матч не найден'});
+    if(target.result && target.result!==body.result) return res.status(409).json({error:'Для этого матча уже установлен другой итог'});
+    if(!target.result) {
+      const {data: updated,error: updateError}=await db.from('manual_matches')
+        .update({result:body.result,status:'CLOSED',updated_at:new Date().toISOString()})
+        .eq('id',body.id).is('result',null).select('*').maybeSingle();
+      if(updateError) return res.status(500).json({error:'Не удалось сохранить итог матча'});
+      if(!updated) {
+        const retry=await db.from('manual_matches').select('*').eq('id',body.id).single();
+        if(retry.error || retry.data.result!==body.result) return res.status(409).json({error:'Итог матча уже изменён другим запросом'});
+      }
+    }
+    const {data: allMatches,error: matchesError}=await db.from('manual_matches').select('home_team,away_team,result');
+    if(matchesError) return res.status(500).json({error:'Не удалось загрузить результаты матчей'});
+    const resultByTitle=new Map((allMatches||[]).filter(m=>m.result).map(m=>[m.home_team+' — '+m.away_team,m.result]));
+    const {data: pending,error: pendingError}=await db.from('bets')
+      .select('id,event_title,selection,status').eq('status','pending').order('created_at',{ascending:true}).limit(1000);
+    if(pendingError) return res.status(500).json({error:'Итог сохранён, но не удалось загрузить ставки для расчёта. Повтори расчёт.'});
+    let won=0,lost=0,waiting=0,skipped=0;
+    for(const bet of pending||[]) {
+      const titles=String(bet.event_title||'').split(' + ');
+      const picks=String(bet.selection||'').split(' + ');
+      if(!titles.length || titles.length!==picks.length) { skipped++; continue; }
+      let hasLost=false,allResolved=true,allWon=true,related=false;
+      for(let i=0;i<titles.length;i++) {
+        const title=titles[i].trim();
+        const parsed=picks[i].trim().match(/^(П1|X|П2) \((.*)\)$/);
+        const chosen=parsed?.[1];
+        const parsedTitle=parsed?.[2];
+        if(title===target.home_team+' — '+target.away_team || parsedTitle===target.home_team+' — '+target.away_team) related=true;
+        const finalResult=resultByTitle.get(title);
+        if(!finalResult || !chosen) { allResolved=false; allWon=false; continue; }
+        if(chosen!==finalResult) { hasLost=true; allWon=false; }
+      }
+      if(!related) continue;
+      if(hasLost) {
+        const {error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'lost',p_admin_telegram_id:user.id});
+        if(error) { console.error('settle lost bet failed',bet.id,error.message); skipped++; } else lost++;
+      } else if(allResolved && allWon) {
+        const {error}=await db.rpc('admin_settle_bet',{p_bet_id:bet.id,p_result:'won',p_admin_telegram_id:user.id});
+        if(error) { console.error('settle won bet failed',bet.id,error.message); skipped++; } else won++;
+      } else waiting++;
+    }
+    return res.status(200).json({ok:true,matchId:body.id,result:body.result,won,lost,waiting,skipped});
+  }
+
   if (action==='settleBet') {
     if (!body.id || !['won','lost','void'].includes(body.result)) return res.status(400).json({error:'Выбери результат расчёта'});
     const {data,error}=await db.rpc('admin_settle_bet',{p_bet_id:body.id,p_result:body.result,p_admin_telegram_id:user.id});
