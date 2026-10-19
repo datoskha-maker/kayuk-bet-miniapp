@@ -187,7 +187,7 @@ export default async function handler(req, res) {
     if (!odds[archivedGame.id] && a.odds) odds[archivedGame.id] = a.odds;
   }
   const games = [...merged.values()]
-    .filter(f => f.time && (new Date(f.time).getTime() > Date.now() - 4 * DAY || liveById.has(f.id)))
+    .filter(f => f.time && (new Date(f.time).getTime() > Date.now() - 4 * DAY || liveById.has(f.id) || f.archived))
     .sort((a, b) => new Date(a.time) - new Date(b.time))
     .map(f => ({
       ...f,
