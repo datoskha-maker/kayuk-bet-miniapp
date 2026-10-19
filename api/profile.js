@@ -115,11 +115,32 @@ export default async function handler(req, res) {
     return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id };
   }).sort((a, b) => b.balance - a.balance);
 
+  const isAdmin = Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID));
+  let adminPlayers = [];
+  if (isAdmin) {
+    const { data: allBalances, error: allBalancesError } = await supabase
+      .from('balances').select('user_id, balance').order('balance', { ascending: false }).limit(500);
+    if (allBalancesError) return res.status(500).json({ error: 'Admin player list query failed' });
+    const allIds = (allBalances || []).map(row => row.user_id);
+    let allProfiles = [];
+    if (allIds.length) {
+      const { data, error: allProfilesError } = await supabase
+        .from('profiles').select('id, telegram_id, display_name, username').in('id', allIds);
+      if (allProfilesError) return res.status(500).json({ error: 'Admin profile list query failed' });
+      allProfiles = data || [];
+    }
+    adminPlayers = (allBalances || []).map(row => {
+      const p = allProfiles.find(item => item.id === row.user_id);
+      return { telegram_id: p?.telegram_id, name: p?.display_name || p?.username || 'Игрок', username: p?.username || null, balance: row.balance };
+    }).filter(p => p.telegram_id !== undefined);
+  }
+
   return res.status(200).json({
     profile,
-    isAdmin: Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID)),
+    isAdmin,
     balance: balanceRow?.balance ?? 0,
     history: bets || [],
-    leaders
+    leaders,
+    adminPlayers
   });
 }
