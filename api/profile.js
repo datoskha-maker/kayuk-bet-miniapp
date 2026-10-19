@@ -1,8 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 
-
-
 function verifyTelegramInitData(initData, botToken) {
   if (!initData || !botToken) return null;
 
@@ -57,10 +55,20 @@ export default async function handler(req, res) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const initData = req.headers['x-telegram-init-data'];
 
-  if (!botToken || !process.env.SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ error: 'Server configuration missing' });
-  }
+  const missing = [];
+
+if (!botToken) missing.push('TELEGRAM_BOT_TOKEN');
+if (!process.env.SUPABASE_URL) missing.push('SUPABASE_URL');
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  missing.push('SUPABASE_SERVICE_ROLE_KEY');
+}
+
+if (missing.length > 0) {
+  return res.status(500).json({
+    error: 'Server configuration missing',
+    missing
+  });
+}
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
