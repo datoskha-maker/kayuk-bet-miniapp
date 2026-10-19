@@ -12,7 +12,11 @@ const LEAGUE_NAMES = {
 const DAY = 86400000;
 
 function isoDate(offset = 0) {
-  return new Date(Date.now() + offset * DAY).toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date(Date.now() + offset * DAY));
+  const part = Object.fromEntries(parts.map(x => [x.type, x.value]));
+  return `${part.year}-${part.month}-${part.day}`;
 }
 function stale(value, ms) {
   return !value || Date.now() - new Date(value).getTime() >= ms;
