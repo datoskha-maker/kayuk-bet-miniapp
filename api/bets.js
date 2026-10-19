@@ -75,7 +75,11 @@ export default async function handler(req, res) {
     const selection = String(pick?.sel || '');
     const market = marketForMatch(match, cache);
     if (!market || !Object.hasOwn(market, selection) || usedMatches.has(match)) {
-      return res.status(400).json({ error: 'Выбранный исход недоступен' });
+      return res.status(400).json({ error: 'Исход недоступен: матч начался, линия устарела или коэффициент отсутствует' });
+    }
+    const selectedOdd = Number(pick?.odd);
+    if (!Number.isFinite(selectedOdd) || Math.abs(selectedOdd - market[selection]) > 0.0001) {
+      return res.status(409).json({ error: 'Коэффициент изменился. Обнови линию и собери купон заново.' });
     }
     usedMatches.add(match);
     odds *= market[selection];
