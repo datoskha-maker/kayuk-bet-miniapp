@@ -63,8 +63,18 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: cache, error: cacheError } = await supabase.from('football_cache').select('fixtures, odds, odds_updated_at').eq('id', 1).maybeSingle();
-  if (cacheError || !cache) return res.status(503).json({ error: 'Реальная линия пока не готова. Попробуй позже.' });
+  const { data: cache } = await supabase.from('football_cache').select('fixtures, odds, odds_updated_at').eq('id', 1).maybeSingle();
+  const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('league,home_team,away_team,start_time,status,markets').eq('status','NS');
+  if (manualError) return res.status(503).json({ error: 'Не удалось загрузить линию. Попробуй позже.' });
+
+  function marketForSelectedMatch(title) {
+    const manual = (manualMatches || []).find(m => `${m.home_team} — ${m.away_team}` === title);
+    if (manual) {
+      if (new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS') return null;
+      return manual.markets || {};
+    }
+    return cache ? marketForMatch(title, cache) : null;
+  }
 
   const usedMatches = new Set();
   let odds = 1;
@@ -73,7 +83,7 @@ export default async function handler(req, res) {
   for (const pick of picks) {
     const match = String(pick?.match || '');
     const selection = String(pick?.sel || '');
-    const market = marketForMatch(match, cache);
+    const market = marketForSelectedMatch(match);
     if (!market || !Object.hasOwn(market, selection) || usedMatches.has(match)) {
       return res.status(400).json({ error: 'Исход недоступен: матч начался, линия устарела или коэффициент отсутствует' });
     }
