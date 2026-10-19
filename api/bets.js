@@ -25,13 +25,17 @@ function verifyTelegramInitData(initData, botToken) {
   try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
 }
 
-// Server-controlled demo markets; client odds are not trusted.
-const markets = {
-  'Спартак — Зенит': { 'П1': 2.5, 'X': 3.2, 'П2': 2.8 },
-  'Краснодар — Динамо': { 'П1': 1.95, 'X': 3.5, 'П2': 3.9 },
-  'Барселона — Арсенал': { 'П1': 2.1, 'X': 3.6, 'П2': 3.1 },
-  'Реал — Интер': { 'П1': 1.85, 'X': 3.7, 'П2': 4.2 }
-};
+// The server accepts only current odds from the cached API-Football feed.
+function marketForMatch(match, cache) {
+  const fixture = (cache.fixtures || []).find(f => `${f.home} — ${f.away}` === match);
+  if (!fixture) return null;
+  if (fixture.status !== 'NS' || !fixture.time || new Date(fixture.time).getTime() <= Date.now()) return null;
+  const oddsUpdated = cache.odds_updated_at ? new Date(cache.odds_updated_at).getTime() : 0;
+  if (!oddsUpdated || Date.now() - oddsUpdated > 5 * 60 * 60 * 1000) return null;
+  const current = cache.odds?.[fixture.id];
+  if (!current?.home || !current?.draw || !current?.away) return null;
+  return { 'П1': Number(current.home), 'X': Number(current.draw), 'П2': Number(current.away) };
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -58,6 +62,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Проверь сумму ставки и купон' });
   }
 
+  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const { data: cache, error: cacheError } = await supabase.from('football_cache').select('fixtures, odds, odds_updated_at').eq('id', 1).maybeSingle();
+  if (cacheError || !cache) return res.status(503).json({ error: 'Реальная линия пока не готова. Попробуй позже.' });
+
   const usedMatches = new Set();
   let odds = 1;
   const events = [];
@@ -65,7 +73,7 @@ export default async function handler(req, res) {
   for (const pick of picks) {
     const match = String(pick?.match || '');
     const selection = String(pick?.sel || '');
-    const market = markets[match];
+    const market = marketForMatch(match, cache);
     if (!market || !Object.hasOwn(market, selection) || usedMatches.has(match)) {
       return res.status(400).json({ error: 'Выбранный исход недоступен' });
     }
@@ -75,7 +83,6 @@ export default async function handler(req, res) {
     selections.push(`${selection} (${match})`);
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const { data: profile, error: profileError } = await supabase
     .from('profiles').select('id').eq('telegram_id', user.id).maybeSingle();
 
