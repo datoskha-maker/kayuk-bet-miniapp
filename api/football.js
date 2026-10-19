@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       const season = new Date().getUTCFullYear();
       const results = await Promise.all([...LEAGUES].map(async leagueId => {
         try {
-          return await api('/fixtures?league=' + leagueId + '&season=' + season + '&from=' + isoDate(0) + '&to=' + isoDate(7) + '&timezone=Europe%2FMoscow', apiKey);
+          return await api('/fixtures?league=' + leagueId + '&season=' + season + '&from=' + isoDate(-3) + '&to=' + isoDate(7) + '&timezone=Europe%2FMoscow', apiKey);
         } catch (e) {
           errors.push('Календарь ' + (LEAGUE_NAMES[leagueId] || leagueId) + ': ' + e.message);
           return null;
@@ -158,6 +158,34 @@ export default async function handler(req, res) {
   const liveById = new Map(live.map(f => [f.id, f]));
   const merged = new Map(fixtures.map(f => [f.id, f]));
   for (const f of live) merged.set(f.id, { ...(merged.get(f.id) || {}), ...f });
+
+  // Persist every fixture we currently know so it remains available after it leaves the provider's calendar.
+  const archiveRows = [...merged.values()].filter(f => Number.isFinite(Number(f.id)) && Number(f.id) > 0 && f.time).map(f => ({
+    fixture_id: Number(f.id), league_id: Number(f.leagueId) || null, league: f.league || 'Футбол',
+    start_time: f.time, status: f.status || 'NS', elapsed: f.elapsed ?? null,
+    home_team: f.home || 'Хозяева', away_team: f.away || 'Гости',
+    home_score: f.homeScore ?? null, away_score: f.awayScore ?? null,
+    odds: odds[f.id] || null, source_updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString()
+  }));
+  if (archiveRows.length) {
+    const archived = await supabase.from('football_fixture_archive').upsert(archiveRows, { onConflict: 'fixture_id' });
+    if (archived.error) errors.push('Архив матчей не обновлён: запусти SQL из supabase/football-fixture-archive.sql в Supabase.');
+  }
+  const { data: archivedFixtures, error: archiveReadError } = await supabase.from('football_fixture_archive')
+    .select('fixture_id,league_id,league,start_time,status,elapsed,home_team,away_team,home_score,away_score,odds')
+    .order('start_time', { ascending: false }).limit(1000);
+  if (archiveReadError) errors.push('Архив матчей недоступен: ' + archiveReadError.message);
+  for (const a of archivedFixtures || []) {
+    const archivedGame = {
+      id: Number(a.fixture_id), leagueId: Number(a.league_id), league: a.league,
+      time: a.start_time, status: a.status, elapsed: a.elapsed,
+      home: a.home_team, away: a.away_team, homeScore: a.home_score, awayScore: a.away_score,
+      archived: true
+    };
+    const current = merged.get(archivedGame.id);
+    merged.set(archivedGame.id, { ...archivedGame, ...(current || {}) });
+    if (!odds[archivedGame.id] && a.odds) odds[archivedGame.id] = a.odds;
+  }
   const games = [...merged.values()]
     .filter(f => f.time && (new Date(f.time).getTime() > Date.now() - 4 * DAY || liveById.has(f.id)))
     .sort((a, b) => new Date(a.time) - new Date(b.time))
