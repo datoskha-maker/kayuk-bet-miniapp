@@ -134,5 +134,12 @@ export default async function handler(req, res) {
       code: error.code || undefined
     });
   }
+  try {
+    const { data: player } = await supabase.from('profiles').select('display_name,telegram_id').eq('id', profile.id).maybeSingle();
+    if (player?.telegram_id) {
+      const message = `🎟️ Ставка принята · КАЮК BET\nМатчи: ${events.join(' + ')}\nИсход: ${selections.join(' + ')}\nСумма: ${stake.toLocaleString('ru-RU')} ₽\nКоэффициент: ${Number(odds.toFixed(4))}\nВозможная выплата: ${Math.round(stake * odds).toLocaleString('ru-RU')} ₽\nТолько виртуальные средства.`;
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: player.telegram_id, text: message, disable_web_page_preview: true }) });
+    }
+  } catch (notificationError) { console.warn('Bet notification failed:', notificationError?.message || notificationError); }
   return res.status(200).json({ ok: true, bet: data, odds: Number(odds.toFixed(4)) });
 }
