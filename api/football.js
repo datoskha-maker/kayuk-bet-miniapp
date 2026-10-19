@@ -160,12 +160,17 @@ export default async function handler(req, res) {
   for (const f of live) merged.set(f.id, { ...(merged.get(f.id) || {}), ...f });
 
   // Persist every fixture we currently know so it remains available after it leaves the provider's calendar.
-  const archiveRows = [...merged.values()].filter(f => Number.isFinite(Number(f.id)) && Number(f.id) > 0 && f.time).map(f => ({
+  const archiveCandidates = [...merged.values()].filter(f => Number.isFinite(Number(f.id)) && Number(f.id) > 0 && f.time);
+  const { data: existingArchiveRows } = archiveCandidates.length
+    ? await supabase.from('football_fixture_archive').select('fixture_id,odds').in('fixture_id', archiveCandidates.map(f => Number(f.id)))
+    : { data: [] };
+  const oldOdds = new Map((existingArchiveRows || []).map(row => [Number(row.fixture_id), row.odds]));
+  const archiveRows = archiveCandidates.map(f => ({
     fixture_id: Number(f.id), league_id: Number(f.leagueId) || null, league: f.league || 'Футбол',
     start_time: f.time, status: f.status || 'NS', elapsed: f.elapsed ?? null,
     home_team: f.home || 'Хозяева', away_team: f.away || 'Гости',
     home_score: f.homeScore ?? null, away_score: f.awayScore ?? null,
-    odds: odds[f.id] || null, source_updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString()
+    odds: odds[f.id] || oldOdds.get(Number(f.id)) || null, source_updated_at: new Date().toISOString(), last_seen_at: new Date().toISOString()
   }));
   if (archiveRows.length) {
     const archived = await supabase.from('football_fixture_archive').upsert(archiveRows, { onConflict: 'fixture_id' });
