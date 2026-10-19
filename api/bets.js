@@ -25,18 +25,6 @@ function verifyTelegramInitData(initData, botToken) {
   try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
 }
 
-// The server accepts only current odds from the cached API-Football feed.
-function marketForMatch(match, cache) {
-  const fixture = (cache.fixtures || []).find(f => `${f.home} — ${f.away}` === match);
-  if (!fixture) return null;
-  if (fixture.status !== 'NS' || !fixture.time || new Date(fixture.time).getTime() <= Date.now()) return null;
-  const oddsUpdated = cache.odds_updated_at ? new Date(cache.odds_updated_at).getTime() : 0;
-  if (!oddsUpdated || Date.now() - oddsUpdated > 5 * 60 * 60 * 1000) return null;
-  const current = cache.odds?.[fixture.id];
-  if (!current?.home || !current?.draw || !current?.away) return null;
-  return { 'П1': Number(current.home), 'X': Number(current.draw), 'П2': Number(current.away) };
-}
-
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -63,17 +51,13 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: cache } = await supabase.from('football_cache').select('fixtures, odds, odds_updated_at').eq('id', 1).maybeSingle();
   const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('league,home_team,away_team,start_time,status,markets').eq('status','NS');
   if (manualError) return res.status(503).json({ error: 'Не удалось загрузить линию. Попробуй позже.' });
 
   function marketForSelectedMatch(title) {
     const manual = (manualMatches || []).find(m => `${m.home_team} — ${m.away_team}` === title);
-    if (manual) {
-      if (new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS') return null;
-      return manual.markets || {};
-    }
-    return cache ? marketForMatch(title, cache) : null;
+    if (!manual || new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS') return null;
+    return manual.markets || {};
   }
 
   const usedMatches = new Set();
