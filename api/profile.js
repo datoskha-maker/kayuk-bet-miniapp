@@ -109,9 +109,27 @@ export default async function handler(req, res) {
     leaderProfiles = data || [];
   }
 
+
+  const { data: allBets, error: allBetsError } = await supabase.from('bets').select('user_id, stake, odds, status, potential_payout').order('created_at', { ascending: false }).limit(5000);
+  if (allBetsError) return res.status(500).json({ error: 'Leaderboard statistics query failed' });
+  const statsByUser = new Map();
+  for (const bet of allBets || []) {
+    const stat = statsByUser.get(bet.user_id) || { bets: 0, won: 0, lost: 0, pending: 0, profit: 0 };
+    stat.bets++;
+    if (bet.status === 'won') { stat.won++; stat.profit += Number(bet.potential_payout || Math.round(Number(bet.stake) * Number(bet.odds))); stat.profit -= Number(bet.stake) || 0; }
+    else if (bet.status === 'lost') { stat.lost++; stat.profit -= Number(bet.stake) || 0; }
+    else if (bet.status === 'pending') stat.pending++;
+    statsByUser.set(bet.user_id, stat);
+  }
+  const cash = (allBets || []).reduce((acc, bet) => {
+    acc.totalBets++; acc.turnover += Number(bet.stake) || 0;
+    if (bet.status === 'won') acc.payouts += Number(bet.potential_payout || Math.round(Number(bet.stake) * Number(bet.odds))) || 0;
+    else if (bet.status === 'void') acc.payouts += Number(bet.stake) || 0;
+    return acc;
+  }, { totalBets: 0, turnover: 0, payouts: 0 });
   const leaders = (balances || []).map(row => {
     const p = leaderProfiles.find(item => item.id === row.user_id);
-    return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id };
+    return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id, ...(statsByUser.get(row.user_id) || { bets: 0, won: 0, lost: 0, pending: 0, profit: 0 }) };
   }).sort((a, b) => b.balance - a.balance);
 
   const isAdmin = Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID));
@@ -140,6 +158,8 @@ export default async function handler(req, res) {
     balance: balanceRow?.balance ?? 0,
     history: bets || [],
     leaders,
-    adminPlayers
+    adminPlayers,
+    cash,
+    playerStats: statsByUser.get(profile.id) || { bets: 0, won: 0, lost: 0, pending: 0, profit: 0 }
   });
 }
