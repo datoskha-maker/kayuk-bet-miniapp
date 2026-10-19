@@ -56,6 +56,16 @@ export default async function handler(req,res) {
   let body=req.body;
   if (typeof body==='string') { try { body=JSON.parse(body); } catch { body=null; } }
   const action=String(body?.action||'');
+  if (action==='resetDemo') {
+    if (body.confirm !== 'RESET_PRELAUNCH_DATA') return res.status(400).json({error:'Подтверждение сброса не получено'});
+    const {data,error}=await db.rpc('reset_demo_data',{p_admin_telegram_id:user.id});
+    if (error) {
+      console.error('reset demo data failed:',error.message);
+      return res.status(500).json({error:'Сброс не выполнен. Проверь, что SQL-миграция запускается в Supabase.'});
+    }
+    return res.status(200).json(data);
+  }
+
   if (action==='saveMatch') {
     const league=String(body.league||'').trim(), home_team=String(body.home_team||'').trim(), away_team=String(body.away_team||'').trim();
     const parsedStart = Date.parse(body.start_time);
