@@ -3,112 +3,122 @@ import crypto from 'node:crypto';
 
 function verifyTelegramInitData(initData, botToken) {
   if (!initData || !botToken) return null;
-
   const params = new URLSearchParams(initData);
   const hash = params.get('hash');
   if (!hash) return null;
-
   params.delete('hash');
   params.delete('signature');
 
   const authDate = Number(params.get('auth_date'));
-  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 300) {
-    return null;
-  }
+  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
 
   const dataCheckString = [...params.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
-
-  const secretKey = crypto
-    .createHmac('sha256', 'WebAppData')
-    .update(botToken)
-    .digest();
-
-  const calculatedHash = crypto
-    .createHmac('sha256', secretKey)
-    .update(dataCheckString)
-    .digest('hex');
-
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
   const a = Buffer.from(calculatedHash, 'hex');
   const b = Buffer.from(hash, 'hex');
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
 
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(params.get('user') || 'null');
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
 }
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-
   if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const initData = req.headers['x-telegram-init-data'];
-
-  const missing = [];
-
-if (!botToken) missing.push('TELEGRAM_BOT_TOKEN');
-if (!process.env.SUPABASE_URL) missing.push('SUPABASE_URL');
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  missing.push('SUPABASE_SERVICE_ROLE_KEY');
-}
-
-if (missing.length > 0) {
-  return res.status(500).json({
-    error: 'Server configuration missing',
-    missing
-  });
-}
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false } }
-);
-  const user = verifyTelegramInitData(initData, botToken);
-
-  if (!user || !user.id) {
-    return res.status(401).json({ error: 'Telegram authentication failed' });
+  const { TELEGRAM_BOT_TOKEN: botToken, SUPABASE_URL: supabaseUrl, SUPABASE_SERVICE_ROLE_KEY: serviceKey } = process.env;
+  if (!botToken || !supabaseUrl || !serviceKey) {
+    return res.status(500).json({ error: 'Server configuration missing' });
   }
 
-  const { data: profile, error } = await supabase
+  const user = verifyTelegramInitData(req.headers['x-telegram-init-data'], botToken);
+  if (!user?.id) return res.status(401).json({ error: 'Telegram authentication failed. Reopen the Mini App.' });
+
+  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  let { data: profile, error } = await supabase
     .from('profiles')
     .select('id, telegram_id, username, display_name')
     .eq('telegram_id', user.id)
     .maybeSingle();
 
-  if (error) {
-    return res.status(500).json({ error: 'Database query failed' });
-  }
+  if (error) return res.status(500).json({ error: 'Database profile query failed' });
 
   if (!profile) {
-    return res.status(404).json({
-      error: 'Profile not found',
-      telegram_id: user.id
-    });
+    const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок';
+    const inserted = await supabase.from('profiles').insert({
+      telegram_id: user.id,
+      username: user.username || null,
+      display_name: displayName
+    }).select('id, telegram_id, username, display_name').single();
+
+    if (inserted.error) {
+      // A parallel first request may have created the profile already.
+      const retry = await supabase.from('profiles')
+        .select('id, telegram_id, username, display_name')
+        .eq('telegram_id', user.id).maybeSingle();
+      if (retry.error || !retry.data) return res.status(500).json({ error: 'Could not create player profile' });
+      profile = retry.data;
+    } else {
+      profile = inserted.data;
+    }
   }
 
-  const { data: balance, error: balanceError } = await supabase
-    .from('balances')
-    .select('balance')
+  let { data: balanceRow, error: balanceError } = await supabase
+    .from('balances').select('balance').eq('user_id', profile.id).maybeSingle();
+  if (balanceError) return res.status(500).json({ error: 'Balance query failed' });
+
+  if (!balanceRow) {
+    const insertedBalance = await supabase.from('balances')
+      .insert({ user_id: profile.id, balance: 100000 })
+      .select('balance').single();
+    if (insertedBalance.error) {
+      const retry = await supabase.from('balances').select('balance').eq('user_id', profile.id).maybeSingle();
+      if (retry.error || !retry.data) return res.status(500).json({ error: 'Could not initialize player balance' });
+      balanceRow = retry.data;
+    } else {
+      balanceRow = insertedBalance.data;
+      await supabase.from('transactions').insert({
+        user_id: profile.id, amount: 100000, type: 'bonus', note: 'Стартовый виртуальный баланс'
+      });
+    }
+  }
+
+  const { data: bets, error: betsError } = await supabase
+    .from('bets')
+    .select('id, event_title, selection, stake, odds, status, potential_payout, created_at, settled_at')
     .eq('user_id', profile.id)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (betsError) return res.status(500).json({ error: 'Bet history query failed' });
 
-  if (balanceError) {
-    return res.status(500).json({ error: 'Balance query failed' });
+  const { data: balances, error: leadersError } = await supabase
+    .from('balances').select('user_id, balance').order('balance', { ascending: false }).limit(20);
+  if (leadersError) return res.status(500).json({ error: 'Leaderboard query failed' });
+
+  const userIds = (balances || []).map(row => row.user_id);
+  let leaderProfiles = [];
+  if (userIds.length) {
+    const { data, error: leaderProfilesError } = await supabase
+      .from('profiles').select('id, display_name, username').in('id', userIds);
+    if (leaderProfilesError) return res.status(500).json({ error: 'Leaderboard profile query failed' });
+    leaderProfiles = data || [];
   }
+
+  const leaders = (balances || []).map(row => {
+    const p = leaderProfiles.find(item => item.id === row.user_id);
+    return { name: p?.display_name || p?.username || 'Игрок', balance: row.balance, user_id: row.user_id };
+  }).sort((a, b) => b.balance - a.balance);
 
   return res.status(200).json({
     profile,
-    balance: balance?.balance ?? 0
+    balance: balanceRow?.balance ?? 0,
+    history: bets || [],
+    leaders
   });
 }
