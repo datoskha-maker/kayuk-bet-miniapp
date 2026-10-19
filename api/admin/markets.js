@@ -40,7 +40,8 @@ export default async function handler(req,res) {
   const db = createClient(url,key,{auth:{persistSession:false}});
 
   if (req.method === 'GET') {
-    const {data: matches,error} = await db.from('manual_matches').select('*').order('start_time',{ascending:false}).limit(1000);
+    let matchQuery = db.from('manual_matches').select('*').order('start_time',{ascending:false}).limit(1000);
+    if (!isAdmin) matchQuery = matchQuery.eq('published', true);\n    const {data: matches,error} = await matchQuery;
     if (error) return res.status(500).json({error:'Не удалось загрузить матчи'});
     let pendingBets = [];
     if (isAdmin) {
@@ -56,6 +57,16 @@ export default async function handler(req,res) {
   let body=req.body;
   if (typeof body==='string') { try { body=JSON.parse(body); } catch { body=null; } }
   const action=String(body?.action||'');
+  if (action==='resetDemo') {
+    if (body.confirm !== 'RESET_DEMO_DATA') return res.status(400).json({error:'Подтверждение сброса не получено'});
+    const {data,error}=await db.rpc('reset_demo_data',{p_admin_telegram_id:user.id});
+    if (error) {
+      console.error('reset demo data failed:',error.message);
+      return res.status(500).json({error:'Сброс не выполнен. Проверь, что SQL-миграция запускается в Supabase.'});
+    }
+    return res.status(200).json(data);
+  }
+
   if (action==='saveMatch') {
     const league=String(body.league||'').trim(), home_team=String(body.home_team||'').trim(), away_team=String(body.away_team||'').trim();
     const parsedStart = Date.parse(body.start_time);
@@ -72,7 +83,7 @@ export default async function handler(req,res) {
       }
     }
     if (!Object.keys(clean).length) return res.status(400).json({error:'Добавь хотя бы один коэффициент'});
-    const row={league,home_team,away_team,start_time,status:body.status==='CLOSED'?'CLOSED':'NS',markets:clean,created_by:user.id,updated_at:new Date().toISOString()};
+    const row={league,home_team,away_team,start_time,status:body.status==='CLOSED'?'CLOSED':'NS',markets:clean,published:false,created_by:user.id,updated_at:new Date().toISOString()};
     let query;
     if (body.id) {
       const existing=await db.from('manual_matches').select('result').eq('id',body.id).maybeSingle();
@@ -84,6 +95,19 @@ export default async function handler(req,res) {
     if (query.error) return res.status(500).json({error:'Не удалось сохранить матч'});
     return res.status(200).json({ok:true,match:query.data});
   }
+
+  if (action==='publishMatch') {
+    if (!body.id) return res.status(400).json({error:'Не указан матч'});
+    const {data: match,error: matchError}=await db.from('manual_matches').select('id,result,status,league,home_team,away_team,start_time,markets').eq('id',body.id).maybeSingle();
+    if (matchError || !match) return res.status(404).json({error:'Матч не найден'});
+    if (match.result) return res.status(409).json({error:'Рассчитанный матч нельзя публиковать заново'});
+    if (new Date(match.start_time).getTime() <= Date.now()) return res.status(400).json({error:'Нельзя публиковать матч, начало которого уже наступило'});
+    if (!match.league || !match.home_team || !match.away_team || !match.markets || !Object.keys(match.markets).length) return res.status(400).json({error:'Проверь данные матча и коэффициенты'});
+    const {data,error}=await db.from('manual_matches').update({published:true,status:'NS',updated_at:new Date().toISOString()}).eq('id',body.id).select('*').single();
+    if (error) return res.status(500).json({error:'Не удалось опубликовать матч'});
+    return res.status(200).json({ok:true,match:data});
+  }
+
   if (action==='toggleMatch') {
     if (!body.id || !['NS','CLOSED'].includes(body.status)) return res.status(400).json({error:'Некорректный статус матча'});
     const existing=await db.from('manual_matches').select('result').eq('id',body.id).maybeSingle();
