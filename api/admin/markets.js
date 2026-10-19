@@ -67,7 +67,7 @@ export default async function handler(req,res) {
   }
 
 
-  if (action==='resetDemo') {
+
     if (body.confirm !== 'RESET_DEMO_DATA') return res.status(400).json({error:'Подтверди очистку тестовых ставок'});
     const {data,error}=await db.rpc('reset_demo_data',{p_admin_telegram_id:user.id});
     if (error) {
