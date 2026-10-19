@@ -40,7 +40,8 @@ export default async function handler(req,res) {
   const db = createClient(url,key,{auth:{persistSession:false}});
 
   if (req.method === 'GET') {
-    let matchQuery = db.from('manual_matches').select('*').order('start_time',{ascending:false}).limit(1000);\n    if (!isAdmin) matchQuery = matchQuery.eq('published', true);\n    const {data: matches,error} = await matchQuery;
+    let matchQuery = db.from('manual_matches').select('*').order('start_time',{ascending:false}).limit(1000);
+    if (!isAdmin) matchQuery = matchQuery.eq('published', true);\n    const {data: matches,error} = await matchQuery;
     if (error) return res.status(500).json({error:'Не удалось загрузить матчи'});
     let pendingBets = [];
     if (isAdmin) {
