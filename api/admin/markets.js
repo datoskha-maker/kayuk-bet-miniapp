@@ -66,13 +66,6 @@ export default async function handler(req,res) {
     return res.status(200).json(data);
   }
 
-
-      console.error('reset_demo_data failed:',error.message);
-      return res.status(500).json({error:'Не удалось очистить тестовые ставки. Проверь миграцию launch-reset-and-approval.sql в Supabase.'});
-    }
-    return res.status(200).json({ok:true,deletedBets:data?.bets_deleted||0,deletedTransactions:data?.transactions_deleted||0});
-  }
-
   if (action==='saveMatch') {
     const league=String(body.league||'').trim(), home_team=String(body.home_team||'').trim(), away_team=String(body.away_team||'').trim();
     const parsedStart = Date.parse(body.start_time);
