@@ -8,7 +8,7 @@ set published = false,
     status = case when result is null then 'CLOSED' else status end;
 
 -- Clear prelaunch betting history; preserve player profiles and accounts.
--- Balances are set to zero; the administrator can credit players manually.
+-- Preserve all balances; the administrator will credit players manually.
 create or replace function public.reset_demo_data(p_admin_telegram_id bigint)
 returns jsonb
 language plpgsql
@@ -18,7 +18,6 @@ as $$
 declare
   v_bets_deleted bigint;
   v_transactions_deleted bigint;
-  v_balances_reset bigint;
   v_matches_unpublished bigint;
 begin
   delete from public.bets;
@@ -26,9 +25,6 @@ begin
 
   delete from public.transactions;
   get diagnostics v_transactions_deleted = row_count;
-
-  update public.balances set balance = 0, updated_at = now();
-  get diagnostics v_balances_reset = row_count;
 
   update public.manual_matches
   set published = false,
@@ -40,7 +36,6 @@ begin
     'ok', true,
     'bets_deleted', v_bets_deleted,
     'transactions_deleted', v_transactions_deleted,
-    'balances_reset', v_balances_reset,
     'matches_unpublished', v_matches_unpublished
   );
 end;
