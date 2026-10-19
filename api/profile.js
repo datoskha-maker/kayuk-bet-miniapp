@@ -74,7 +74,7 @@ export default async function handler(req, res) {
 
   if (!balanceRow) {
     const insertedBalance = await supabase.from('balances')
-      .insert({ user_id: profile.id, balance: 100000 })
+      .insert({ user_id: profile.id, balance: 0 })
       .select('balance').single();
     if (insertedBalance.error) {
       const retry = await supabase.from('balances').select('balance').eq('user_id', profile.id).maybeSingle();
@@ -82,9 +82,6 @@ export default async function handler(req, res) {
       balanceRow = retry.data;
     } else {
       balanceRow = insertedBalance.data;
-      await supabase.from('transactions').insert({
-        user_id: profile.id, amount: 100000, type: 'bonus', note: 'Стартовый виртуальный баланс'
-      });
     }
   }
 
