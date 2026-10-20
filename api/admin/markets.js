@@ -134,13 +134,6 @@ export default async function handler(req,res) {
     if (Array.isArray(clean) && templates.length && start_time>new Date().toISOString() && body.status!=='CLOSED') {
       const previous=body.id ? await db.from('manual_matches').select('markets').eq('id',body.id).maybeSingle() : {data:null};
       const priorMarkets=Array.isArray(previous.data?.markets)?previous.data.markets:[];
-      clean=templates.map(t=>{const existing=clean.find(m=>String(m.name).toLowerCase()===t.name.toLowerCase())||priorMarkets.find(m=>String(m.name).toLowerCase()===t.name.toLowerCase());return {name:t.name,outcomes:t.outcomes.map(o=>{const old=existing?.outcomes?.find(x=>String(x.name).toLowerCase()===o.name.toLowerCase());return {name:o.name,odd:old&&Number.isFinite(Number(old.odd))?Number(old.odd):o.odd}})};});
-    }
-    const {data: templateRow}=await db.from('market_templates').select('templates').eq('key','global').maybeSingle();
-    const templates=Array.isArray(templateRow?.templates)?templateRow.templates:[];
-    if (Array.isArray(clean) && templates.length && start_time>new Date().toISOString() && body.status!=='CLOSED') {
-      const previous=body.id ? await db.from('manual_matches').select('markets').eq('id',body.id).maybeSingle() : {data:null};
-      const priorMarkets=Array.isArray(previous.data?.markets)?previous.data.markets:[];
       clean=templates.map(t=>{
         const provided=clean.find(m=>String(m.name).toLowerCase()===t.name.toLowerCase());
         const previousMarket=priorMarkets.find(m=>String(m.name).toLowerCase()===t.name.toLowerCase());
