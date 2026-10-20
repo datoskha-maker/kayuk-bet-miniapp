@@ -60,39 +60,7 @@ export default async function handler(req,res) {
   if (typeof body==='string') { try { body=JSON.parse(body); } catch { body=null; } }
   const action=String(body?.action||'');
   if (action==='saveMarketTemplates') {
-    const input=body.templates;
-    if (!Array.isArray(input) || input.length>100) return res.status(400).json({error:'Передай список общих рынков (до 100)'});
-    const templates=[];
-    const marketNames=new Set();
-    for (const market of input) {
-      const name=String(market?.name||'').trim();
-      if (!name || !Array.isArray(market?.outcomes) || !market.outcomes.length) return res.status(400).json({error:'У каждого рынка должно быть название и хотя бы один исход'});
-      if (marketNames.has(name.toLowerCase())) return res.status(400).json({error:'Названия общих рынков не должны повторяться'});
-      marketNames.add(name.toLowerCase());
-      const outcomes=[], names=new Set();
-      for (const outcome of market.outcomes) {
-        const outcomeName=String(outcome?.name||'').trim(), odd=Number(outcome?.odd);
-        if (!outcomeName || !Number.isFinite(odd) || odd<1.01 || odd>1000) return res.status(400).json({error:'Укажи название каждого исхода и коэффициент от 1.01 до 1000'});
-        if (names.has(outcomeName.toLowerCase())) return res.status(400).json({error:'В одном рынке названия исходов не должны повторяться'});
-        names.add(outcomeName.toLowerCase()); outcomes.push({name:outcomeName,odd});
-      }
-      templates.push({name,outcomes});
-    }
-    const {error: saveError}=await db.from('market_templates').upsert({key:'global',templates,updated_at:new Date().toISOString()},{onConflict:'key'});
-    if (saveError) return res.status(500).json({error:'Не удалось сохранить шаблоны. Выполни SQL-миграцию market_templates в Supabase.'});
-    const {data: active,error: activeError}=await db.from('manual_matches').select('id,markets').is('result',null).eq('status','NS').gt('start_time',new Date().toISOString()).limit(1000);
-    if (activeError) return res.status(500).json({error:'Шаблоны сохранены, но не удалось обновить актуальные матчи'});
-    let updated=0;
-    for (const match of active||[]) {
-      const old=Array.isArray(match.markets)?match.markets:[];
-      const merged=templates.map(t=>{
-        const previous=old.find(m=>String(m.name).toLowerCase()===t.name.toLowerCase());
-        return {name:t.name,outcomes:t.outcomes.map(o=>{const prior=previous?.outcomes?.find(x=>String(x.name).toLowerCase()===o.name.toLowerCase());return {name:o.name,odd:prior&&Number.isFinite(Number(prior.odd))?Number(prior.odd):o.odd}})};
-      });
-      const {error}=await db.from('manual_matches').update({markets:merged,updated_at:new Date().toISOString()}).eq('id',match.id);
-      if (!error) updated++;
-    }
-    return res.status(200).json({ok:true,marketTemplates:templates,updatedMatches:updated});
+    return res.status(410).json({error:'Общие шаблоны отключены. Коэффициенты настраиваются отдельно для каждого матча.'});
   }
 
   if (action==='saveMatch') {
