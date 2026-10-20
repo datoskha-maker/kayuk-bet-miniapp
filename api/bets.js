@@ -51,14 +51,8 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('league,home_team,away_team,start_time,status,markets').eq('status','NS');
+  const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('id,league,home_team,away_team,start_time,status,markets').eq('status','NS');
   if (manualError) return res.status(503).json({ error: 'Не удалось загрузить линию. Попробуй позже.' });
-
-  function marketForSelectedMatch(title) {
-    const manual = (manualMatches || []).find(m => `${m.home_team} — ${m.away_team}` === title);
-    if (!manual || new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS') return null;
-    return manual.markets || {};
-  }
 
   const usedMatches = new Set();
   let odds = 1;
@@ -67,18 +61,33 @@ export default async function handler(req, res) {
   for (const pick of picks) {
     const match = String(pick?.match || '');
     const selection = String(pick?.sel || '');
-    const market = marketForSelectedMatch(match);
-    if (!market || !Object.hasOwn(market, selection) || usedMatches.has(match)) {
+    const manual = (manualMatches || []).find(m => (pick?.manualId && String(m.id) === String(pick.manualId)) || `${m.home_team} — ${m.away_team}` === match);
+    if (!manual || new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS' || usedMatches.has(String(manual.id))) {
       return res.status(400).json({ error: 'Исход недоступен: матч начался, линия устарела или коэффициент отсутствует' });
     }
-    const selectedOdd = Number(pick?.odd);
-    if (!Number.isFinite(selectedOdd) || Math.abs(selectedOdd - market[selection]) > 0.0001) {
+    let selectedOdd;
+    let selectionLabel = selection;
+    if (Array.isArray(manual.markets)) {
+      const marketName = String(pick?.market || '');
+      const outcomeName = String(pick?.outcome || selection);
+      const market = manual.markets.find(m => m && m.name === marketName);
+      const outcome = market && Array.isArray(market.outcomes) ? market.outcomes.find(o => o && o.name === outcomeName) : null;
+      if (!market || !outcome) return res.status(400).json({ error: 'Исход недоступен: рынок или исход больше не существует' });
+      selectedOdd = Number(outcome.odd);
+      selectionLabel = `${marketName} — ${outcomeName}`;
+    } else {
+      const market = manual.markets || {};
+      if (!Object.hasOwn(market, selection)) return res.status(400).json({ error: 'Исход недоступен: рынок или исход больше не существует' });
+      selectedOdd = Number(market[selection]);
+    }
+    const clientOdd = Number(pick?.odd);
+    if (!Number.isFinite(selectedOdd) || selectedOdd < 1.01 || selectedOdd > 1000 || !Number.isFinite(clientOdd) || Math.abs(clientOdd - selectedOdd) > 0.0001) {
       return res.status(409).json({ error: 'Коэффициент изменился. Обнови линию и собери купон заново.' });
     }
-    usedMatches.add(match);
-    odds *= market[selection];
+    usedMatches.add(String(manual.id));
+    odds *= selectedOdd;
     events.push(match);
-    selections.push(`${selection} (${match})`);
+    selections.push(`${selectionLabel} (${match})`);
   }
 
   const { data: profile, error: profileError } = await supabase
