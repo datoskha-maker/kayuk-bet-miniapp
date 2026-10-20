@@ -25,18 +25,6 @@ function verifyTelegramInitData(initData, botToken) {
   try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
 }
 
-// The server accepts only current odds from the cached API-Football feed.
-function marketForMatch(match, cache) {
-  const fixture = (cache.fixtures || []).find(f => `${f.home} — ${f.away}` === match);
-  if (!fixture) return null;
-  if (fixture.status !== 'NS' || !fixture.time || new Date(fixture.time).getTime() <= Date.now()) return null;
-  const oddsUpdated = cache.odds_updated_at ? new Date(cache.odds_updated_at).getTime() : 0;
-  if (!oddsUpdated || Date.now() - oddsUpdated > 5 * 60 * 60 * 1000) return null;
-  const current = cache.odds?.[fixture.id];
-  if (!current?.home || !current?.draw || !current?.away) return null;
-  return { 'П1': Number(current.home), 'X': Number(current.draw), 'П2': Number(current.away) };
-}
-
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
@@ -63,18 +51,8 @@ export default async function handler(req, res) {
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: cache } = await supabase.from('football_cache').select('fixtures, odds, odds_updated_at').eq('id', 1).maybeSingle();
-  const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('league,home_team,away_team,start_time,status,markets').eq('status','NS');
+  const { data: manualMatches, error: manualError } = await supabase.from('manual_matches').select('id,league,home_team,away_team,start_time,status,markets').eq('status','NS');
   if (manualError) return res.status(503).json({ error: 'Не удалось загрузить линию. Попробуй позже.' });
-
-  function marketForSelectedMatch(title) {
-    const manual = (manualMatches || []).find(m => `${m.home_team} — ${m.away_team}` === title);
-    if (manual) {
-      if (new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS') return null;
-      return manual.markets || {};
-    }
-    return cache ? marketForMatch(title, cache) : null;
-  }
 
   const usedMatches = new Set();
   let odds = 1;
@@ -83,18 +61,33 @@ export default async function handler(req, res) {
   for (const pick of picks) {
     const match = String(pick?.match || '');
     const selection = String(pick?.sel || '');
-    const market = marketForSelectedMatch(match);
-    if (!market || !Object.hasOwn(market, selection) || usedMatches.has(match)) {
+    const manual = (manualMatches || []).find(m => (pick?.manualId && String(m.id) === String(pick.manualId)) || `${m.home_team} — ${m.away_team}` === match);
+    if (!manual || new Date(manual.start_time).getTime() <= Date.now() || manual.status !== 'NS' || usedMatches.has(String(manual.id))) {
       return res.status(400).json({ error: 'Исход недоступен: матч начался, линия устарела или коэффициент отсутствует' });
     }
-    const selectedOdd = Number(pick?.odd);
-    if (!Number.isFinite(selectedOdd) || Math.abs(selectedOdd - market[selection]) > 0.0001) {
+    let selectedOdd;
+    let selectionLabel = selection;
+    if (Array.isArray(manual.markets)) {
+      const marketName = String(pick?.market || '');
+      const outcomeName = String(pick?.outcome || selection);
+      const market = manual.markets.find(m => m && m.name === marketName);
+      const outcome = market && Array.isArray(market.outcomes) ? market.outcomes.find(o => o && o.name === outcomeName) : null;
+      if (!market || !outcome) return res.status(400).json({ error: 'Исход недоступен: рынок или исход больше не существует' });
+      selectedOdd = Number(outcome.odd);
+      selectionLabel = `${marketName} — ${outcomeName}`;
+    } else {
+      const market = manual.markets || {};
+      if (!Object.hasOwn(market, selection)) return res.status(400).json({ error: 'Исход недоступен: рынок или исход больше не существует' });
+      selectedOdd = Number(market[selection]);
+    }
+    const clientOdd = Number(pick?.odd);
+    if (!Number.isFinite(selectedOdd) || selectedOdd < 1.01 || selectedOdd > 1000 || !Number.isFinite(clientOdd) || Math.abs(clientOdd - selectedOdd) > 0.0001) {
       return res.status(409).json({ error: 'Коэффициент изменился. Обнови линию и собери купон заново.' });
     }
-    usedMatches.add(match);
-    odds *= market[selection];
+    usedMatches.add(String(manual.id));
+    odds *= selectedOdd;
     events.push(match);
-    selections.push(`${selection} (${match})`);
+    selections.push(`${selectionLabel} (${match})`);
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -134,5 +127,12 @@ export default async function handler(req, res) {
       code: error.code || undefined
     });
   }
+  try {
+    const { data: player } = await supabase.from('profiles').select('display_name,telegram_id').eq('id', profile.id).maybeSingle();
+    if (player?.telegram_id) {
+      const message = `🎟️ Ставка принята · КАЮК BET\nМатчи: ${events.join(' + ')}\nИсход: ${selections.join(' + ')}\nСумма: ${stake.toLocaleString('ru-RU')} ₽\nКоэффициент: ${Number(odds.toFixed(4))}\nВозможная выплата: ${Math.round(stake * odds).toLocaleString('ru-RU')} ₽\nТолько виртуальные средства.`;
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: player.telegram_id, text: message, disable_web_page_preview: true }) });
+    }
+  } catch (notificationError) { console.warn('Bet notification failed:', notificationError?.message || notificationError); }
   return res.status(200).json({ ok: true, bet: data, odds: Number(odds.toFixed(4)) });
 }
