@@ -167,12 +167,29 @@ export default async function handler(req,res) {
     return res.status(200).json({ok:true,matchId:body.id,result:body.result,won,lost,waiting,skipped});
   }
 
-  if (action==='settleBet') {
-    if (!body.id || !['won','lost','void'].includes(body.result)) return res.status(400).json({error:'Выбери результат расчёта'});
-    const {data,error}=await db.rpc('admin_settle_bet',{p_bet_id:body.id,p_result:body.result,p_admin_telegram_id:user.id});
-    if (error) return res.status(400).json({error:error.message==='Bet already settled'?'Эта ставка уже рассчитана':'Не удалось рассчитать ставку. Проверь SQL в Supabase.'});
-    await notifyBetOwner(db,body.id,body.result,data?.payout||0);
-    return res.status(200).json(data);
+администратора'});
+
+if (action==='settleBet') {
+  if (!body.id || !['won','lost','void'].includes(body.result)) {
+    return res.status(400).json({error:'Выбери результат расчёта'});
   }
-  return res.status(400).json({error:'Неизвестное действие администратора'});
+
+  const {data,error}=await db.rpc('admin_settle_bet',{
+    p_bet_id:body.id,
+    p_result:body.result,
+    p_admin_telegram_id:user.id
+  });
+
+  if (error) {
+    console.error('admin_settle_bet failed:', error.code, error.message);
+    return res.status(400).json({
+      error: error.message === 'Bet already settled'
+        ? 'Эта ставка уже рассчитана'
+        : 'Не удалось рассчитать ставку. Проверь SQL в Supabase.'
+    });
+  }
+
+  await notifyBetOwner(db,body.id,body.result,data?.payout||0);
+  return res.status(200).json(data);
 }
+
