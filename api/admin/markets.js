@@ -62,16 +62,34 @@ export default async function handler(req,res) {
     const markets=body.markets;
     if (!league || !home_team || !away_team || home_team===away_team || !Number.isFinite(parsedStart) || !markets || typeof markets!=='object') return res.status(400).json({error:'Заполни лигу, команды, дату и коэффициенты'});
     const start_time=new Date(parsedStart).toISOString();
-    const clean={};
-    for (const k of ['П1','X','П2']) {
-      const v=markets[k];
-      if (v!=='' && v!==null && v!==undefined) {
-        const n=Number(v);
-        if (!Number.isFinite(n) || n<1.01 || n>1000) return res.status(400).json({error:'Коэффициенты должны быть от 1.01 до 1000'});
-        clean[k]=n;
+    let clean;
+    if (Array.isArray(markets)) {
+      clean=[];
+      for (const market of markets) {
+        const name=String(market?.name||'').trim();
+        if (!name || !Array.isArray(market?.outcomes) || !market.outcomes.length) return res.status(400).json({error:'У каждого рынка должно быть название и хотя бы один исход'});
+        const outcomes=[];
+        for (const outcome of market.outcomes) {
+          const outcomeName=String(outcome?.name||'').trim();
+          const n=Number(outcome?.odd);
+          if (!outcomeName || !Number.isFinite(n) || n<1.01 || n>1000) return res.status(400).json({error:'Укажи название каждого исхода и коэффициент от 1.01 до 1000'});
+          outcomes.push({name:outcomeName,odd:n});
+        }
+        clean.push({name,outcomes});
       }
+      if (!clean.length) return res.status(400).json({error:'Добавь хотя бы один рынок'});
+    } else {
+      clean={};
+      for (const k of ['П1','X','П2']) {
+        const v=markets[k];
+        if (v!=='' && v!==null && v!==undefined) {
+          const n=Number(v);
+          if (!Number.isFinite(n) || n<1.01 || n>1000) return res.status(400).json({error:'Коэффициенты должны быть от 1.01 до 1000'});
+          clean[k]=n;
+        }
+      }
+      if (!Object.keys(clean).length) return res.status(400).json({error:'Добавь хотя бы один коэффициент'});
     }
-    if (!Object.keys(clean).length) return res.status(400).json({error:'Добавь хотя бы один коэффициент'});
     const row={league,home_team,away_team,start_time,status:body.status==='CLOSED'?'CLOSED':'NS',markets:clean,created_by:user.id,updated_at:new Date().toISOString()};
     let query;
     if (body.id) {
