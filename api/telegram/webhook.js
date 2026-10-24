@@ -46,6 +46,10 @@ export default async function handler(req, res) {
       await telegram('sendMessage', token, { chat_id: chatId, text: greeting, reply_markup: openAppKeyboard(), disable_web_page_preview: true });
       return res.status(200).json({ ok: true });
     }
+    if (['/id', '/chatid'].includes(command)) {
+      await telegram('sendMessage', token, { chat_id: chatId, text: `🆔 ID этой беседы: ${chatId}` });
+      return res.status(200).json({ ok: true });
+    }
     if (['/line', '/matches'].includes(command)) {
       const { SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = process.env;
       if (!url || !key) throw new Error('Supabase is not configured');
