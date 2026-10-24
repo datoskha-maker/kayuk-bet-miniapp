@@ -85,6 +85,15 @@ export default async function handler(req, res) {
     }
   }
 
+  const { data: activeFreebets, error: freebetsError } = await supabase
+    .from('freebets')
+    .select('id, nominal, remaining, status, granted_at, notification_seen_at')
+    .eq('user_id', profile.id)
+    .eq('status', 'active')
+    .gt('remaining', 0)
+    .order('granted_at', { ascending: false });
+  if (freebetsError) return res.status(500).json({ error: 'Freebet query failed' });
+
   const { data: bets, error: betsError } = await supabase
     .from('bets')
     .select('id, event_title, selection, stake, odds, status, potential_payout, created_at, settled_at')
@@ -153,6 +162,7 @@ export default async function handler(req, res) {
     profile,
     isAdmin,
     balance: balanceRow?.balance ?? 0,
+    activeFreebets: activeFreebets || [],
     history: bets || [],
     leaders,
     adminPlayers,
