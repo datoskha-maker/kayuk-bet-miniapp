@@ -79,24 +79,36 @@ export default async function handler(req, res) {
   }
 
   let notified = false;
-  try {
-    const message = `🎁 ТЕБЕ ВЫДАН ФРИБЕТ · КАЮК BET\n\nНоминал: ${nominal.toLocaleString('ru-RU')} ₽\nФрибет доступен в Mini App. При выигрыше номинал ставки не возвращается — начисляется только прибыль.\nТолько виртуальные средства.`;
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: player.telegram_id, text: message, disable_web_page_preview: true })
-    });
-    const result = await response.json();
-    notified = Boolean(response.ok && result.ok);
-  } catch (error) {
-    console.warn('Freebet direct notification failed:', error?.message || error);
+  const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
+  const playerName = player.display_name || player.username || 'Игрок';
+  let notificationMessage = 'Фрибет выдан, но уведомление в беседу не отправлено.';
+  if (!groupChatId) {
+    notificationMessage = 'Фрибет выдан, но не настроен TELEGRAM_GROUP_CHAT_ID в Vercel.';
+  } else {
+    try {
+      const message = `🎁 ФРИБЕТ ВЫДАН · КАЮК BET\n\n👤 Игрок: ${playerName}${player.username ? ' · @' + player.username.replace(/^@/, '') : ''}\n💰 Номинал: ${nominal.toLocaleString('ru-RU')} ₽\n⚽ Фрибет уже доступен в Mini App!\n\nТолько виртуальные средства.`;
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: groupChatId, text: message, disable_web_page_preview: true })
+      });
+      const result = await response.json();
+      notified = Boolean(response.ok && result.ok);
+      notificationMessage = notified
+        ? 'Фрибет выдан, уведомление отправлено в Telegram-беседу.'
+        : 'Фрибет выдан, но Telegram не отправил сообщение в беседу. Проверь ID беседы и права бота.';
+      if (!notified) console.warn('Freebet group notification failed:', result.description || 'Telegram API error');
+    } catch (error) {
+      console.warn('Freebet group notification failed:', error?.message || error);
+      notificationMessage = 'Фрибет выдан, но уведомление в беседу не отправлено.';
+    }
   }
 
   return res.status(200).json({
     ok: true,
     freebet,
-    player: player.display_name || player.username || 'Игрок',
-    directNotificationSent: notified,
-    message: notified ? 'Фрибет выдан, игроку отправлено сообщение.' : 'Фрибет выдан. Личное сообщение не отправлено — уведомление добавим в Mini App.'
+    player: playerName,
+    groupNotificationSent: notified,
+    message: notificationMessage
   });
 }
