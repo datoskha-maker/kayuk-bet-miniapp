@@ -81,7 +81,7 @@ export default async function handler(req, res) {
   }
 
   const stake = Number(body?.stake);
-  if (![10, 20, 30, 50, 100].includes(stake)) {
+  if (!Number.isSafeInteger(stake) || stake < 10 || stake > 100000) {
     return res.status(400).json({ error: 'Invalid stake' });
   }
 
