@@ -45,6 +45,11 @@ function verifyTelegramInitData(initData, botToken) {
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
+  // Fail closed: casino spins stay disabled until the owner explicitly enables them.
+  if (process.env.FOOTBALL_SLOTS_ENABLED !== 'true') {
+    return res.status(503).json({ error: 'Казино временно закрыто на проверку.' });
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
