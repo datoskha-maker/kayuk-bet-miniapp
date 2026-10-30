@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   }
   const stake = Number(body?.stake);
   const picks = body?.picks;
-  if (!Number.isSafeInteger(stake) || stake < 1 || !Array.isArray(picks) || picks.length < 1 || picks.length > 4) {
+  if (!Number.isSafeInteger(stake) || stake < 1 || !Array.isArray(picks) || picks.length < 1 || picks.length > 50) {
     return res.status(400).json({ error: 'Проверь сумму ставки и купон' });
   }
 
