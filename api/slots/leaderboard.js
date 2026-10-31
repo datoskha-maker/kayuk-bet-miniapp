@@ -33,12 +33,25 @@ export default async function handler(req, res) {
   if (!telegramUser?.id) return res.status(401).json({ error: 'Telegram authentication failed. Reopen the Mini App.' });
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-  const { data: spins, error: spinsError } = await supabase
-    .from('slot_spins')
-    .select('user_id, stake, payout');
-  if (spinsError) {
-    console.error('Casino leaderboard spins lookup failed:', spinsError.message);
-    return res.status(500).json({ error: 'Не удалось загрузить итоги казино.' });
+  // Supabase applies a per-request row limit. Read the complete spin history
+  // in stable, sequential pages so the leaderboard never silently omits older spins.
+  const spins = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error: spinsError } = await supabase
+      .from('slot_spins')
+      .select('id, user_id, stake, payout')
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (spinsError) {
+      console.error('Casino leaderboard spins lookup failed:', spinsError.message);
+      return res.status(500).json({ error: 'Не удалось загрузить итоги казино.' });
+    }
+
+    const batch = page || [];
+    spins.push(...batch);
+    if (batch.length < pageSize) break;
   }
   const { data: profiles, error: profilesError } = await supabase
     .from('profiles')
