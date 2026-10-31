@@ -58,7 +58,8 @@ export default async function handler(req, res) {
   const {
     TELEGRAM_BOT_TOKEN: botToken,
     SUPABASE_URL: supabaseUrl,
-    SUPABASE_SERVICE_ROLE_KEY: serviceKey
+    SUPABASE_SERVICE_ROLE_KEY: serviceKey,
+    ADMIN_TELEGRAM_ID: adminId
   } = process.env;
 
   if (!botToken || !supabaseUrl || !serviceKey) {
@@ -113,10 +114,19 @@ export default async function handler(req, res) {
 
   // The database RPC must atomically debit the stake, determine the result,
   // credit any payout and record the spin. Never calculate payouts in the client.
-  const { data, error } = await supabase.rpc('spin_football_slots', {
-    p_user_id: profile.id,
-    p_stake: stake
-  });
+  const privateAdminMode = body?.privateAdminMode === true &&
+    Boolean(adminId) && String(telegramUser.id) === String(adminId);
+
+  const { data, error } = privateAdminMode
+    ? await supabase.rpc('spin_football_slots_private_admin', {
+        p_user_id: profile.id,
+        p_stake: stake,
+        p_private_mode: true
+      })
+    : await supabase.rpc('spin_football_slots', {
+        p_user_id: profile.id,
+        p_stake: stake
+      });
 
   if (error) {
     if (error.message?.includes('Insufficient balance')) {
