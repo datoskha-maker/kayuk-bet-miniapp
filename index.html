@@ -115,7 +115,7 @@ async function settleAdminBet(id,result){const label=result==='won'?'выигр�
 
 
 let selectedSlotStake=10,slotSpinBusy=false,privateAdminMode=false;
-function renderPersonalLuckUI(){const panel=document.getElementById("personalLuckPanel");const toggle=document.getElementById("personalLuckToggle");const state=document.getElementById("personalLuckState");if(!panel)return;panel.style.display=isAdmin?"block":"none";if(toggle)toggle.checked=privateAdminMode;if(state){state.textContent=privateAdminMode?"Включено · личный режим активен":"Выключено · обычный режим";state.classList.toggle("enabled",privateAdminMode)}}
+function renderPersonalLuckUI(){const panel=document.getElementById("personalLuckPanel");const toggle=document.getElementById("personalLuckToggle");const state=document.getElementById("personalLuckState");if(!panel)return;panel.style.display="none";if(toggle)toggle.checked=privateAdminMode;if(state){state.textContent=privateAdminMode?"Включено · личный режим активен":"Выключено · обычный режим";state.classList.toggle("enabled",privateAdminMode)}}
 function setPersonalLuckMode(enabled){privateAdminMode=isAdmin&&enabled===true;renderPersonalLuckUI();toast(privateAdminMode?"🍀 Личная удача включена":"Обычный режим слотов")}
 function selectSlotStake(n){if(![10,20,30,50,100].includes(n))return;selectedSlotStake=n;const input=document.getElementById('slotsCustomStake');if(input)input.value='';document.querySelectorAll('.slots-stake').forEach(b=>b.classList.toggle('active',Number(b.dataset.stake)===n))}
 function setCustomSlotStake(value){const n=Number(value);document.querySelectorAll('.slots-stake').forEach(b=>b.classList.remove('active'));if(Number.isInteger(n)&&n>=10&&n<=100000){selectedSlotStake=n}else{selectedSlotStake=0}}
