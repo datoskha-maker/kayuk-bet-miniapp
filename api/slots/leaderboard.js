@@ -63,8 +63,12 @@ export default async function handler(req, res) {
 
   const profileById = new Map((profiles || []).map(p => [p.id, p]));
   const totals = new Map();
+  const casinoTotals = { spins: 0, staked: 0, paid: 0 };
   for (const spin of spins || []) {
     if (spin.private_admin_mode === true) continue;
+    casinoTotals.spins += 1;
+    casinoTotals.staked += Number(spin.stake) || 0;
+    casinoTotals.paid += Number(spin.payout) || 0;
     const key = spin.user_id;
     if (!totals.has(key)) totals.set(key, { user_id: key, spins: 0, staked: 0, paid: 0 });
     const row = totals.get(key);
@@ -84,5 +88,5 @@ export default async function handler(req, res) {
     };
   }).sort((a, b) => b.net - a.net || b.spins - a.spins);
 
-  return res.status(200).json({ players });
+  return res.status(200).json({ players, totals: { ...casinoTotals, net: casinoTotals.paid - casinoTotals.staked } });
 }
