@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   for (let offset = 0; ; offset += pageSize) {
     const { data: page, error: spinsError } = await supabase
       .from('slot_spins')
-      .select('id, user_id, stake, payout, private_admin_mode')
+      .select('id, user_id, stake, payout, payout')
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 
@@ -65,7 +65,6 @@ export default async function handler(req, res) {
   const totals = new Map();
   const casinoTotals = { spins: 0, staked: 0, paid: 0 };
   for (const spin of spins || []) {
-    if (spin.private_admin_mode === true) continue;
     casinoTotals.spins += 1;
     casinoTotals.staked += Number(spin.stake) || 0;
     casinoTotals.paid += Number(spin.payout) || 0;
