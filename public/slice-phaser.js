@@ -51,7 +51,7 @@
       this.objects = [];
       state.debrisCount = 0;
       this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 180);
-      this.physics.world.gravity.y = 980;
+      this.physics.world.gravity.y = 1120;
       this.cameras.main.setBackgroundColor('#081321');
       this.drawArena();
       this.bladeTrail=[];
@@ -171,7 +171,8 @@
     launch(item,x,speed,index,total){
       const key=item.id;
       const hasTexture=this.textures.exists(key);
-      const obj=hasTexture?this.physics.add.image(x,this.scale.height+75,key):this.addFallback(item,x,this.scale.height+75);
+      const launchY=this.scale.height+34+Math.random()*66;
+      const obj=hasTexture?this.physics.add.image(x,launchY,key):this.addFallback(item,x,launchY);
       if(!obj.body) this.physics.add.existing(obj);
       obj.setDepth(5);
       const targetH=Math.min(104,Math.max(66,this.scale.height*.135));
@@ -180,17 +181,24 @@
         const scale=targetH/Math.max(1,source.height);
         obj.setScale(scale);
       } else obj.setScale(targetH/78);
-      obj.item=item;obj.isCut=false;if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));else if(obj.body?.setCircle)obj.body.setCircle(Math.max(22,obj.displayWidth*.36));
+      obj.item=item;obj.isCut=false;
+      if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));
+      else if(obj.body?.setCircle)obj.body.setCircle(Math.max(22,obj.displayWidth*.36));
       obj.body.setAllowGravity(true);
-      obj.body.setBounce(0.12);
-      const spread=(index-(total-1)/2)*1.45;
-      const vx=spread+(Math.random()-.5)*1.65;
-      const vy=-(Math.min(900,760+state.score*.006)*speed+Math.random()*155);
-      const launchY=this.scale.height+38+Math.random()*92;
-      obj.setY(launchY);
-      if(obj.setVelocity)obj.setVelocity(vx*75,vy);else obj.body.setVelocity(vx*75,vy);
-      const spin=(Math.random()-.5)*210;if(obj.setAngularVelocity)obj.setAngularVelocity(spin);else obj.body.setAngularVelocity(spin);
-      obj.setRotation((Math.random()-.5)*.45);
+      obj.body.setBounce(0.08);
+      const gravity=this.physics.world.gravity.y||1120;
+      const scoreTier=Math.floor(state.score/500);
+      const difficultyLift=Math.min(.075,scoreTier*.004);
+      const apexRatio=Phaser.Math.Clamp(.48+Math.random()*.18+difficultyLift,.46,.72);
+      const apexY=this.scale.height*(1-apexRatio);
+      const rise=Math.max(180,launchY-apexY);
+      const vy=-Math.sqrt(2*gravity*rise);
+      const spread=(index-(total-1)/2)*48;
+      const vx=Phaser.Math.Clamp(spread+(Math.random()-.5)*145,-190,190);
+      if(obj.setVelocity)obj.setVelocity(vx,vy);else obj.body.setVelocity(vx,vy);
+      const spin=(Math.random()-.5)*230;
+      if(obj.setAngularVelocity)obj.setAngularVelocity(spin);else obj.body.setAngularVelocity(spin);
+      obj.setRotation((Math.random()-.5)*.5);
       this.objects.push(obj);
     }
     addFallback(item,x,y){
