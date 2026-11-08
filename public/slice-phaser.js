@@ -267,12 +267,24 @@
     el.style.left=x+'px';el.style.top=y+'px';$('sliceStage').appendChild(el);
     setTimeout(()=>el.remove(),850);
   }
+  function ensurePhaser(){
+    if(window.Phaser)return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+      const script=document.createElement('script');
+      script.src='https://unpkg.com/phaser@3.90.0/dist/phaser.min.js';
+      script.onload=()=>window.Phaser?resolve():reject(new Error('Игровой движок не загрузился. Проверь интернет и нажми ещё раз.'));
+      script.onerror=()=>reject(new Error('Не удалось загрузить игровой движок. Проверь интернет и нажми ещё раз.'));
+      document.head.appendChild(script);
+    });
+  }
+
   async function start(){
     if(state.startBusy||state.running)return;
     if(!tg?.initData){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
     playSound('slice');
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
     try{
+      await ensurePhaser();
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
       Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[]});
@@ -340,9 +352,9 @@
     leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen();
   }
   function init(){
-    if(!window.Phaser){console.error('Phaser 3 did not load');return;}
-    $('sliceStart').addEventListener('click',start);
-    $('slicePlayAgain').addEventListener('click',start);
+    $('sliceStart')?.addEventListener('click',start);
+    $('slicePlayAgain')?.addEventListener('click',start);
+    if(!window.Phaser)console.warn('Phaser CDN unavailable; fallback will load when the player starts.');
     if($('sliceTimer'))$('sliceTimer').closest('.slice-hud-item')?.remove();
     const gameHost=$('sliceGame');
     if(gameHost){gameHost.style.width='100%';gameHost.style.height='430px';gameHost.style.touchAction='none';}
