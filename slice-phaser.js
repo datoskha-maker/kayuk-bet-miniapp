@@ -31,7 +31,7 @@
   const BONUSES = ITEMS.filter(x => x.kind === 'bonus');
   const state = {
     sessionId:null, running:false, finished:false, score:0, lives:3,
-    maxCombo:0, streak:0, multiplier:1, wave:0, wavesSinceBomb:0,
+    maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
     scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0
   };
@@ -58,7 +58,7 @@
         this.physics.world.setBounds(0, 0, size.width, size.height + 180);
         this.drawArena();
       });
-      this.input.on('pointerdown', p => { if(state.running) state.pointer = {x:p.x,y:p.y}; });
+      this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y}; state.swipeCutCount=0; } });
       this.input.on('pointermove', p => {
         if(!state.running || !p.isDown || !state.pointer) return;
         const next = {x:p.x,y:p.y};
@@ -96,7 +96,7 @@
     }
     update(time,delta){
       if(!state.running) return;
-      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ o.destroy(); return false; } return true; });
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
     }
@@ -206,8 +206,8 @@
       if(!state.swipeHits.length) return;
       const hits=state.swipeHits.splice(0);
       const safe=hits.filter(o=>o.item.kind!=='bomb'&&o.item.kind!=='hazard');
-      const combo=Math.max(1,Math.min(5,safe.length));
-      if(safe.length){state.streak++;state.maxCombo=Math.max(state.maxCombo,safe.length);}
+      if(safe.length){state.streak++;state.swipeCutCount+=safe.length;state.maxCombo=Math.max(state.maxCombo,state.swipeCutCount);}
+      const combo=Math.max(1,Math.min(5,state.swipeCutCount));
       hits.forEach(o=>{
         const item=o.item;
         const x=o.x,y=o.y;
@@ -270,7 +270,7 @@
     return true;
   }
 
-  function haptic(kind){try{if(kind==='success')tg?.HapticFeedback?.notificationOccurred?.('success');else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
+  function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   function playSound(kind){
     try{
       const Ctx=window.AudioContext||window.webkitAudioContext;
@@ -279,7 +279,7 @@
       if(state.audio.state==='suspended')state.audio.resume();
       const ctx=state.audio,now=ctx.currentTime;
       const osc=ctx.createOscillator(),gain=ctx.createGain();
-      const presets={slice:[520,260,.075,'triangle',.055],bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09]};
+      const presets={slice:[520,260,.075,'triangle',.055],bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
       const p=presets[kind]||presets.slice;
       osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
       gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
@@ -319,7 +319,7 @@
       await ensurePhaser();
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
+      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
