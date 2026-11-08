@@ -33,7 +33,7 @@
     sessionId:null, running:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
-    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0
+    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0
   };
 
   function createSliceSceneClass(){
@@ -112,7 +112,7 @@
       return s>=7000?12:s>=3500?14:s>=1200?16:18;
     }
     spawnWave(){
-      const room=this.maxOnScreen()-this.objects.length-Math.min(2,Math.ceil(state.debrisCount/3));
+      const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
       if(room<2){this.nextWaveAt=this.time.now+450;return;}
       state.wave++;
       state.wavesSinceBomb++;
@@ -135,10 +135,17 @@
       const baseX=this.scale.width*.2+Math.random()*this.scale.width*.6;
       const speed=1+Math.min(.55,scoreTier*.035);
       const gap=special?Math.min(128,this.scale.width*.3):Math.min(66,this.scale.width*.16);
+      const token=state.roundToken;
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
-        const x=Phaser.Math.Clamp(baseX+offset,45,this.scale.width-45);
-        this.launch(item,x,speed,i,items.length);
+        const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*24,45,this.scale.width-45);
+        const delay=i*92+Math.random()*72;
+        state.pendingLaunches++;
+        this.time.delayedCall(delay,()=>{
+          if(token!==state.roundToken)return;
+          state.pendingLaunches=Math.max(0,state.pendingLaunches-1);
+          if(state.running)this.launch(item,x,speed,i,items.length);
+        });
       });
       const scorePace=Math.min(360,Math.floor(scoreTier*5));
       this.nextWaveAt=this.time.now+Math.max(520,1050-scorePace)+Math.random()*240;
@@ -312,7 +319,7 @@
       await ensurePhaser();
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[]});
+      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
