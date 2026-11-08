@@ -411,7 +411,7 @@
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
           scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,document.getElementById('sliceGame')?.clientWidth||window.innerWidth),height:Math.max(480,document.getElementById('sliceGame')?.clientHeight||window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
-          physics:{default:'arcade',arcade:{gravity:{y:980},debug:false}},
+          physics:{default:'arcade',arcade:{gravity:{y:1120},debug:false}},
           render:{antialias:true,roundPixels:false},scene:[createSliceSceneClass()]});
         state.game.events.once('ready',()=>{});
       } else {
