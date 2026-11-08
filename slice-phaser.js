@@ -228,8 +228,7 @@
       });
     }
     burst(x,y,color){
-      const p=this.add.particles(x,y,'__WHITE');
-      p.createEmitter({speed:{min:80,max:360},angle:{min:0,max:360},scale:{start:.9,end:0},tint:color,quantity:18,lifespan:520,gravityY:450});
+      const p=this.add.particles(x,y,'__WHITE',{speed:{min:80,max:360},angle:{min:0,max:360},scale:{start:.9,end:0},tint:color,quantity:18,lifespan:520,gravityY:450});
       this.time.delayedCall(600,()=>p.destroy());
     }
   }
@@ -283,12 +282,12 @@
     }catch(e){box.innerHTML='<div class="empty">Не удалось загрузить рейтинг. Попробуй позже.</div>';}
   }
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;'}[c]));}
-  async function finish(){
+  async function finish(reason='lives'){
     if(state.finished||!state.sessionId)return;
     state.finished=true;state.running=false;
     document.body.classList.remove('slice-playing');
     $('sliceEnd').classList.remove('hidden');
-    $('sliceEndTitle').textContent='ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
+    $('sliceEndTitle').textContent=reason==='exit'?'РАУНД ЗАВЕРШЁН':'ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
     $('sliceFinalScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceReward').textContent='Зачисляем '+money(state.score)+'…';
     try{
@@ -303,7 +302,7 @@
     $('sliceStart').disabled=false;$('sliceStart').textContent='ИГРАТЬ ЕЩЁ';$('sliceStart').classList.remove('hidden');
   }
   async function close(){
-    if(state.running)await finish();
+    if(state.running)await finish('exit');
     document.body.classList.remove('slice-fullscreen','slice-playing');
     try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
     if(typeof window.page==='function')window.page('home');
