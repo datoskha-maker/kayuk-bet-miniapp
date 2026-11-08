@@ -317,6 +317,17 @@
       osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
       gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
       osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+p[2]);
+      if(kind==='slice'){
+        const length=Math.max(1,Math.floor(ctx.sampleRate*.055));
+        const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+        for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
+        const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),noiseGain=ctx.createGain();
+        noise.buffer=buffer;filter.type='highpass';filter.frequency.setValueAtTime(1450,now);
+        noiseGain.gain.setValueAtTime(.0001,now);noiseGain.gain.exponentialRampToValueAtTime(.022,now+.008);
+        noiseGain.gain.exponentialRampToValueAtTime(.0001,now+.055);
+        noise.connect(filter);filter.connect(noiseGain);noiseGain.connect(ctx.destination);
+        noise.start(now);noise.stop(now+.06);
+      }
     }catch(e){}
   }
   function hud(){
