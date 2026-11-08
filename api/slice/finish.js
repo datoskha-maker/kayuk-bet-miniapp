@@ -29,8 +29,8 @@ export default async function handler(req, res) {
   if (error) {
     console.error('KAYUK SLICE finish failed:', error.message);
     const message = error.message || '';
-    if (message.includes('already') || message.includes('expired') || message.includes('Score exceeds') || message.includes('Invalid')) {
-      return res.status(400).json({ error: 'Результат не принят: сессия завершена, истекла или счёт превышает допустимый предел.' });
+    if (message.includes('already') || message.includes('Invalid') || message.includes('Score exceeds') || message.includes('Game session not found')) {
+      return res.status(400).json({ error: 'Результат не принят: сессия недействительна или счёт превышает допустимую скорость набора.' });
     }
     return res.status(500).json({ error: 'Не удалось зачислить результат. Обратись к администратору.' });
   }
