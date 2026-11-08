@@ -370,7 +370,7 @@
       hud();
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
-          scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,window.innerWidth),height:Math.max(480,window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
+          scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,document.getElementById('sliceGame')?.clientWidth||window.innerWidth),height:Math.max(480,document.getElementById('sliceGame')?.clientHeight||window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
           physics:{default:'arcade',arcade:{gravity:{y:980},debug:false}},
           render:{antialias:true,roundPixels:false},scene:[createSliceSceneClass()]});
         state.game.events.once('ready',()=>{});
@@ -421,9 +421,17 @@
     try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
     if(typeof window.page==='function')window.page('home');
   }
+  function syncViewport(){
+    const height=Math.max(320,Number(tg?.viewportHeight)||window.visualViewport?.height||window.innerHeight||0);
+    const stable=Math.max(320,Number(tg?.viewportStableHeight)||height);
+    document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
+    document.documentElement.style.setProperty('--slice-stable-height',stable+'px');
+    if(state.game){state.game.scale.refresh();}
+  }
   function enterFullscreen(requestNative=false){
     document.body.classList.add('slice-fullscreen');
     document.documentElement.classList.add('slice-fullscreen');
+    syncViewport();
     try{tg?.expand?.();}catch(e){}
     if(!requestNative)return;
     try{
@@ -446,8 +454,11 @@
     if($('sliceTimer'))$('sliceTimer').closest('.slice-hud-item')?.remove();
     const gameHost=$('sliceGame');
     if(gameHost){gameHost.style.width='100%';gameHost.style.height='100%';gameHost.style.minHeight='0';gameHost.style.touchAction='none';}
-    tg?.onEvent?.('viewportChanged',()=>{if(state.game)state.game.scale.refresh();});
-    tg?.onEvent?.('fullscreenChanged',()=>{if(state.game)state.game.scale.refresh();});
+    syncViewport();
+    tg?.onEvent?.('viewportChanged',syncViewport);
+    tg?.onEvent?.('fullscreenChanged',syncViewport);
+    window.addEventListener('resize',syncViewport,{passive:true});
+    window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
     document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running)state.scene?.scene.resume();});
   }
   window.KayukSlice={open,close,leaderboard};
