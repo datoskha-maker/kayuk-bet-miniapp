@@ -36,7 +36,8 @@
     scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0
   };
 
-  class SliceScene extends Phaser.Scene {
+  function createSliceSceneClass(){
+    return class SliceScene extends Phaser.Scene {
     constructor(){ super({ key:'KayukSliceScene' }); }
     preload(){
       ITEMS.forEach(item => {
@@ -238,6 +239,7 @@
       const p=this.add.particles(x,y,'__WHITE',{speed:{min:80,max:360},angle:{min:0,max:360},scale:{start:.9,end:0},tint:color,quantity:18,lifespan:520,gravityY:450});
       this.time.delayedCall(600,()=>p.destroy());
     }
+    };
   }
 
   function haptic(kind){try{if(kind==='success')tg?.HapticFeedback?.notificationOccurred?.('success');else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
@@ -296,7 +298,7 @@
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
           scale:{mode:Phaser.Scale.RESIZE,width:560,height:430,autoCenter:Phaser.Scale.CENTER_BOTH},
           physics:{default:'arcade',arcade:{gravity:{y:980},debug:false}},
-          render:{antialias:true,roundPixels:false},scene:[SliceScene]});
+          render:{antialias:true,roundPixels:false},scene:[createSliceSceneClass()]});
         state.game.events.once('ready',()=>{});
       } else {
         state.scene?.scene.restart();
