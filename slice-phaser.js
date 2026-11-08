@@ -90,7 +90,7 @@
     }
     update(time,delta){
       if(!state.running) return;
-      this.objects = this.objects.filter(o => o.active && o.body && o.y < this.scale.height + 130);
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body) return false; if(o.y > this.scale.height + 130){ o.destroy(); return false; } return true; });
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
     }
@@ -116,7 +116,7 @@
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
       const bombChance=bombReady?Math.min(.48,.18+scoreTier*.025):0;
-      const bonusChance=bonusReady?.52:0;
+      const bonusChance=bonusReady ? 0.52 : 0;
       const roll=Math.random();
       let special=null;
       if(bombReady && roll<bombChance){special=ITEMS.find(x=>x.id==='bomb');state.wavesSinceBomb=0;}
@@ -211,7 +211,7 @@
     split(o){
       const item=o.item,x=o.x,y=o.y,rot=o.rotation;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
-      o.disableBody(true,true);
+      if(o.disableBody)o.disableBody(true,true);else o.destroy();
       ['top','bottom'].forEach((part,i)=>{
         const key=item.id+'-'+part;
         if(!this.textures.exists(key)) return;
