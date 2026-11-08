@@ -129,17 +129,17 @@
       else if(bonusReady && roll<bombChance+bonusChance){special=BONUSES[Math.floor(Math.random()*BONUSES.length)];state.wavesSinceBonus=0;}
       const items=[];
       if(special) items.push(special);
-      const waveCount=special?Math.min(2,room):count;
+      const waveCount=Math.min(count,room);
       while(items.length<waveCount) items.push(REGULAR[Math.floor(Math.random()*REGULAR.length)]);
-      if(!special) Phaser.Utils.Array.Shuffle(items);
+      Phaser.Utils.Array.Shuffle(items);
       const baseX=this.scale.width*.2+Math.random()*this.scale.width*.6;
       const speed=1+Math.min(.55,scoreTier*.035);
-      const gap=special?Math.min(128,this.scale.width*.3):Math.min(66,this.scale.width*.16);
+      const gap=special?Math.min(116,this.scale.width*.27):Math.min(66,this.scale.width*.16);
       const token=state.roundToken;
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
-        const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*24,45,this.scale.width-45);
-        const delay=i*92+Math.random()*72;
+        const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*34,45,this.scale.width-45);
+        const delay=i*112+Math.random()*88;
         state.pendingLaunches++;
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
@@ -166,9 +166,9 @@
       obj.body.setAllowGravity(true);
       obj.body.setBounce(0.12);
       const spread=(index-(total-1)/2)*1.45;
-      const vx=spread+(Math.random()-.5)*1.2;
-      const vy=-(Math.min(900,760+state.score*.006)*speed+Math.random()*130);
-      const launchY=this.scale.height+48+Math.random()*70;
+      const vx=spread+(Math.random()-.5)*1.65;
+      const vy=-(Math.min(900,760+state.score*.006)*speed+Math.random()*155);
+      const launchY=this.scale.height+38+Math.random()*92;
       obj.setY(launchY);
       if(obj.setVelocity)obj.setVelocity(vx*75,vy);else obj.body.setVelocity(vx*75,vy);
       const spin=(Math.random()-.5)*210;if(obj.setAngularVelocity)obj.setAngularVelocity(spin);else obj.body.setAngularVelocity(spin);
