@@ -213,8 +213,8 @@
           return {x:px*cos+py*sin,y:-px*sin+py*cos};
         };
         const p1=toLocal(a),p2=toLocal(b);
-        const hw=Math.max(12,o.displayWidth*.43),hh=Math.max(14,o.displayHeight*.44);
-        const hitT=segmentBoxHitT(p1,p2,hw,hh);
+        const rx=Math.max(12,o.displayWidth*.46),ry=Math.max(14,o.displayHeight*.46);
+        const hitT=segmentEllipseHitT(p1,p2,rx,ry);
         if(hitT!==null){
           o.isCut=true;
           o.cutNormal={x:-dy/Math.max(1,Math.hypot(dx,dy)),y:dx/Math.max(1,Math.hypot(dx,dy))};
@@ -296,6 +296,23 @@
       this.time.delayedCall(620,()=>p.destroy());
     }
     };
+  }
+
+  function segmentEllipseHitT(a,b,rx,ry){
+    const ax=a.x/rx,ay=a.y/ry,bx=b.x/rx,by=b.y/ry;
+    const dx=bx-ax,dy=by-ay;
+    const A=dx*dx+dy*dy;
+    const C=ax*ax+ay*ay-1;
+    if(C<=0)return 0;
+    if(A<1e-9)return null;
+    const B=2*(ax*dx+ay*dy);
+    const discriminant=B*B-4*A*C;
+    if(discriminant<0)return null;
+    const root=Math.sqrt(discriminant);
+    const t1=(-B-root)/(2*A),t2=(-B+root)/(2*A);
+    const enter=Math.max(0,Math.min(t1,t2));
+    const leave=Math.min(1,Math.max(t1,t2));
+    return enter<=leave?Phaser.Math.Clamp(enter,0,1):null;
   }
 
   function segmentBoxHitT(a,b,halfW,halfH){
