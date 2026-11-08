@@ -82,11 +82,41 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .slice-float{position:absolute;z-index:3;pointer-events:none;transform:translate(-50%,-50%);font-size:13px;font-weight:1000;color:#dff4ff;text-shadow:0 2px 8px #000;animation:slice-float-up .8s ease forwards}@keyframes slice-float-up{to{opacity:0;transform:translate(-50%,-145%)}}
 .slice-board{margin-top:18px;padding:14px;border:1px solid #35465a;border-radius:16px;background:linear-gradient(145deg,#172638,#111923 70%)}.slice-board-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}.slice-board-head h3{margin:0;font-size:14px}.slice-board-head span{font-size:10px;color:#9db0c5}.slice-leader{display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff12}.slice-leader:last-child{border-bottom:0}.slice-rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#20384d;border:1px solid #355775;color:#b9dcf5;font-weight:900;font-size:11px}.slice-leader:nth-child(2) .slice-rank{background:#b4d7ee;color:#0c1a28}.slice-name{font-size:12px;font-weight:850;overflow-wrap:anywhere}.slice-name small{color:#7dbbe8;font-weight:600}.slice-leader>b{font-size:13px;color:#d9efff;font-variant-numeric:tabular-nums}.slice-footnote{font-size:10px;color:#8295aa;line-height:1.5;margin:12px 2px}
 @media(max-width:360px){.slice-stage canvas{height:390px}.slice-hud-item{padding:8px 7px}.slice-hud-item b{font-size:14px}}
+
+/* KAYUK SLICE immersive arcade mode */
+body.slice-fullscreen{overflow:hidden!important;padding-bottom:0!important;background:#050b13}
+body.slice-fullscreen .app>header,body.slice-fullscreen .tabs{display:none!important}
+body.slice-fullscreen .app{max-width:none;width:100%;height:100dvh}
+body.slice-fullscreen main{padding:0;height:100dvh}
+body.slice-fullscreen #slice.page.active{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;gap:10px;overflow:hidden;max-width:none;width:100%;height:100dvh;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px);background:radial-gradient(ellipse at 50% 0%,#193754 0%,#091522 52%,#050b13 100%)}
+.slice-gamebar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
+.slice-gamebar .head{margin:0;flex:1}
+.slice-gamebar .head h2{font-size:16px;letter-spacing:.5px}
+.slice-exit{flex-shrink:0;border:1px solid #45617a!important;background:#15283a!important;color:#d8ebfa!important;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:800}
+body.slice-fullscreen #slice .slice-intro{flex-shrink:0;margin:0;padding:12px 14px}
+body.slice-fullscreen #slice .slice-intro .slice-title{font-size:15px}
+body.slice-fullscreen #slice .slice-intro .slice-subtitle{font-size:10px}
+body.slice-fullscreen #slice .slice-rules{margin-top:8px}
+body.slice-fullscreen #slice .slice-hud{flex-shrink:0;margin:0;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+body.slice-fullscreen #slice .slice-hud-item{padding:7px 5px;text-align:center}
+body.slice-fullscreen #slice .slice-hud-item small{font-size:8px}
+body.slice-fullscreen #slice .slice-hud-item b{font-size:14px}
+body.slice-playing #slice .slice-intro,body.slice-playing #slice .slice-board,body.slice-playing #slice .slice-footnote,body.slice-playing #slice>.stats{display:none!important}
+body.slice-playing #slice .slice-stage{flex:1;min-height:0;height:auto;border-radius:20px;border-color:#426887;box-shadow:0 15px 45px #0008}
+body.slice-playing #slice .slice-stage canvas{height:100%;width:100%;touch-action:none}
+body.slice-fullscreen #slice .slice-stage{flex:1;min-height:300px;height:auto;display:flex;flex-direction:column}
+body.slice-fullscreen #slice .slice-stage canvas{height:100%;flex:1;min-height:0}
+body.slice-fullscreen #slice .slice-overlay{border-radius:20px}
+body.slice-fullscreen #slice .slice-board{flex-shrink:0;max-height:23dvh;overflow:auto;margin:0}
+body.slice-fullscreen #slice .slice-footnote{margin:0}
+body.slice-fullscreen #slice .slice-float{font-size:18px}
+@media(orientation:landscape){body.slice-fullscreen #slice.page.active{padding-left:calc(env(safe-area-inset-left) + 12px);padding-right:calc(env(safe-area-inset-right) + 12px)}}
+
 </style></head><body><div class="app"><header><div class="brand"><div class="logo">КБ</div><div><b>КАЮК BET</b><div class="sub">ЛИГА СВОИХ · DEMO</div></div></div><div class="avatar" id="avatar">К</div></header><main>
 <section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
 <section class="page" id="slice">
   <button class="chip" onclick="page('home')">← Главная</button>
-  <div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div>
+  <div class="slice-gamebar"><div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div><button class="slice-exit" type="button" onclick="KayukSlice.close()">✕ ВЫЙТИ</button></div>
   <div class="slice-intro">
     <div class="slice-title">РЕЖЬ. СОБИРАЙ. ЗАРАБАТЫВАЙ.</div>
     <div class="slice-subtitle">60 секунд · 3 жизни · каждое очко = 1 виртуальная единица на общем балансе КАЮК BET.</div>
@@ -95,7 +125,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <div class="slice-hud hidden" id="sliceHud">
     <div class="slice-hud-item"><small>СЧЁТ</small><b id="sliceScore">0</b></div>
     <div class="slice-hud-item"><small>ЖИЗНИ</small><b id="sliceLives">❤️❤️❤️</b></div>
-    <div class="slice-hud-item"><small>ВРЕМЯ</small><b id="sliceTimer">60с</b></div>
+    <div class="slice-hud-item"><small>ВРЕМЯ</small><b id="sliceTimer">60с</b></div><div class="slice-hud-item"><small>СЕРИЯ</small><b id="sliceStreak">0</b></div><div class="slice-hud-item"><small>БУСТ</small><b id="sliceMultiplier">×1</b></div>
   </div>
   <div class="slice-stage" id="sliceStage">
     <canvas id="sliceCanvas" aria-label="Игровое поле КАЮК SLICE"></canvas>
@@ -118,7 +148,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     <div id="sliceLeaderboard"><div class="empty">Загружаем таблицу рекордов…</div></div>
   </div>
   <p class="slice-footnote">Награды виртуальные. Результат одной сессии зачисляется один раз и записывается в историю операций.</p>
-  <div class="stats"><div class="stat"><span>Общий баланс</span><b id="sliceBalance">—</b></div><div class="stat"><span>Серия успешных свайпов</span><b id="sliceStreak">0 свайпов</b></div></div>
+  <div class="stats"><div class="stat"><span>Общий баланс</span><b id="sliceBalance">—</b></div></div>
 </section>
 
 <section class="page" id="line"><div class="head"><h2>Линия и архив</h2><button onclick="toggleCompetitions()">🏆 Чемпионаты и турниры</button></div><div id="competitionPanel" style="display:none"><div class="head"><h3>Выбери соревнование</h3><button onclick="selectCompetition('Все')">Все события</button></div><div id="competitionFolders" class="chips"></div></div><div id="activeCompetition" class="pill" style="display:inline-block;margin:4px 0 12px">Все соревнования</div><div id="lineMatches"></div><p class="notice">Открытые события и архив рассчитанных матчей сгруппированы по соревнованиям. Все ставки — виртуальные.</p></section>
