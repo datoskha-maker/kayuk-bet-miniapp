@@ -31,8 +31,8 @@
   const BONUSES = ITEMS.filter(x => x.kind === 'bonus');
   const state = {
     sessionId:null, running:false, finished:false, score:0, lives:3,
-    maxCombo:0, streak:0, multiplier:1, wave:0, wavesSinceBomb:99,
-    wavesSinceBonus:99, lastWaveAt:0, objects:[], particles:[], game:null,
+    maxCombo:0, streak:0, multiplier:1, wave:0, wavesSinceBomb:0,
+    wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
     scene:null, pointer:null, swipeHits:[], startBusy:false
   };
 
@@ -91,7 +91,7 @@
     }
     update(time,delta){
       if(!state.running) return;
-      this.objects = this.objects.filter(o => { if(!o.active || !o.body) return false; if(o.y > this.scale.height + 130){ o.destroy(); return false; } return true; });
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ o.destroy(); return false; } return true; });
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
     }
@@ -147,14 +147,14 @@
         const scale=targetH/Math.max(1,source.height);
         obj.setScale(scale);
       } else obj.setScale(targetH/78);
-      obj.item=item;obj.isCut=false;if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));
+      obj.item=item;obj.isCut=false;if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));else if(obj.body?.setCircle)obj.body.setCircle(Math.max(22,obj.displayWidth*.36));
       obj.body.setAllowGravity(true);
       obj.body.setBounce(0.12);
       const spread=(index-(total-1)/2)*1.45;
       const vx=spread+(Math.random()-.5)*1.2;
       const vy=-(Math.min(900,760+state.score*.006)*speed+Math.random()*90);
-      obj.setVelocity(vx*75,vy);
-      obj.setAngularVelocity((Math.random()-.5)*210);
+      if(obj.setVelocity)obj.setVelocity(vx*75,vy);else obj.body.setVelocity(vx*75,vy);
+      const spin=(Math.random()-.5)*210;if(obj.setAngularVelocity)obj.setAngularVelocity(spin);else obj.body.setAngularVelocity(spin);
       obj.setRotation((Math.random()-.5)*.45);
       this.objects.push(obj);
     }
@@ -252,7 +252,7 @@
     try{
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:99,wavesSinceBonus:99,objects:[],pointer:null,swipeHits:[]});
+      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[]});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
