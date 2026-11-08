@@ -196,10 +196,11 @@
         };
         const p1=toLocal(a),p2=toLocal(b);
         const hw=Math.max(12,o.displayWidth*.43),hh=Math.max(14,o.displayHeight*.44);
-        if(segmentHitsBox(p1,p2,hw,hh)){
+        const hitT=segmentBoxHitT(p1,p2,hw,hh);
+        if(hitT!==null){
           o.isCut=true;
           o.cutNormal={x:-dy/Math.max(1,Math.hypot(dx,dy)),y:dx/Math.max(1,Math.hypot(dx,dy))};
-          o.cutPoint={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+          o.cutPoint={x:a.x+dx*hitT,y:a.y+dy*hitT};
           state.swipeHits.push(o);
         }
       });
@@ -270,18 +271,18 @@
     };
   }
 
-  function segmentHitsBox(a,b,halfW,halfH){
+  function segmentBoxHitT(a,b,halfW,halfH){
     let tMin=0,tMax=1;
     const dx=b.x-a.x,dy=b.y-a.y;
     const p=[-dx,dx,-dy,dy];
     const q=[a.x+halfW,halfW-a.x,a.y+halfH,halfH-a.y];
     for(let i=0;i<4;i++){
-      if(Math.abs(p[i])<1e-7){if(q[i]<0)return false;continue;}
+      if(Math.abs(p[i])<1e-7){if(q[i]<0)return null;continue;}
       const t=q[i]/p[i];
       if(p[i]<0)tMin=Math.max(tMin,t);else tMax=Math.min(tMax,t);
-      if(tMin>tMax)return false;
+      if(tMin>tMax)return null;
     }
-    return true;
+    return Phaser.Math.Clamp((tMin+tMax)*.5,0,1);
   }
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
