@@ -77,6 +77,8 @@ jobs:
             raise SystemExit(f'Sprite set mismatch. Missing={missing}; extra={extra}')
           print(f'Validated {len(seen)} RGBA sprites for {len(mapping)} items.')
           PY
+      - name: Validate Phaser module syntax
+        run: node --check slice-phaser.js
       - name: Commit prepared assets
         run: |
           git config user.name "github-actions[bot]"
