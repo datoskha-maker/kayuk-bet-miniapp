@@ -198,6 +198,8 @@
         const hw=Math.max(12,o.displayWidth*.43),hh=Math.max(14,o.displayHeight*.44);
         if(segmentHitsBox(p1,p2,hw,hh)){
           o.isCut=true;
+          o.cutNormal={x:-dy/Math.max(1,Math.hypot(dx,dy)),y:dx/Math.max(1,Math.hypot(dx,dy))};
+          o.cutPoint={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
           state.swipeHits.push(o);
         }
       });
@@ -235,23 +237,35 @@
     split(o){
       const item=o.item,x=o.x,y=o.y,rot=o.rotation;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
+      const normal=o.cutNormal||{x:1,y:0};
+      const cut=o.cutPoint||{x,y};
       if(typeof o.disableBody==='function')o.disableBody(true,true);else o.destroy();
       ['top','bottom'].forEach((part,i)=>{
         const key=item.id+'-'+part;
         if(!this.textures.exists(key)) return;
-        const half=this.physics.add.image(x,y,key);
+        const sign=i===0?-1:1;
+        const half=this.physics.add.image(x+normal.x*sign*5,y+normal.y*sign*5,key);
         state.debrisCount++;
         half.setDepth(7);half.setRotation(rot);
         half.setDisplaySize(Math.max(24,o.displayWidth*.96),Math.max(20,o.displayHeight*.52));
         half.body.setAllowGravity(true);
-        half.setVelocity(vx+(i===0?-95:95),vy-70-(Math.random()*35));
-        half.setAngularVelocity(i===0?-260:260);
-        this.time.delayedCall(850,()=>{if(half.active)half.destroy();state.debrisCount=Math.max(0,state.debrisCount-1);});
+        half.setVelocity(vx+normal.x*sign*(115+Math.random()*45),vy+normal.y*sign*(115+Math.random()*45)-45);
+        half.setAngularVelocity(sign*(210+Math.random()*100));
+        this.tweens.add({targets:half,alpha:0,duration:950,delay:300,ease:'Quad.easeIn'});
+        this.time.delayedCall(1300,()=>{if(half.active)half.destroy();state.debrisCount=Math.max(0,state.debrisCount-1);});
       });
+      this.juiceSplash(cut.x,cut.y,item.kind==='bonus'?0xf5d77c:item.kind==='club'?0x8fcfff:0xff6f78);
+    }
+    juiceSplash(x,y,color){
+      const flash=this.add.circle(x,y,Math.max(8,Math.min(22,this.scale.width*.035)),color,.72).setDepth(18);
+      this.tweens.add({targets:flash,scale:2.1,alpha:0,duration:180,ease:'Quad.easeOut',onComplete:()=>flash.destroy()});
+      const p=this.add.particles(x,y,'__WHITE',{speed:{min:95,max:430},angle:{min:0,max:360},scale:{start:.8,end:0},tint:color,quantity:24,lifespan:620,gravityY:560,blendMode:Phaser.BlendModes.ADD});
+      this.time.delayedCall(680,()=>p.destroy());
     }
     burst(x,y,color){
-      const p=this.add.particles(x,y,'__WHITE',{speed:{min:80,max:360},angle:{min:0,max:360},scale:{start:.9,end:0},tint:color,quantity:18,lifespan:520,gravityY:450});
-      this.time.delayedCall(600,()=>p.destroy());
+      this.cameras.main.shake(105,0.0025);
+      const p=this.add.particles(x,y,'__WHITE',{speed:{min:80,max:360},angle:{min:0,max:360},scale:{start:.9,end:0},tint:color,quantity:22,lifespan:560,gravityY:480,blendMode:Phaser.BlendModes.ADD});
+      this.time.delayedCall(620,()=>p.destroy());
     }
     };
   }
