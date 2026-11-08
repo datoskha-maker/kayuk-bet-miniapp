@@ -261,6 +261,9 @@
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
       const normal=o.cutNormal||{x:1,y:0};
       const tangent=o.cutTangent||{x:0,y:-1};
+      // The supplied PNG halves are split top/bottom. Rotate their seam
+      // to the actual swipe direction so the two halves separate correctly.
+      const cutAngle=Math.atan2(tangent.y,tangent.x);
       const swipeSpeed=Phaser.Math.Clamp(Number(o.cutSpeed)||1100,500,3200);
       const separation=Phaser.Math.Clamp(95+swipeSpeed*.052,120,260);
       const carry=Phaser.Math.Clamp(swipeSpeed*.018,8,58);
@@ -273,7 +276,7 @@
         const sign=i===0?-1:1;
         const half=this.physics.add.image(x+normal.x*sign*5,y+normal.y*sign*5,key);
         state.debrisCount++;
-        half.setDepth(7);half.setRotation(rot);
+        half.setDepth(7);half.setRotation(cutAngle);
         half.setDisplaySize(Math.max(24,o.displayWidth*.96),Math.max(20,o.displayHeight*.52));
         half.body.setAllowGravity(true);
         const kick=separation+Math.random()*32;
