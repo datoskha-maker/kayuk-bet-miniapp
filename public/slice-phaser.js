@@ -150,9 +150,8 @@
       const waveCount=Math.min(count,room);
       while(items.length<waveCount) items.push(REGULAR[Math.floor(Math.random()*REGULAR.length)]);
       Phaser.Utils.Array.Shuffle(items);
-      const baseX=this.scale.width*.2+Math.random()*this.scale.width*.6;
-      const speed=1+Math.min(.55,scoreTier*.035);
-      const gap=special?Math.min(116,this.scale.width*.27):Math.min(66,this.scale.width*.16);
+      const baseX=this.scale.width*.28+Math.random()*this.scale.width*.44;
+      const gap=special?Math.min(88,this.scale.width*.21):Math.min(56,this.scale.width*.13);
       const token=state.roundToken;
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
@@ -162,13 +161,13 @@
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
           state.pendingLaunches=Math.max(0,state.pendingLaunches-1);
-          if(state.running)this.launch(item,x,speed,i,items.length);
+          if(state.running)this.launch(item,x,i,items.length);
         });
       });
       const scorePace=Math.min(360,Math.floor(scoreTier*5));
       this.nextWaveAt=this.time.now+Math.max(520,1050-scorePace)+Math.random()*240;
     }
-    launch(item,x,speed,index,total){
+    launch(item,x,index,total){
       const key=item.id;
       const hasTexture=this.textures.exists(key);
       const launchY=this.scale.height+34+Math.random()*66;
@@ -193,8 +192,12 @@
       const apexY=this.scale.height*(1-apexRatio);
       const rise=Math.max(180,launchY-apexY);
       const vy=-Math.sqrt(2*gravity*rise);
-      const spread=(index-(total-1)/2)*48;
-      const vx=Phaser.Math.Clamp(spread+(Math.random()-.5)*145,-190,190);
+      const spread=(index-(total-1)/2)*42;
+      const desiredVx=spread+(Math.random()-.5)*120;
+      const flightBudget=1.8;
+      const minVx=(42-x)/flightBudget;
+      const maxVx=(this.scale.width-42-x)/flightBudget;
+      const vx=Phaser.Math.Clamp(desiredVx,minVx,maxVx);
       if(obj.setVelocity)obj.setVelocity(vx,vy);else obj.body.setVelocity(vx,vy);
       const spin=(Math.random()-.5)*230;
       if(obj.setAngularVelocity)obj.setAngularVelocity(spin);else obj.body.setAngularVelocity(spin);
