@@ -1,0 +1,85 @@
+name: Inspect prepared KAYUK SLICE sprites
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-prepared-slice-sprites.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect user-prepared sprite archive
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from PIL import Image, ImageDraw
+          import json, math
+
+          archive = Path("png slices.zip")
+          if not archive.is_file():
+              raise SystemExit("png slices.zip not found in repository root")
+          out = Path("prepared-sprites")
+          out.mkdir(exist_ok=True)
+          rows = []
+          images = []
+          with ZipFile(archive) as z:
+              for info in z.infolist():
+                  p = Path(info.filename)
+                  if p.is_absolute() or ".." in p.parts:
+                      raise SystemExit(f"Unsafe archive path rejected: {info.filename}")
+                  if info.is_dir():
+                      continue
+                  if p.suffix.lower() != ".png":
+                      continue
+                  data = z.read(info)
+                  target = out / p.name
+                  target.write_bytes(data)
+                  with Image.open(target) as im:
+                      rgba = im.convert("RGBA")
+                      alpha = rgba.getchannel("A")
+                      has_transparency = alpha.getextrema()[0] < 255
+                      rows.append({
+                          "filename": p.name,
+                          "bytes": len(data),
+                          "width": im.width,
+                          "height": im.height,
+                          "mode": im.mode,
+                          "has_transparency": has_transparency,
+                          "alpha_extrema": list(alpha.getextrema())
+                      })
+                      thumb = rgba.copy()
+                      thumb.thumbnail((240, 190))
+                      images.append((p.name, thumb.copy(), im.size, has_transparency))
+          cols, cw, ch = 3, 280, 235
+          sheet = Image.new("RGB", (cols*cw, math.ceil(len(images)/cols)*ch), "white")
+          d = ImageDraw.Draw(sheet)
+          for i, (name, im, size, alpha) in enumerate(images):
+              x, y = (i%cols)*cw, (i//cols)*ch
+              bg = Image.new("RGBA", (240,190), (235,235,235,255))
+              bg.alpha_composite(im, ((240-im.width)//2, (190-im.height)//2))
+              sheet.paste(bg.convert("RGB"), (x+20,y+5))
+              d.text((x+8,y+200), name[:38], fill="black")
+              d.text((x+8,y+218), f"{size[0]}x{size[1]} | alpha={alpha}", fill=(70,70,70))
+          sheet.save(out / "sprite-contact-sheet.jpg", quality=92)
+          (out / "sprite-report.json").write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(f"PNG files inspected: {len(rows)}")
+          print(f"Files with transparency: {sum(1 for x in rows if x['has_transparency'])}")
+          for row in rows:
+              print(json.dumps(row, ensure_ascii=False))
+          PY
+      - name: Upload prepared sprite review
+        uses: actions/upload-artifact@v4
+        with:
+          name: kayuk-slice-prepared-sprites-review
+          path: prepared-sprites/
+          if-no-files-found: error
+          retention-days: 7
