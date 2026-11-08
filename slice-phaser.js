@@ -54,11 +54,13 @@
       this.physics.world.gravity.y = 980;
       this.cameras.main.setBackgroundColor('#081321');
       this.drawArena();
+      this.bladeTrail=[];
+      this.bladeGraphics=this.add.graphics().setDepth(30);
       this.scale.on('resize', size => {
         this.physics.world.setBounds(0, 0, size.width, size.height + 180);
         this.drawArena();
       });
-      this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y}; state.swipeCutCount=0; } });
+      this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y}; this.bladeTrail=[{x:p.x,y:p.y,t:this.time.now}]; state.swipeCutCount=0; } });
       this.input.on('pointermove', p => {
         if(!state.running || !p.isDown || !state.pointer) return;
         const next = {x:p.x,y:p.y};
@@ -67,8 +69,9 @@
         this.resolveHits();
         state.pointer = next;
       });
-      this.input.on('pointerup', () => { state.pointer = null; this.resolveHits(); });
-      this.input.on('pointerupoutside', () => { state.pointer = null; this.resolveHits(); });
+      const endSwipe=()=>{state.pointer=null;this.resolveHits();};
+      this.input.on('pointerup', endSwipe);
+      this.input.on('pointerupoutside', endSwipe);
       this.nextWaveAt = this.time.now + 650;
       this.lastHudAt = 0;
       this.events.once('shutdown', () => { state.scene = null; });
@@ -87,14 +90,29 @@
       for(let i=0;i<8;i++){g.beginPath();g.moveTo(i*w/7,h-30);g.lineTo(i*w/7-22,h);g.strokePath();}
     }
     drawBlade(a,b){
-      const g=this.add.graphics().setDepth(30);
-      g.lineStyle(18,0x63baff,0.10);g.lineBetween(a.x,a.y,b.x,b.y);
-      g.lineStyle(8,0x9bdcff,0.28);g.lineBetween(a.x,a.y,b.x,b.y);
-      g.lineStyle(2.8,0xf0faff,0.98);g.lineBetween(a.x,a.y,b.x,b.y);
-      g.fillStyle(0xffffff,0.85);g.fillCircle(b.x,b.y,2.4);
-      this.tweens.add({targets:g,alpha:0,duration:115,ease:'Quad.easeOut',onComplete:()=>g.destroy()});
+      if(!this.bladeTrail)this.bladeTrail=[];
+      const last=this.bladeTrail[this.bladeTrail.length-1];
+      if(!last||Math.hypot(b.x-last.x,b.y-last.y)>1.5)this.bladeTrail.push({x:b.x,y:b.y,t:this.time.now});
+      if(this.bladeTrail.length>18)this.bladeTrail.splice(0,this.bladeTrail.length-18);
+      this.renderBlade(this.time.now);
+    }
+    renderBlade(time){
+      const trail=this.bladeTrail||[];
+      while(trail.length&&time-trail[0].t>145)trail.shift();
+      const g=this.bladeGraphics;if(!g)return;
+      g.clear();
+      for(let i=1;i<trail.length;i++){
+        const p=trail[i-1],q=trail[i],age=Math.max(0,time-q.t);
+        const fade=Math.max(0,1-age/145);
+        const progress=i/(trail.length-1||1);
+        g.lineStyle(17*fade,0x48aaff,.09*fade);g.lineBetween(p.x,p.y,q.x,q.y);
+        g.lineStyle(7*fade,0x9bdcff,.24*fade);g.lineBetween(p.x,p.y,q.x,q.y);
+        g.lineStyle(2.4*fade,0xf4fbff,.94*fade);g.lineBetween(p.x,p.y,q.x,q.y);
+        if(i===trail.length-1&&fade>.1){g.fillStyle(0xffffff,.8*fade);g.fillCircle(q.x,q.y,2.2*progress);}
+      }
     }
     update(time,delta){
+      this.renderBlade(time);
       if(!state.running) return;
       this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
