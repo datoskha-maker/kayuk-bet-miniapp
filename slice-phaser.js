@@ -98,7 +98,7 @@
     maxOnScreen(){ return state.lives===1 ? 5 : 7; }
     bombInterval(){
       const s=state.score;
-      let n=s>=10000?5:s>=5000?6:s>=2500?7:s>=1000?8:10;
+      let n=s>=10000?5:s>=5000?6:s>=2500?7:s>=1000?8:8;
       if(state.lives===1) n+=2;
       return n;
     }
@@ -116,7 +116,7 @@
       const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
-      const bombChance=bombReady?Math.min(.48,.18+scoreTier*.025):0;
+      const bombChance=bombReady?Math.min(.48,.22+scoreTier*.025):0;
       const bonusChance=bonusReady ? 0.52 : 0;
       const roll=Math.random();
       let special=null;
