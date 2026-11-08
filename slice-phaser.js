@@ -214,7 +214,7 @@
     split(o){
       const item=o.item,x=o.x,y=o.y,rot=o.rotation;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
-      if(o.disableBody)if(o.disableBody)o.disableBody(true,true);else o.destroy();else o.destroy();
+      if(typeof o.disableBody==='function')o.disableBody(true,true);else o.destroy();
       ['top','bottom'].forEach((part,i)=>{
         const key=item.id+'-'+part;
         if(!this.textures.exists(key)) return;
@@ -259,7 +259,7 @@
       hud();
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
-          scale:{mode:Phaser.Scale.RESIZE,width:'100%',height:430,autoCenter:Phaser.Scale.CENTER_BOTH},
+          scale:{mode:Phaser.Scale.RESIZE,width:560,height:430,autoCenter:Phaser.Scale.CENTER_BOTH},
           physics:{default:'arcade',arcade:{gravity:{y:980},debug:false}},
           render:{antialias:true,roundPixels:false},scene:[SliceScene]});
         state.game.events.once('ready',()=>{});
