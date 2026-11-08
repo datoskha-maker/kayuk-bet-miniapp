@@ -257,7 +257,7 @@
       if(state.lives<=0) finish();
     }
     split(o){
-      const item=o.item,x=o.x,y=o.y,rot=o.rotation;
+      const item=o.item,x=o.x,y=o.y;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
       const normal=o.cutNormal||{x:1,y:0};
       const tangent=o.cutTangent||{x:0,y:-1};
