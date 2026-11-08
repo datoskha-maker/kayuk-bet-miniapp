@@ -60,10 +60,10 @@
         this.physics.world.setBounds(0, 0, size.width, size.height + 180);
         this.drawArena();
       });
-      this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y}; this.bladeTrail=[{x:p.x,y:p.y,t:this.time.now}]; state.swipeCutCount=0; } });
+      this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y,t:this.time.now}; this.bladeTrail=[{x:p.x,y:p.y,t:this.time.now}]; state.swipeCutCount=0; } });
       this.input.on('pointermove', p => {
         if(!state.running || !p.isDown || !state.pointer) return;
-        const next = {x:p.x,y:p.y};
+        const next = {x:p.x,y:p.y,t:this.time.now};
         this.drawBlade(state.pointer,next);
         this.checkCuts(state.pointer,next);
         this.resolveHits();
@@ -219,6 +219,9 @@
           o.isCut=true;
           o.cutNormal={x:-dy/Math.max(1,Math.hypot(dx,dy)),y:dx/Math.max(1,Math.hypot(dx,dy))};
           o.cutPoint={x:a.x+dx*hitT,y:a.y+dy*hitT};
+          const elapsed=Math.max(8,(b.t||this.time.now)-(a.t||this.time.now-16));
+          o.cutSpeed=Phaser.Math.Clamp(Math.hypot(dx,dy)/elapsed*1000,500,3200);
+          o.cutTangent={x:dx/Math.max(1,Math.hypot(dx,dy)),y:dy/Math.max(1,Math.hypot(dx,dy))};
           state.swipeHits.push(o);
         }
       });
@@ -257,6 +260,11 @@
       const item=o.item,x=o.x,y=o.y,rot=o.rotation;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
       const normal=o.cutNormal||{x:1,y:0};
+      const tangent=o.cutTangent||{x:0,y:-1};
+      const swipeSpeed=Phaser.Math.Clamp(Number(o.cutSpeed)||1100,500,3200);
+      const separation=Phaser.Math.Clamp(95+swipeSpeed*.052,120,260);
+      const carry=Phaser.Math.Clamp(swipeSpeed*.018,8,58);
+      const spin=Phaser.Math.Clamp(170+swipeSpeed*.105,220,510);
       const cut=o.cutPoint||{x,y};
       if(typeof o.disableBody==='function')o.disableBody(true,true);else o.destroy();
       ['top','bottom'].forEach((part,i)=>{
@@ -268,8 +276,9 @@
         half.setDepth(7);half.setRotation(rot);
         half.setDisplaySize(Math.max(24,o.displayWidth*.96),Math.max(20,o.displayHeight*.52));
         half.body.setAllowGravity(true);
-        half.setVelocity(vx+normal.x*sign*(115+Math.random()*45),vy+normal.y*sign*(115+Math.random()*45)-45);
-        half.setAngularVelocity(sign*(210+Math.random()*100));
+        const kick=separation+Math.random()*32;
+        half.setVelocity(vx+normal.x*sign*kick+tangent.x*carry,vy+normal.y*sign*kick+tangent.y*carry-35);
+        half.setAngularVelocity(sign*(spin+Math.random()*85));
         this.tweens.add({targets:half,alpha:0,duration:950,delay:300,ease:'Quad.easeIn'});
         this.time.delayedCall(1300,()=>{if(half.active)half.destroy();state.debrisCount=Math.max(0,state.debrisCount-1);});
       });
