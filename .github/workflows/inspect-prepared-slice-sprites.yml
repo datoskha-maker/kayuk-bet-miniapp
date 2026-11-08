@@ -29,26 +29,27 @@ jobs:
               raise SystemExit("png slices.zip not found in repository root")
           out = Path("prepared-sprites")
           out.mkdir(exist_ok=True)
-          rows = []
-          images = []
+          rows, images = [], []
           with ZipFile(archive) as z:
               for info in z.infolist():
                   p = Path(info.filename)
                   if p.is_absolute() or ".." in p.parts:
                       raise SystemExit(f"Unsafe archive path rejected: {info.filename}")
-                  if info.is_dir():
+                  if info.is_dir() or p.suffix.lower() != ".png":
                       continue
-                  if p.suffix.lower() != ".png":
+                  # Ignore macOS AppleDouble metadata files, not user artwork.
+                  if p.name.startswith("._") or "__MACOSX" in p.parts:
                       continue
                   data = z.read(info)
-                  target = out / p.name
+                  target = out / p
+                  target.parent.mkdir(parents=True, exist_ok=True)
                   target.write_bytes(data)
                   with Image.open(target) as im:
                       rgba = im.convert("RGBA")
                       alpha = rgba.getchannel("A")
                       has_transparency = alpha.getextrema()[0] < 255
                       rows.append({
-                          "filename": p.name,
+                          "filename": p.as_posix(),
                           "bytes": len(data),
                           "width": im.width,
                           "height": im.height,
@@ -58,7 +59,9 @@ jobs:
                       })
                       thumb = rgba.copy()
                       thumb.thumbnail((240, 190))
-                      images.append((p.name, thumb.copy(), im.size, has_transparency))
+                      images.append((p.as_posix(), thumb.copy(), im.size, has_transparency))
+          if not images:
+              raise SystemExit("No valid PNG images found in archive")
           cols, cw, ch = 3, 280, 235
           sheet = Image.new("RGB", (cols*cw, math.ceil(len(images)/cols)*ch), "white")
           d = ImageDraw.Draw(sheet)
