@@ -123,19 +123,19 @@ body.slice-fullscreen #slice .slice-float{font-size:18px}
   <div class="slice-gamebar"><div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div><button class="slice-exit" type="button" onclick="KayukSlice.close()">✕ ВЫЙТИ</button></div>
   <div class="slice-intro">
     <div class="slice-title">РЕЖЬ. СОБИРАЙ. ЗАРАБАТЫВАЙ.</div>
-    <div class="slice-subtitle">60 секунд · 3 жизни · каждое очко = 1 виртуальная единица на общем балансе КАЮК BET.</div>
+    <div class="slice-subtitle">3 жизни · раунд до последнего сердечка · каждое очко = 1 виртуальная единица на общем балансе КАЮК BET.</div>
     <div class="slice-rules"><div class="slice-rule"><b>❤️ ×3</b><small>Жизни</small></div><div class="slice-rule"><b>×2 / ×3 / ×5</b><small>Бонусы</small></div><div class="slice-rule"><b>1:1</b><small>Обмен очков</small></div></div>
   </div>
   <div class="slice-hud hidden" id="sliceHud">
     <div class="slice-hud-item"><small>СЧЁТ</small><b id="sliceScore">0</b></div>
     <div class="slice-hud-item"><small>ЖИЗНИ</small><b id="sliceLives">❤️❤️❤️</b></div>
-    <div class="slice-hud-item"><small>ВРЕМЯ</small><b id="sliceTimer">60с</b></div><div class="slice-hud-item"><small>СЕРИЯ</small><b id="sliceStreak">0</b></div><div class="slice-hud-item"><small>БУСТ</small><b id="sliceMultiplier">×1</b></div>
+    <div class="slice-hud-item"><small>СЕРИЯ</small><b id="sliceStreak">0</b></div><div class="slice-hud-item"><small>БУСТ</small><b id="sliceMultiplier">×1</b></div>
   </div>
   <div class="slice-stage" id="sliceStage">
-    <canvas id="sliceCanvas" aria-label="Игровое поле КАЮК SLICE"></canvas>
+    <div id="sliceGame" aria-label="Игровое поле КАЮК SLICE"></div>
     <div class="slice-overlay" id="sliceIntro">
       <h3>ГОТОВ РЕЗАТЬ?</h3>
-      <p>Веди пальцем по экрану, разрезай футбольные бутылки и фрукты. Абсент и бомбу не трогай. Кокос и банан возвращают жизнь.</p>
+      <p>Веди пальцем по экрану, разрезай предметы и собирай очки. Берегись бомб и опасных бутылок. Кокос и банан возвращают жизнь.</p>
       <button class="primary" id="sliceStart">НАЧАТЬ ИГРУ</button>
     </div>
     <div class="slice-overlay hidden" id="sliceEnd">
@@ -226,4 +226,4 @@ async function spinSlots(){
 }
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
-</script><script src="/slice.js" defer></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js" defer></script></body></html>
