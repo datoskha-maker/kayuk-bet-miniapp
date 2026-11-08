@@ -77,12 +77,14 @@ jobs:
             raise SystemExit(f'Sprite set mismatch. Missing={missing}; extra={extra}')
           print(f'Validated {len(seen)} RGBA sprites for {len(mapping)} items.')
           PY
+      - name: Sync Mini App entry into Vercel static output
+        run: cp index.html public/index.html
       - name: Validate Phaser module syntax
         run: node --check slice-phaser.js
       - name: Commit prepared assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/assets/slice/items
+          git add public/assets/slice/items public/index.html
           git commit -m "Add normalized KAYUK SLICE sprite assets" || echo "No asset changes"
           git push
