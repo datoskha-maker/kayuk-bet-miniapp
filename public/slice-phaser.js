@@ -157,7 +157,7 @@
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
         const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*34,45,this.scale.width-45);
-        const delay=i*112+Math.random()*88;
+        const delay=i*155+Math.random()*105;
         state.pendingLaunches++;
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
