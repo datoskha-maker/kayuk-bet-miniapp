@@ -64,6 +64,7 @@
         const next = {x:p.x,y:p.y};
         this.drawBlade(state.pointer,next);
         this.checkCuts(state.pointer,next);
+        this.resolveHits();
         state.pointer = next;
       });
       this.input.on('pointerup', () => { state.pointer = null; this.resolveHits(); });
@@ -86,10 +87,12 @@
       for(let i=0;i<8;i++){g.beginPath();g.moveTo(i*w/7,h-30);g.lineTo(i*w/7-22,h);g.strokePath();}
     }
     drawBlade(a,b){
-      const g=this.add.graphics();
-      g.lineStyle(9,0x9bdcff,0.18);g.lineBetween(a.x,a.y,b.x,b.y);
-      g.lineStyle(3,0xe3f6ff,0.92);g.lineBetween(a.x,a.y,b.x,b.y);
-      this.time.delayedCall(85,()=>g.destroy());
+      const g=this.add.graphics().setDepth(30);
+      g.lineStyle(18,0x63baff,0.10);g.lineBetween(a.x,a.y,b.x,b.y);
+      g.lineStyle(8,0x9bdcff,0.28);g.lineBetween(a.x,a.y,b.x,b.y);
+      g.lineStyle(2.8,0xf0faff,0.98);g.lineBetween(a.x,a.y,b.x,b.y);
+      g.fillStyle(0xffffff,0.85);g.fillCircle(b.x,b.y,2.4);
+      this.tweens.add({targets:g,alpha:0,duration:115,ease:'Quad.easeOut',onComplete:()=>g.destroy()});
     }
     update(time,delta){
       if(!state.running) return;
@@ -175,16 +178,20 @@
       g.add([body,label]);this.physics.add.existing(g);g.setSize(50,76);return g;
     }
     checkCuts(a,b){
+      const dx=b.x-a.x,dy=b.y-a.y;
+      if(dx*dx+dy*dy<36)return;
       this.objects.forEach(o=>{
-        if(!o.active||o.isCut) return;
-        const radius=Math.max(24,o.displayWidth*.42);
-        const d=Phaser.Math.Distance.Between(a.x,a.y,b.x,b.y);
-        if(d<1) return;
-        const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
-        const t=len2?Phaser.Math.Clamp(((o.x-a.x)*dx+(o.y-a.y)*dy)/len2,0,1):0;
-        const distance=Phaser.Math.Distance.Between(o.x,o.y,a.x+t*dx,a.y+t*dy);
-        if(distance<=radius && Math.sqrt(len2)>8){
-          o.isCut=true;state.swipeHits.push(o);
+        if(!o.active||o.isCut||!o.body)return;
+        const angle=o.rotation||0,cos=Math.cos(angle),sin=Math.sin(angle);
+        const toLocal=p=>{
+          const px=p.x-o.x,py=p.y-o.y;
+          return {x:px*cos+py*sin,y:-px*sin+py*cos};
+        };
+        const p1=toLocal(a),p2=toLocal(b);
+        const hw=Math.max(12,o.displayWidth*.43),hh=Math.max(14,o.displayHeight*.44);
+        if(segmentHitsBox(p1,p2,hw,hh)){
+          o.isCut=true;
+          state.swipeHits.push(o);
         }
       });
     }
@@ -242,6 +249,20 @@
     };
   }
 
+  function segmentHitsBox(a,b,halfW,halfH){
+    let tMin=0,tMax=1;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    const p=[-dx,dx,-dy,dy];
+    const q=[a.x+halfW,halfW-a.x,a.y+halfH,halfH-a.y];
+    for(let i=0;i<4;i++){
+      if(Math.abs(p[i])<1e-7){if(q[i]<0)return false;continue;}
+      const t=q[i]/p[i];
+      if(p[i]<0)tMin=Math.max(tMin,t);else tMax=Math.min(tMax,t);
+      if(tMin>tMax)return false;
+    }
+    return true;
+  }
+
   function haptic(kind){try{if(kind==='success')tg?.HapticFeedback?.notificationOccurred?.('success');else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   function playSound(kind){
     try{
@@ -284,6 +305,7 @@
     if(state.startBusy||state.running)return;
     if(!tg?.initData){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
     playSound('slice');
+    enterFullscreen(true);
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
     try{
       await ensurePhaser();
@@ -296,7 +318,7 @@
       hud();
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
-          scale:{mode:Phaser.Scale.RESIZE,width:560,height:430,autoCenter:Phaser.Scale.CENTER_BOTH},
+          scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,window.innerWidth),height:Math.max(480,window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
           physics:{default:'arcade',arcade:{gravity:{y:980},debug:false}},
           render:{antialias:true,roundPixels:false},scene:[createSliceSceneClass()]});
         state.game.events.once('ready',()=>{});
@@ -345,13 +367,23 @@
     try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
     if(typeof window.page==='function')window.page('home');
   }
-  async function enterFullscreen(){
+  function enterFullscreen(requestNative=false){
     document.body.classList.add('slice-fullscreen');
-    try{if(tg?.requestFullscreen)await tg.requestFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else tg?.expand?.();}
-    catch(e){try{tg?.expand?.();}catch(_){}}
+    document.documentElement.classList.add('slice-fullscreen');
+    try{tg?.expand?.();}catch(e){}
+    if(!requestNative)return;
+    try{
+      if(tg?.requestFullscreen && (!tg.isVersionAtLeast || tg.isVersionAtLeast('8.0'))){
+        const result=tg.requestFullscreen();
+        if(result&&typeof result.catch==='function')result.catch(()=>{try{tg?.expand?.();}catch(e){}});
+      }else if(document.documentElement.requestFullscreen){
+        const result=document.documentElement.requestFullscreen();
+        if(result&&typeof result.catch==='function')result.catch(()=>{});
+      }
+    }catch(e){try{tg?.expand?.();}catch(_){}}
   }
   function open(){
-    leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen();
+    leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen(false);
   }
   function init(){
     $('sliceStart')?.addEventListener('click',start);
@@ -359,7 +391,9 @@
     if(!window.Phaser)console.warn('Phaser CDN unavailable; fallback will load when the player starts.');
     if($('sliceTimer'))$('sliceTimer').closest('.slice-hud-item')?.remove();
     const gameHost=$('sliceGame');
-    if(gameHost){gameHost.style.width='100%';gameHost.style.height='430px';gameHost.style.touchAction='none';}
+    if(gameHost){gameHost.style.width='100%';gameHost.style.height='100%';gameHost.style.minHeight='0';gameHost.style.touchAction='none';}
+    tg?.onEvent?.('viewportChanged',()=>{if(state.game)state.game.scale.refresh();});
+    tg?.onEvent?.('fullscreenChanged',()=>{if(state.game)state.game.scale.refresh();});
     document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running)state.scene?.scene.resume();});
   }
   window.KayukSlice={open,close,leaderboard};
