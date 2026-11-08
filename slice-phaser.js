@@ -103,13 +103,13 @@
     maxOnScreen(){ return state.lives===1 ? 5 : 7; }
     bombInterval(){
       const s=state.score;
-      let n=s>=10000?5:s>=5000?6:s>=2500?7:s>=1000?8:8;
+      let n=s>=10000?6:s>=5000?7:s>=2500?8:s>=1000?9:10;
       if(state.lives===1) n+=2;
       return n;
     }
     bonusInterval(){
       const s=state.score;
-      return s>=7000?12:s>=3500?14:s>=1200?16:18;
+      return s>=7000?14:s>=3500?16:s>=1200?18:20;
     }
     spawnWave(){
       const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
@@ -121,8 +121,8 @@
       const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
-      const bombChance=bombReady?Math.min(.48,.22+scoreTier*.025):0;
-      const bonusChance=bonusReady ? 0.52 : 0;
+      const bombChance=bombReady?Math.min(.32,.16+scoreTier*.012):0;
+      const bonusChance=bonusReady ? 0.35 : 0;
       const roll=Math.random();
       let special=null;
       if(bombReady && roll<bombChance){special=ITEMS.find(x=>x.id==='bomb');state.wavesSinceBomb=0;}
