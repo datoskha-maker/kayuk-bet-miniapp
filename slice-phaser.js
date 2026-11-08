@@ -240,7 +240,7 @@
     }
   }
 
-  function haptic(kind){try{tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
+  function haptic(kind){try{if(kind==='success')tg?.HapticFeedback?.notificationOccurred?.('success');else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   function playSound(kind){
     try{
       const Ctx=window.AudioContext||window.webkitAudioContext;
