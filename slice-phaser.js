@@ -47,6 +47,7 @@
     }
     create(){
       state.scene = this;
+      this.objects = [];
       this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 180);
       this.physics.world.gravity.y = 980;
       this.cameras.main.setBackgroundColor('#081321');
@@ -145,8 +146,8 @@
         const source=obj.texture.getSourceImage();
         const scale=targetH/Math.max(1,source.height);
         obj.setScale(scale);
-      } else obj.setDisplaySize(56,78);
-      obj.item=item;obj.isCut=false;obj.setCircle(Math.max(22,obj.displayWidth*.36));
+      } else obj.setScale(targetH/78);
+      obj.item=item;obj.isCut=false;if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));
       obj.body.setAllowGravity(true);
       obj.body.setBounce(0.12);
       const spread=(index-(total-1)/2)*1.45;
@@ -172,8 +173,10 @@
         const radius=Math.max(24,o.displayWidth*.42);
         const d=Phaser.Math.Distance.Between(a.x,a.y,b.x,b.y);
         if(d<1) return;
-        const distance=Phaser.Geom.Line.DistanceToPoint(new Phaser.Geom.Line(a.x,a.y,b.x,b.y),{x:o.x,y:o.y});
-        if(distance<=radius && Phaser.Geom.Line.GetLength(new Phaser.Geom.Line(a.x,a.y,b.x,b.y))>8){
+        const dx=b.x-a.x,dy=b.y-a.y,len2=dx*dx+dy*dy;
+        const t=len2?Phaser.Math.Clamp(((o.x-a.x)*dx+(o.y-a.y)*dy)/len2,0,1):0;
+        const distance=Phaser.Math.Distance.Between(o.x,o.y,a.x+t*dx,a.y+t*dy);
+        if(distance<=radius && Math.sqrt(len2)>8){
           o.isCut=true;state.swipeHits.push(o);
         }
       });
@@ -211,7 +214,7 @@
     split(o){
       const item=o.item,x=o.x,y=o.y,rot=o.rotation;
       const vx=o.body?.velocity.x||0,vy=o.body?.velocity.y||0;
-      if(o.disableBody)o.disableBody(true,true);else o.destroy();
+      if(o.disableBody)if(o.disableBody)o.disableBody(true,true);else o.destroy();else o.destroy();
       ['top','bottom'].forEach((part,i)=>{
         const key=item.id+'-'+part;
         if(!this.textures.exists(key)) return;
