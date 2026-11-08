@@ -1,0 +1,78 @@
+name: Inspect KAYUK SLICE assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/inspect-kayuk-assets.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract and inspect user archive
+        run: |
+          python -m pip install --quiet Pillow
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          from PIL import Image
+          import json, shutil
+
+          archive = Path("KAYUK_SLICE_ASSETS.zip")
+          if not archive.is_file():
+              raise SystemExit("KAYUK_SLICE_ASSETS.zip not found in repository root")
+
+          out = Path("asset-inspection/extracted")
+          out.mkdir(parents=True, exist_ok=True)
+          report = []
+          with ZipFile(archive) as z:
+              for info in z.infolist():
+                  name = info.filename
+                  p = Path(name)
+                  if p.is_absolute() or ".." in p.parts:
+                      raise SystemExit(f"Unsafe archive path rejected: {name}")
+                  if info.is_dir():
+                      continue
+                  target = out / p
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  with z.open(info) as src, target.open("wb") as dst:
+                      shutil.copyfileobj(src, dst)
+                  item = {"path": name, "bytes": info.file_size}
+                  if target.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"}:
+                      try:
+                          with Image.open(target) as im:
+                              item.update({
+                                  "format": im.format,
+                                  "width": im.width,
+                                  "height": im.height,
+                                  "mode": im.mode,
+                                  "has_alpha": "A" in im.getbands(),
+                                  "frames": getattr(im, "n_frames", 1)
+                              })
+                      except Exception as e:
+                          item["image_error"] = str(e)
+                  report.append(item)
+
+          Path("asset-inspection/report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          print(f"Inspected {len(report)} files")
+          for item in report:
+              print(json.dumps(item, ensure_ascii=False))
+          PY
+
+      - name: Upload inspection bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: kayuk-slice-assets-inspection
+          path: asset-inspection/
+          if-no-files-found: error
+          retention-days: 7
