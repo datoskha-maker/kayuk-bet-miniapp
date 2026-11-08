@@ -181,8 +181,7 @@
         obj.setScale(scale);
       } else obj.setScale(targetH/78);
       obj.item=item;obj.isCut=false;
-      if(obj.setCircle)obj.setCircle(Math.max(22,obj.displayWidth*.36));
-      else if(obj.body?.setCircle)obj.body.setCircle(Math.max(22,obj.displayWidth*.36));
+      // Keep Phaser's native scaled texture body; swipe hits use our own ellipse test.
       obj.body.setAllowGravity(true);
       obj.body.setBounce(0.08);
       const gravity=this.physics.world.gravity.y||1120;
