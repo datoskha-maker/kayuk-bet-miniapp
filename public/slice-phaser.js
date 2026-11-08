@@ -306,6 +306,7 @@
     if(!tg?.initData){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
     playSound('slice');
     enterFullscreen(true);
+    try{tg?.disableVerticalSwipes?.();}catch(e){}
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
     try{
       await ensurePhaser();
@@ -364,6 +365,8 @@
   async function close(){
     if(state.running)await finish('exit');
     document.body.classList.remove('slice-fullscreen','slice-playing');
+    document.documentElement.classList.remove('slice-fullscreen');
+    try{tg?.enableVerticalSwipes?.();}catch(e){}
     try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
     if(typeof window.page==='function')window.page('home');
   }
