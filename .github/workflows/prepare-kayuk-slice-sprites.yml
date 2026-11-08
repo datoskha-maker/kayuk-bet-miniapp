@@ -1,0 +1,82 @@
+name: Prepare KAYUK SLICE sprites
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kayuk-slice-phaser-no-timer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extract and normalize user sprites
+        run: |
+          python - <<'PY'
+          import os, zipfile, unicodedata, shutil
+          from pathlib import Path
+          from PIL import Image
+
+          archive = Path('png slices.zip')
+          if not archive.exists():
+              raise SystemExit('png slices.zip is missing from repository root')
+          root = Path('public/assets/slice/items')
+          root.mkdir(parents=True, exist_ok=True)
+          mapping = {
+            'кокос':'coconut','банан':'banana','арбуз':'watermelon','виноград':'grapes',
+            'бутылка спартак':'spartak','бутылка цска':'cska','бутылка краснодара':'krasnodar',
+            'бутылка зенита':'zenit','бутылка локомотива':'lokomotiv','бутылка барселоны':'barcelona',
+            'бутылка реал мадрида':'real','бутылка бавария':'bayern','бутылка псж':'psg',
+            'бутылка деревенька':'village','бутылка 5 озер':'five_lakes','бутылка хугарден':'hoegaarden',
+            'бутылка черепа':'absinthe','бомба':'bomb'
+          }
+          seen = set()
+          with zipfile.ZipFile(archive) as z:
+            for info in z.infolist():
+              if info.is_dir() or not info.filename.lower().endswith('.png') or '/._' in info.filename:
+                continue
+              raw = info.filename
+              try:
+                name = raw.encode('cp437').decode('utf-8')
+              except Exception:
+                name = raw
+              name = unicodedata.normalize('NFC', Path(name).name).strip()
+              stem = unicodedata.normalize('NFC', Path(name).stem).casefold()
+              variant = 'whole' if 'цел' in stem else ('top' if 'верх' in stem else ('bottom' if 'низ' in stem else None))
+              base = stem
+              for suffix in [' (цельный)',' (целый)',' (целая)',' (верх)',' (низ)']:
+                base = base.replace(suffix, '')
+              base = ' '.join(base.split())
+              item = mapping.get(base)
+              if not item or not variant:
+                raise SystemExit(f'Unrecognized sprite filename: {name} -> {base} / {variant}')
+              key = (item, variant)
+              if key in seen:
+                raise SystemExit(f'Duplicate sprite: {key}')
+              seen.add(key)
+              out = root / (f'{item}.png' if variant == 'whole' else f'{item}-{variant}.png')
+              with z.open(info) as src, open(out, 'wb') as dst:
+                shutil.copyfileobj(src, dst)
+              with Image.open(out) as im:
+                if im.mode != 'RGBA':
+                  raise SystemExit(f'{out} is not RGBA')
+          expected = {(item, v) for item in mapping.values() for v in ('whole','top','bottom')}
+          missing = sorted(expected - seen)
+          extra = sorted(seen - expected)
+          if missing or extra:
+            raise SystemExit(f'Sprite set mismatch. Missing={missing}; extra={extra}')
+          print(f'Validated {len(seen)} RGBA sprites for {len(mapping)} items.')
+          PY
+      - name: Commit prepared assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/slice/items
+          git commit -m "Add normalized KAYUK SLICE sprite assets" || echo "No asset changes"
+          git push
