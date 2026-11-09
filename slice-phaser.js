@@ -132,7 +132,11 @@
       const s=state.score;
       let n=s>=10000?6:s>=5000?7:s>=2500?8:9;
       if(state.lives===1) n+=2;
-      return n;
+      // Increase bomb frequency at the requested score milestones.
+      // Dividing the interval scales expected bomb frequency without
+      // making bombs more common in the early game or changing bonuses.
+      const frequencyMultiplier=s>=20000?4:s>=10000?3:s>=5000?2:1;
+      return n/frequencyMultiplier;
     }
     bonusInterval(){
       const s=state.score;
