@@ -55,7 +55,7 @@
       this.objects = [];
       state.debrisCount = 0;
       this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 180);
-      this.physics.world.gravity.y = 900;
+      this.physics.world.gravity.y = 1120;
       this.cameras.main.setBackgroundColor('#081321');
       this.drawArena();
       this.bladeTrail=[];
@@ -77,7 +77,7 @@
       const endSwipe=()=>{state.pointer=null;this.resolveHits();};
       this.input.on('pointerup', endSwipe);
       this.input.on('pointerupoutside', endSwipe);
-      this.nextWaveAt = this.time.now + 1100;
+      this.nextWaveAt = this.time.now + 650;
       this.lastHudAt = 0;
       this.events.once('shutdown', () => {
         this.scale.off('resize', this.handleResize);
@@ -127,11 +127,7 @@
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
     }
-    maxOnScreen(){
-      const s=state.score;
-      const limit=s>=7000?6:s>=3000?5:4;
-      return state.lives===1?Math.max(3,limit-1):limit;
-    }
+    maxOnScreen(){ return state.lives===1 ? 5 : 7; }
     bombInterval(){
       const s=state.score;
       let n=s>=10000?6:s>=5000?7:s>=2500?8:9;
@@ -144,22 +140,12 @@
     }
     spawnWave(){
       const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
-      if(room<1){this.nextWaveAt=this.time.now+500;return;}
+      if(room<2){this.nextWaveAt=this.time.now+450;return;}
       state.wave++;
       state.wavesSinceBomb++;
       state.wavesSinceBonus++;
-      const score=state.score;
-      const scoreTier=Math.floor(score/500);
-      // Fruit-Ninja-like pacing: a calm opening, then small readable waves.
-      // Step the wave size up steadily: single opening item, then pairs,
-      // then trios and larger groups as the round progresses.
-      let count=1;
-      if(state.wave>=2) count=2;
-      if(state.wave>=4) count=3;
-      if(state.wave>=7) count=3+(Math.random()<.35?1:0);
-      if(state.wave>=11) count=4+(Math.random()<.35?1:0);
-      if(score>=6500) count=Math.max(count,4+(Math.random()<.45?1:0));
-      count=Math.min(room,count);
+      const scoreTier=Math.floor(state.score/500);
+      const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
       const bombChance=bombReady?Math.min(.48,.32+scoreTier*.008):0;
@@ -173,13 +159,13 @@
       const waveCount=Math.min(count,room);
       while(items.length<waveCount) items.push(REGULAR[Math.floor(Math.random()*REGULAR.length)]);
       Phaser.Utils.Array.Shuffle(items);
-      const baseX=this.scale.width*.30+Math.random()*this.scale.width*.40;
-      const gap=special?Math.min(76,this.scale.width*.18):Math.min(44,this.scale.width*.105);
+      const baseX=this.scale.width*.28+Math.random()*this.scale.width*.44;
+      const gap=special?Math.min(88,this.scale.width*.21):Math.min(56,this.scale.width*.13);
       const token=state.roundToken;
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
         const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*34,45,this.scale.width-45);
-        const delay=i*245+Math.random()*90;
+        const delay=i*155+Math.random()*105;
         state.pendingLaunches++;
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
@@ -187,9 +173,8 @@
           if(state.running)this.launch(item,x,i,items.length);
         });
       });
-      const scorePace=Math.min(430,Math.floor(scoreTier*6));
-      const baseInterval=score<650?1750:score<1800?1580:score<4200?1430:1300;
-      this.nextWaveAt=this.time.now+Math.max(1120,baseInterval-scorePace)+Math.random()*260;
+      const scorePace=Math.min(360,Math.floor(scoreTier*5));
+      this.nextWaveAt=this.time.now+Math.max(520,1050-scorePace)+Math.random()*240;
     }
     launch(item,x,index,total){
       const key=item.id;
@@ -208,15 +193,15 @@
       // Keep Phaser's native scaled texture body; swipe hits use our own ellipse test.
       obj.body.setAllowGravity(true);
       obj.body.setBounce(0.08);
-      const gravity=this.physics.world.gravity.y||900;
+      const gravity=this.physics.world.gravity.y||1120;
       const scoreTier=Math.floor(state.score/500);
-      const difficultyLift=Math.min(.045,scoreTier*.0025);
-      const apexRatio=Phaser.Math.Clamp(.36+Math.random()*.12+difficultyLift,.34,.56);
+      const difficultyLift=Math.min(.075,scoreTier*.004);
+      const apexRatio=Phaser.Math.Clamp(.48+Math.random()*.18+difficultyLift,.46,.72);
       const apexY=this.scale.height*(1-apexRatio);
       const rise=Math.max(180,launchY-apexY);
       const vy=-Math.sqrt(2*gravity*rise);
-      const spread=(index-(total-1)/2)*28;
-      const desiredVx=spread+(Math.random()-.5)*76;
+      const spread=(index-(total-1)/2)*42;
+      const desiredVx=spread+(Math.random()-.5)*120;
       const flightBudget=1.8;
       const minVx=(42-x)/flightBudget;
       const maxVx=(this.scale.width-42-x)/flightBudget;
@@ -444,7 +429,7 @@
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
           scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,document.getElementById('sliceGame')?.clientWidth||window.innerWidth),height:Math.max(480,document.getElementById('sliceGame')?.clientHeight||window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
-          physics:{default:'arcade',arcade:{gravity:{y:900},debug:false}},
+          physics:{default:'arcade',arcade:{gravity:{y:1120},debug:false}},
           render:{antialias:true,roundPixels:false},scene:[createSliceSceneClass()]});
         state.game.events.once('ready',()=>{});
       } else {
