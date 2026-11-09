@@ -37,7 +37,7 @@
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
     scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
-    rewardPending:false, rewardPayload:null, rewardSubmitting:false, restoreViewportPending:false
+    rewardPending:false, rewardPayload:null, rewardSubmitting:false
   };
 
   function createSliceSceneClass(){
@@ -504,52 +504,9 @@
     $('slicePlayAgain').textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';
     await submitReward();
   }
-  function restoreMainViewport(){
-    if(document.body.classList.contains('slice-fullscreen'))return;
-    try{tg?.expand?.();}catch(e){}
-    document.documentElement.classList.remove('slice-fullscreen');
-    document.body.classList.remove('slice-fullscreen','slice-playing');
-
-    // Do not calculate or force the WebView width from screen.width.
-    // Telegram's CSS viewport can legitimately differ from the physical
-    // screen width (safe areas, scaling and in-app viewport adjustments).
-    // Remove every inline dimension override added by the old recovery
-    // attempts and let the Mini App's original responsive CSS take over.
-    const root=document.documentElement;
-    const body=document.body;
-    root.style.removeProperty('width');
-    root.style.removeProperty('height');
-    body.style.removeProperty('width');
-    body.style.removeProperty('height');
-    root.style.removeProperty('--slice-viewport-height');
-    root.style.removeProperty('--slice-stable-height');
-
-    const app=document.querySelector('.app');
-    if(app){
-      app.style.removeProperty('width');
-      app.style.removeProperty('max-width');
-      app.style.removeProperty('height');
-      app.style.removeProperty('margin-left');
-      app.style.removeProperty('margin-right');
-    }
-    const tabs=document.querySelector('.tabs');
-    if(tabs){
-      tabs.style.removeProperty('width');
-      tabs.style.removeProperty('max-width');
-      tabs.style.removeProperty('left');
-      tabs.style.removeProperty('right');
-    }
-    const main=document.querySelector('.app>main');
-    if(main){
-      main.style.removeProperty('width');
-      main.style.removeProperty('height');
-    }
-    requestAnimationFrame(()=>{
-      if(state.game)state.game.scale.refresh();
-      window.dispatchEvent(new Event('resize'));
-    });
-  }
-  async function close(){
+  function close(){
+    // Return to the regular KAYUK BET page layout. SLICE fullscreen is only
+    // a CSS state; leaving it means removing those classes and navigating home.
     if(state.running&&!state.finished){
       state.paused=true;
       state.pointer=null;
@@ -558,19 +515,10 @@
       document.body.classList.remove('slice-playing');
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
-    state.restoreViewportPending=true;
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
     try{tg?.enableVerticalSwipes?.();}catch(e){}
-    // SLICE now uses CSS edge-to-edge layout only. Do not call Telegram's
-    // native fullscreen exit API here: on some iOS WebViews it leaves the
-    // Mini App viewport constrained after returning to the main screen.
     if(typeof window.page==='function')window.page('home');
-    restoreMainViewport();
-    requestAnimationFrame(restoreMainViewport);
-    setTimeout(restoreMainViewport,180);
-    setTimeout(restoreMainViewport,500);
-    setTimeout(()=>{state.restoreViewportPending=false;},1200);
   }
   function syncViewport(){
     // SLICE owns these viewport variables only while its immersive screen is open.
@@ -582,10 +530,6 @@
     document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
     document.documentElement.style.setProperty('--slice-stable-height',stable+'px');
     if(state.game){state.game.scale.refresh();}
-  }
-  function handleFullscreenChanged(){
-    syncViewport();
-    if(state.restoreViewportPending && !tg?.isFullscreen)restoreMainViewport();
   }
   function enterFullscreen(){
     document.body.classList.add('slice-fullscreen');
@@ -632,7 +576,6 @@
     if(gameHost){gameHost.style.width='100%';gameHost.style.height='100%';gameHost.style.minHeight='0';gameHost.style.touchAction='none';}
     syncViewport();
     tg?.onEvent?.('viewportChanged',syncViewport);
-    tg?.onEvent?.('fullscreenChanged',handleFullscreenChanged);
     window.addEventListener('resize',syncViewport,{passive:true});
     window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
     document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running&&!state.paused)state.scene?.scene.resume();});
