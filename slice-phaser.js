@@ -562,10 +562,9 @@
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
     try{tg?.enableVerticalSwipes?.();}catch(e){}
-    try{
-      if(tg?.exitFullscreen && tg.isFullscreen!==false)await tg.exitFullscreen();
-      else if(document.fullscreenElement)await document.exitFullscreen();
-    }catch(e){}
+    // SLICE now uses CSS edge-to-edge layout only. Do not call Telegram's
+    // native fullscreen exit API here: on some iOS WebViews it leaves the
+    // Mini App viewport constrained after returning to the main screen.
     if(typeof window.page==='function')window.page('home');
     restoreMainViewport();
     requestAnimationFrame(restoreMainViewport);
@@ -588,21 +587,14 @@
     syncViewport();
     if(state.restoreViewportPending && !tg?.isFullscreen)restoreMainViewport();
   }
-  function enterFullscreen(requestNative=false){
+  function enterFullscreen(){
     document.body.classList.add('slice-fullscreen');
     document.documentElement.classList.add('slice-fullscreen');
     syncViewport();
+    // Keep the game immersive with CSS + Telegram expand(), without switching
+    // the Telegram WebView into native fullscreen. Native fullscreen transitions
+    // can leave a narrowed viewport on iOS after the game is closed.
     try{tg?.expand?.();}catch(e){}
-    if(!requestNative)return;
-    try{
-      if(tg?.requestFullscreen && (!tg.isVersionAtLeast || tg.isVersionAtLeast('8.0'))){
-        const result=tg.requestFullscreen();
-        if(result&&typeof result.catch==='function')result.catch(()=>{try{tg?.expand?.();}catch(e){}});
-      }else if(document.documentElement.requestFullscreen){
-        const result=document.documentElement.requestFullscreen();
-        if(result&&typeof result.catch==='function')result.catch(()=>{});
-      }
-    }catch(e){try{tg?.expand?.();}catch(_){}}
   }
   function open(){
     leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen(false);
