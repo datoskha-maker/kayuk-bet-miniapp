@@ -509,44 +509,45 @@
     try{tg?.expand?.();}catch(e){}
     document.documentElement.classList.remove('slice-fullscreen');
     document.body.classList.remove('slice-fullscreen','slice-playing');
-    document.documentElement.style.removeProperty('--slice-viewport-height');
-    document.documentElement.style.removeProperty('--slice-stable-height');
 
-    // iOS Telegram can return from the immersive SLICE view with a stale,
-    // narrower WebView layout viewport. Restore the portrait device width
-    // when the reported CSS viewport is materially narrower than the screen.
-    const screenWidth=Number(window.screen?.width)||0;
-    const viewportWidth=Math.max(
-      Number(window.innerWidth)||0,
-      Number(window.visualViewport?.width)||0,
-      Number(document.documentElement.clientWidth)||0
-    );
-    if(screenWidth>0 && screenWidth<600 && viewportWidth>0 && screenWidth-viewportWidth>24){
-      const width=screenWidth+'px';
-      document.documentElement.style.width=width;
-      document.body.style.width=width;
-    }else{
-      document.documentElement.style.removeProperty('width');
-      document.body.style.removeProperty('width');
-    }
+    // Do not calculate or force the WebView width from screen.width.
+    // Telegram's CSS viewport can legitimately differ from the physical
+    // screen width (safe areas, scaling and in-app viewport adjustments).
+    // Remove every inline dimension override added by the old recovery
+    // attempts and let the Mini App's original responsive CSS take over.
+    const root=document.documentElement;
+    const body=document.body;
+    root.style.removeProperty('width');
+    root.style.removeProperty('height');
+    body.style.removeProperty('width');
+    body.style.removeProperty('height');
+    root.style.removeProperty('--slice-viewport-height');
+    root.style.removeProperty('--slice-stable-height');
+
     const app=document.querySelector('.app');
     if(app){
-      app.style.width='100%';
-      app.style.maxWidth='none';
-      app.style.marginLeft='0';
-      app.style.marginRight='0';
+      app.style.removeProperty('width');
+      app.style.removeProperty('max-width');
+      app.style.removeProperty('height');
+      app.style.removeProperty('margin-left');
+      app.style.removeProperty('margin-right');
     }
     const tabs=document.querySelector('.tabs');
     if(tabs){
-      tabs.style.width='100%';
-      tabs.style.maxWidth='none';
-      tabs.style.left='0';
-      tabs.style.right='0';
+      tabs.style.removeProperty('width');
+      tabs.style.removeProperty('max-width');
+      tabs.style.removeProperty('left');
+      tabs.style.removeProperty('right');
     }
     const main=document.querySelector('.app>main');
-    if(main)main.style.width='100%';
-    if(state.game){state.game.scale.refresh();}
-    window.dispatchEvent(new Event('resize'));
+    if(main){
+      main.style.removeProperty('width');
+      main.style.removeProperty('height');
+    }
+    requestAnimationFrame(()=>{
+      if(state.game)state.game.scale.refresh();
+      window.dispatchEvent(new Event('resize'));
+    });
   }
   async function close(){
     if(state.running&&!state.finished){
