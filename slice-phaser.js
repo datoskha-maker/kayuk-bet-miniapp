@@ -114,7 +114,8 @@
     update(time,delta){
       this.renderBlade(time);
       if(!state.running) return;
-      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
+      if(!state.running)return;
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
     }
@@ -232,34 +233,38 @@
           const elapsed=Math.max(8,(b.t||this.time.now)-(a.t||this.time.now-16));
           o.cutSpeed=Phaser.Math.Clamp(Math.hypot(dx,dy)/elapsed*1000,500,3200);
           o.cutTangent={x:dx/Math.max(1,Math.hypot(dx,dy)),y:dy/Math.max(1,Math.hypot(dx,dy))};
+          o.cutProgress=hitT;
           state.swipeHits.push(o);
         }
       });
     }
     resolveHits(){
       if(!state.swipeHits.length) return;
-      const hits=state.swipeHits.splice(0);
-      const safe=hits.filter(o=>o.item.kind!=='bomb'&&o.item.kind!=='hazard');
-      if(safe.length){state.streak++;state.swipeCutCount+=safe.length;state.maxCombo=Math.max(state.maxCombo,state.swipeCutCount);}
-      const combo=Math.max(1,Math.min(5,state.swipeCutCount));
+      const hits=state.swipeHits.splice(0).sort((a,b)=>(a.cutProgress??0)-(b.cutProgress??0));
       hits.forEach(o=>{
         const item=o.item;
         const x=o.x,y=o.y;
         if(item.kind==='bomb'||item.kind==='hazard'){
-          state.lives=Math.max(0,state.lives-1);state.streak=0;
+          state.lives=Math.max(0,state.lives-1);state.streak=0;state.swipeCutCount=0;
           floatText(x,y,item.kind==='bomb'?'БА-БАХ! −1 ❤️':'ОПАСНО! −1 ❤️');
           this.burst(x,y,0xff704d);playSound('hazard');haptic('heavy');
-        } else if(item.kind==='bonus'){
-          state.multiplier=item.multiplier;
-          floatText(x,y,'БУСТ ×'+item.multiplier);
-          this.burst(x,y,0xf5d77c);playSound('bonus');haptic('success');
         } else {
-          if(item.life){const before=state.lives;state.lives=Math.min(3,state.lives+1);floatText(x,y,before<3?'＋1 ❤️':'МАКС. ЖИЗНИ');}
-          const streakBonus=Math.min(3,1+Math.floor(state.streak/5));
-          const pts=10*combo*streakBonus*state.multiplier;
-          state.score+=pts;state.multiplier=1;
-          floatText(x,y,'+'+pts);playSound('slice');haptic('light');
-          this.burst(x,y,0x9bdcff);
+          state.streak++;
+          state.swipeCutCount++;
+          state.maxCombo=Math.max(state.maxCombo,state.swipeCutCount);
+          if(item.kind==='bonus'){
+            state.multiplier=item.multiplier;
+            floatText(x,y,'БУСТ ×'+item.multiplier);
+            this.burst(x,y,0xf5d77c);playSound('bonus');haptic('success');
+          } else {
+            if(item.life){const before=state.lives;state.lives=Math.min(3,state.lives+1);floatText(x,y,before<3?'＋1 ❤️':'МАКС. ЖИЗНИ');}
+            const combo=Math.max(1,Math.min(5,state.swipeCutCount));
+            const streakBonus=Math.min(3,1+Math.floor(state.streak/5));
+            const pts=10*combo*streakBonus*state.multiplier;
+            state.score+=pts;state.multiplier=1;
+            floatText(x,y,'+'+pts);playSound('slice');haptic('light');
+            this.burst(x,y,0x9bdcff);
+          }
         }
         this.split(o);
       });
