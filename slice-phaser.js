@@ -56,10 +56,11 @@
       this.drawArena();
       this.bladeTrail=[];
       this.bladeGraphics=this.add.graphics().setDepth(30);
-      this.scale.on('resize', size => {
+      this.handleResize = size => {
         this.physics.world.setBounds(0, 0, size.width, size.height + 180);
         this.drawArena();
-      });
+      };
+      this.scale.on('resize', this.handleResize);
       this.input.on('pointerdown', p => { if(state.running){ state.pointer = {x:p.x,y:p.y,t:this.time.now}; this.bladeTrail=[{x:p.x,y:p.y,t:this.time.now}]; state.swipeCutCount=0; } });
       this.input.on('pointermove', p => {
         if(!state.running || !p.isDown || !state.pointer) return;
@@ -74,7 +75,10 @@
       this.input.on('pointerupoutside', endSwipe);
       this.nextWaveAt = this.time.now + 650;
       this.lastHudAt = 0;
-      this.events.once('shutdown', () => { state.scene = null; });
+      this.events.once('shutdown', () => {
+        this.scale.off('resize', this.handleResize);
+        state.scene = null;
+      });
     }
     drawArena(){
       if(this.arena) this.arena.destroy();
@@ -284,7 +288,7 @@
       const carry=Phaser.Math.Clamp(swipeSpeed*.018,8,58);
       const spin=Phaser.Math.Clamp(170+swipeSpeed*.105,220,510);
       const cut=o.cutPoint||{x,y};
-      if(typeof o.disableBody==='function')o.disableBody(true,true);else o.destroy();
+      o.destroy();
       ['top','bottom'].forEach((part,i)=>{
         const key=item.id+'-'+part;
         if(!this.textures.exists(key)) return;
