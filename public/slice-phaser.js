@@ -6,6 +6,9 @@
   const ASSET = '/assets/slice/items/';
   const money = n => Math.round(Number(n) || 0).toLocaleString('ru-RU') + ' ₽';
   const headers = () => ({ 'Content-Type': 'application/json', 'x-telegram-init-data': tg?.initData || '' });
+  const DEMO_MODE = location.hostname.startsWith('kayuk-bet-miniapp-9nfa-') &&
+    location.hostname.endsWith('.vercel.app') &&
+    new URLSearchParams(location.search).get('sliceDemo') === '1';
 
   const ITEMS = [
     { id:'coconut', label:'КОКОС', kind:'fruit', life:true },
@@ -404,16 +407,21 @@
   async function start(){
     if(state.startBusy||state.running)return;
     if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
-    if(!tg?.initData){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
+    if(!tg?.initData&&!DEMO_MODE){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
     playSound('slice');
     enterFullscreen(true);
     try{tg?.disableVerticalSwipes?.();}catch(e){}
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
     try{
       await ensurePhaser();
-      const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
-      if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,paused:false,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1,rewardPending:false,rewardPayload:null,rewardSubmitting:false});
+      let sessionId;
+      if(DEMO_MODE) sessionId='demo-'+Date.now();
+      else {
+        const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
+        if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
+        sessionId=d.sessionId;
+      }
+      Object.assign(state,{sessionId,running:true,paused:false,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1,rewardPending:false,rewardPayload:null,rewardSubmitting:false});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
@@ -434,6 +442,7 @@
   }
   async function leaderboard(){
     const box=$('sliceLeaderboard');if(!box)return;
+    if(DEMO_MODE){box.innerHTML='<div class="empty">Демо-режим: реальные рекорды не загружаются.</div>';return;}
     if(!tg?.initData){box.innerHTML='<div class="empty">Открой Mini App в Telegram, чтобы увидеть рейтинг.</div>';return;}
     try{
       const r=await fetch('/api/slice/leaderboard',{headers:{'x-telegram-init-data':tg.initData},cache:'no-store'}),d=await r.json();
@@ -446,6 +455,15 @@
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;'}[c]));}
   async function submitReward(){
     if(!state.rewardPending||!state.rewardPayload||state.rewardSubmitting)return;
+    if(DEMO_MODE){
+      state.rewardPending=false;
+      state.rewardPayload=null;
+      try{localStorage.removeItem('kayukSlicePendingReward');}catch(e){}
+      $('sliceReward').textContent='ДЕМО-РЕЖИМ: очки не зачисляются в баланс.';
+      const demoButton=$('slicePlayAgain');
+      if(demoButton){demoButton.disabled=false;demoButton.textContent='ИГРАТЬ ЕЩЁ';}
+      return;
+    }
     state.rewardSubmitting=true;
     const button=$('slicePlayAgain');
     if(button){button.disabled=true;button.textContent='НАЧИСЛЯЕМ…';}
@@ -534,6 +552,11 @@
     }
   }
   function init(){
+    if(DEMO_MODE){
+      $('sliceStart').textContent='ЗАПУСТИТЬ ДЕМО';
+      const subtitle=$('sliceIntro')?.querySelector('p');
+      if(subtitle)subtitle.textContent='Демо-просмотр полноценной игры. Очки и награды не зачисляются в виртуальный баланс.';
+    }
     $('sliceStart')?.addEventListener('click',start);
     $('slicePlayAgain')?.addEventListener('click',()=>state.rewardPending?submitReward():start());
     try{
