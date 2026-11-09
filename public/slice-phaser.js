@@ -30,7 +30,7 @@
   const REGULAR = ITEMS.filter(x => x.kind === 'fruit' || x.kind === 'club');
   const BONUSES = ITEMS.filter(x => x.kind === 'bonus');
   const state = {
-    sessionId:null, running:false, finished:false, score:0, lives:3,
+    sessionId:null, running:false, paused:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
     scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0
@@ -113,7 +113,7 @@
     }
     update(time,delta){
       this.renderBlade(time);
-      if(!state.running) return;
+      if(!state.running||state.paused) return;
       this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
       if(!state.running)return;
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
@@ -407,7 +407,7 @@
       await ensurePhaser();
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
+      Object.assign(state,{sessionId:d.sessionId,running:true,paused:false,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
@@ -440,7 +440,7 @@
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;'}[c]));}
   async function finish(reason='lives'){
     if(state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;
+    state.finished=true;state.running=false;state.paused=false;
     document.body.classList.remove('slice-playing');
     $('sliceEnd').classList.remove('hidden');
     $('sliceEndTitle').textContent=reason==='exit'?'РАУНД ЗАВЕРШЁН':'ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
@@ -458,7 +458,14 @@
     $('sliceStart').disabled=false;$('sliceStart').textContent='ИГРАТЬ ЕЩЁ';$('sliceStart').classList.remove('hidden');
   }
   async function close(){
-    if(state.running)await finish('exit');
+    if(state.running&&!state.finished){
+      state.paused=true;
+      state.pointer=null;
+      state.swipeHits=[];
+      state.scene?.scene.pause();
+      document.body.classList.remove('slice-playing');
+      if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
+    }
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
     try{tg?.enableVerticalSwipes?.();}catch(e){}
@@ -490,6 +497,11 @@
   }
   function open(){
     leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen(false);
+    if(state.running&&!state.finished){
+      state.paused=false;
+      document.body.classList.add('slice-playing');
+      state.scene?.scene.resume();
+    }
   }
   function init(){
     $('sliceStart')?.addEventListener('click',start);
@@ -503,7 +515,7 @@
     tg?.onEvent?.('fullscreenChanged',syncViewport);
     window.addEventListener('resize',syncViewport,{passive:true});
     window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
-    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running)state.scene?.scene.resume();});
+    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running&&!state.paused)state.scene?.scene.resume();});
   }
   window.KayukSlice={open,close,leaderboard};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
