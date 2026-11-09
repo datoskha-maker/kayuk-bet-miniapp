@@ -507,9 +507,39 @@
   function restoreMainViewport(){
     if(document.body.classList.contains('slice-fullscreen'))return;
     try{tg?.expand?.();}catch(e){}
+    document.documentElement.classList.remove('slice-fullscreen');
+    document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.style.removeProperty('--slice-viewport-height');
     document.documentElement.style.removeProperty('--slice-stable-height');
+
+    // iOS Telegram can return from the immersive SLICE view with a stale,
+    // narrower WebView layout viewport. Restore the portrait device width
+    // when the reported CSS viewport is materially narrower than the screen.
+    const screenWidth=Number(window.screen?.width)||0;
+    const viewportWidth=Math.max(
+      Number(window.innerWidth)||0,
+      Number(window.visualViewport?.width)||0,
+      Number(document.documentElement.clientWidth)||0
+    );
+    if(screenWidth>0 && screenWidth<600 && viewportWidth>0 && screenWidth-viewportWidth>24){
+      const width=screenWidth+'px';
+      document.documentElement.style.width=width;
+      document.body.style.width=width;
+    }else{
+      document.documentElement.style.removeProperty('width');
+      document.body.style.removeProperty('width');
+    }
+    const app=document.querySelector('.app');
+    if(app){
+      app.style.width='100%';
+      app.style.maxWidth='560px';
+      app.style.marginLeft='auto';
+      app.style.marginRight='auto';
+    }
+    const main=document.querySelector('.app>main');
+    if(main)main.style.width='100%';
     if(state.game){state.game.scale.refresh();}
+    window.dispatchEvent(new Event('resize'));
   }
   async function close(){
     if(state.running&&!state.finished){
