@@ -133,7 +133,7 @@
     }
     bonusInterval(){
       const s=state.score;
-      return s>=7000?14:s>=3500?16:s>=1200?18:20;
+      return s>=7000?20:s>=3500?22:s>=1200?24:26;
     }
     spawnWave(){
       const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
@@ -146,7 +146,7 @@
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
       const bombChance=bombReady?Math.min(.48,.32+scoreTier*.008):0;
-      const bonusChance=bonusReady?Math.min(.9,.7+scoreTier*.015):0;
+      const bonusChance=bonusReady?Math.min(.34,.18+scoreTier*.004):0;
       const roll=Math.random();
       let special=null;
       if(bombReady && roll<bombChance){special=ITEMS.find(x=>x.id==='bomb');state.wavesSinceBomb=0;}
