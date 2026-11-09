@@ -113,10 +113,6 @@ body.slice-fullscreen #slice .slice-float{font-size:18px}
 @media(orientation:landscape){body.slice-fullscreen #slice.page.active{padding-left:calc(env(safe-area-inset-left) + 12px);padding-right:calc(env(safe-area-inset-right) + 12px)}}
 
 
-/* KAYUK SLICE temporarily hidden from the Mini App UI; game code and backend are preserved. */
-.slice-card{display:none!important}
-#slice{display:none!important}
-
 /* KAYUK SLICE true edge-to-edge playfield */
 html.slice-fullscreen,html.slice-fullscreen body{width:100%;height:var(--slice-viewport-height,100dvh);min-height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none}
 body.slice-fullscreen{position:fixed;inset:0;padding:0!important;touch-action:pan-x pan-y}
