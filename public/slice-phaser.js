@@ -122,7 +122,7 @@
     maxOnScreen(){ return state.lives===1 ? 5 : 7; }
     bombInterval(){
       const s=state.score;
-      let n=s>=10000?6:s>=5000?7:s>=2500?8:s>=1000?9:10;
+      let n=s>=10000?6:s>=5000?7:s>=2500?8:9;
       if(state.lives===1) n+=2;
       return n;
     }
@@ -140,8 +140,8 @@
       const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
-      const bombChance=bombReady?Math.min(.32,.16+scoreTier*.012):0;
-      const bonusChance=bonusReady ? 0.35 : 0;
+      const bombChance=bombReady?Math.min(.48,.32+scoreTier*.008):0;
+      const bonusChance=bonusReady?Math.min(.9,.7+scoreTier*.015):0;
       const roll=Math.random();
       let special=null;
       if(bombReady && roll<bombChance){special=ITEMS.find(x=>x.id==='bomb');state.wavesSinceBomb=0;}
