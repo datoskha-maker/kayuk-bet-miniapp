@@ -438,12 +438,12 @@
     }catch(e){box.innerHTML='<div class="empty">Не удалось загрузить рейтинг. Попробуй позже.</div>';}
   }
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;'}[c]));}
-  async function finish(reason='lives'){
-    if(state.finished||!state.sessionId)return;
+  async function finish(){
+    if(state.lives>0||state.finished||!state.sessionId)return;
     state.finished=true;state.running=false;state.paused=false;
     document.body.classList.remove('slice-playing');
     $('sliceEnd').classList.remove('hidden');
-    $('sliceEndTitle').textContent=reason==='exit'?'РАУНД ЗАВЕРШЁН':'ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
+    $('sliceEndTitle').textContent='ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
     $('sliceFinalScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceReward').textContent='Зачисляем '+money(state.score)+'…';
     try{
