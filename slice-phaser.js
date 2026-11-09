@@ -33,7 +33,8 @@
     sessionId:null, running:false, paused:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
-    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0
+    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
+    rewardPending:false, rewardPayload:null, rewardSubmitting:false
   };
 
   function createSliceSceneClass(){
@@ -402,6 +403,7 @@
 
   async function start(){
     if(state.startBusy||state.running)return;
+    if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
     if(!tg?.initData){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
     playSound('slice');
     enterFullscreen(true);
@@ -411,7 +413,7 @@
       await ensurePhaser();
       const r=await fetch('/api/slice/start',{method:'POST',headers:headers(),body:'{}'}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось начать игру');
-      Object.assign(state,{sessionId:d.sessionId,running:true,paused:false,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1});
+      Object.assign(state,{sessionId:d.sessionId,running:true,paused:false,finished:false,score:0,lives:3,maxCombo:0,streak:0,swipeCutCount:0,multiplier:1,wave:0,wavesSinceBomb:0,wavesSinceBonus:0,objects:[],pointer:null,swipeHits:[],pendingLaunches:0,roundToken:state.roundToken+1,rewardPending:false,rewardPayload:null,rewardSubmitting:false});
       document.body.classList.add('slice-playing');
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
@@ -442,24 +444,47 @@
     }catch(e){box.innerHTML='<div class="empty">Не удалось загрузить рейтинг. Попробуй позже.</div>';}
   }
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'" :'&#39;'}[c]));}
-  async function finish(){
-    if(state.lives>0||state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;state.paused=false;
-    document.body.classList.remove('slice-playing');
-    $('sliceEnd').classList.remove('hidden');
-    $('sliceEndTitle').textContent='ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
-    $('sliceFinalScore').textContent=state.score.toLocaleString('ru-RU');
-    $('sliceReward').textContent='Зачисляем '+money(state.score)+'…';
+  async function submitReward(){
+    if(!state.rewardPending||!state.rewardPayload||state.rewardSubmitting)return;
+    state.rewardSubmitting=true;
+    const button=$('slicePlayAgain');
+    if(button){button.disabled=true;button.textContent='НАЧИСЛЯЕМ…';}
+    $('sliceReward').textContent='Зачисляем '+money(state.rewardPayload.score)+'…';
     try{
-      const r=await fetch('/api/slice/finish',{method:'POST',headers:headers(),body:JSON.stringify({sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo})}),d=await r.json();
+      const r=await fetch('/api/slice/finish',{method:'POST',headers:headers(),body:JSON.stringify(state.rewardPayload)}),d=await r.json();
       if(!r.ok)throw new Error(d.error||'Не удалось зачислить результат');
+      state.rewardPending=false;
+      state.rewardPayload=null;
+      try{localStorage.removeItem('kayukSlicePendingReward');}catch(e){}
       $('sliceReward').textContent='+'+money(d.reward)+' на общий баланс';
       $('sliceBalance').textContent=money(d.balance);
       if(typeof window.loadProfile==='function')await window.loadProfile();
       $('sliceBalance').textContent=$('balance')?.textContent||money(d.balance);
+      if(button){button.disabled=false;button.textContent='ИГРАТЬ ЕЩЁ';}
       await leaderboard();
-    }catch(e){$('sliceReward').textContent='Не удалось зачислить: '+e.message;if(typeof window.toast==='function')window.toast(e.message);}
-    $('sliceStart').disabled=false;$('sliceStart').textContent='ИГРАТЬ ЕЩЁ';$('sliceStart').classList.remove('hidden');
+    }catch(e){
+      state.rewardPending=true;
+      if(button){button.disabled=false;button.textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';}
+      $('sliceReward').textContent='Не удалось зачислить: '+e.message+'. Награда сохранена — повтори начисление.';
+      if(typeof window.toast==='function')window.toast('Начисление не завершено. Нажми «Повторить начисление».');
+    }finally{
+      state.rewardSubmitting=false;
+    }
+  }
+  async function finish(){
+    if(state.lives>0||state.finished||!state.sessionId)return;
+    state.finished=true;state.running=false;state.paused=false;
+    document.body.classList.remove('slice-playing');
+    state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
+    state.rewardPending=true;
+    try{localStorage.setItem('kayukSlicePendingReward',JSON.stringify(state.rewardPayload));}catch(e){}
+    $('sliceEnd').classList.remove('hidden');
+    $('sliceEndTitle').textContent='ВСЕ ТРИ ЖИЗНИ ПОТРАЧЕНЫ';
+    $('sliceFinalScore').textContent=state.score.toLocaleString('ru-RU');
+    $('sliceReward').textContent='Зачисляем '+money(state.score)+'…';
+    $('slicePlayAgain').disabled=false;
+    $('slicePlayAgain').textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';
+    await submitReward();
   }
   async function close(){
     if(state.running&&!state.finished){
@@ -501,6 +526,7 @@
   }
   function open(){
     leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen(false);
+    if(state.rewardPending){$('sliceIntro').classList.add('hidden');$('sliceEnd').classList.remove('hidden');$('sliceHud').classList.remove('hidden');}
     if(state.running&&!state.finished){
       state.paused=false;
       document.body.classList.add('slice-playing');
@@ -509,7 +535,20 @@
   }
   function init(){
     $('sliceStart')?.addEventListener('click',start);
-    $('slicePlayAgain')?.addEventListener('click',start);
+    $('slicePlayAgain')?.addEventListener('click',()=>state.rewardPending?submitReward():start());
+    try{
+      const pending=JSON.parse(localStorage.getItem('kayukSlicePendingReward')||'null');
+      const score=Number(pending?.score),combo=Number(pending?.maxCombo||0);
+      if(pending&&typeof pending.sessionId==='string'&&Number.isSafeInteger(score)&&score>=0&&Number.isSafeInteger(combo)&&combo>=0){
+        state.rewardPayload={sessionId:pending.sessionId,score,maxCombo:combo};
+        state.rewardPending=true;state.finished=true;state.score=score;state.lives=0;
+        $('sliceIntro')?.classList.add('hidden');$('sliceEnd')?.classList.remove('hidden');$('sliceHud')?.classList.remove('hidden');
+        $('sliceEndTitle').textContent='НАГРАДА ОЖИДАЕТ НАЧИСЛЕНИЯ';
+        $('sliceFinalScore').textContent=score.toLocaleString('ru-RU');
+        $('sliceReward').textContent='Раунд завершён. Награда ожидает подтверждения.';
+        $('slicePlayAgain').textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';
+      }
+    }catch(e){}
     if(!window.Phaser)console.warn('Phaser CDN unavailable; fallback will load when the player starts.');
     if($('sliceTimer'))$('sliceTimer').closest('.slice-hud-item')?.remove();
     const gameHost=$('sliceGame');
