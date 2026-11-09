@@ -77,7 +77,7 @@
       const endSwipe=()=>{state.pointer=null;this.resolveHits();};
       this.input.on('pointerup', endSwipe);
       this.input.on('pointerupoutside', endSwipe);
-      this.nextWaveAt = this.time.now + 1250;
+      this.nextWaveAt = this.time.now + 650;
       this.lastHudAt = 0;
       this.events.once('shutdown', () => {
         this.scale.off('resize', this.handleResize);
@@ -140,21 +140,12 @@
     }
     spawnWave(){
       const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
-      if(room<1){this.nextWaveAt=this.time.now+450;return;}
+      if(room<2){this.nextWaveAt=this.time.now+450;return;}
       state.wave++;
       state.wavesSinceBomb++;
       state.wavesSinceBonus++;
       const scoreTier=Math.floor(state.score/500);
-      let count;
-      if(state.wave===1) count=1;
-      else if(state.wave===2) count=2;
-      else if(state.wave===3) count=3;
-      else {
-        const level=Math.floor(state.score/1800);
-        const maxWaveSize=level>=6?5:level>=3?4:3;
-        count=1+Math.floor(Math.random()*maxWaveSize);
-      }
-      count=Math.min(room,count);
+      const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
       const bombChance=bombReady?Math.min(.48,.32+scoreTier*.008):0;
@@ -174,7 +165,7 @@
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
         const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*34,45,this.scale.width-45);
-        const delay=i*190+Math.random()*70;
+        const delay=i*155+Math.random()*105;
         state.pendingLaunches++;
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
@@ -183,8 +174,7 @@
         });
       });
       const scorePace=Math.min(360,Math.floor(scoreTier*5));
-      const baseInterval=state.score<1800?1650:state.score<4500?1500:state.score<9000?1350:1220;
-      this.nextWaveAt=this.time.now+Math.max(1120,baseInterval-Math.min(180,Math.floor(scoreTier*2)))+Math.random()*220;
+      this.nextWaveAt=this.time.now+Math.max(520,1050-scorePace)+Math.random()*240;
     }
     launch(item,x,index,total){
       const key=item.id;
