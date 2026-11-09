@@ -36,7 +36,7 @@
     sessionId:null, running:false, paused:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
-    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
+    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, audioEnabled:true, musicTimer:null, musicGain:null, musicStep:0, debrisCount:0, pendingLaunches:0, roundToken:0,
     rewardPending:false, rewardPayload:null, rewardSubmitting:false
   };
 
@@ -77,7 +77,7 @@
       const endSwipe=()=>{state.pointer=null;this.resolveHits();};
       this.input.on('pointerup', endSwipe);
       this.input.on('pointerupoutside', endSwipe);
-      this.nextWaveAt = this.time.now + 650;
+      this.nextWaveAt = this.time.now + 1250;
       this.lastHudAt = 0;
       this.events.once('shutdown', () => {
         this.scale.off('resize', this.handleResize);
@@ -122,7 +122,7 @@
     update(time,delta){
       this.renderBlade(time);
       if(!state.running||state.paused) return;
-      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('life'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
       if(!state.running)return;
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
@@ -140,12 +140,26 @@
     }
     spawnWave(){
       const room=this.maxOnScreen()-this.objects.length-state.pendingLaunches-Math.min(2,Math.ceil(state.debrisCount/3));
-      if(room<2){this.nextWaveAt=this.time.now+450;return;}
+      if(room<1){this.nextWaveAt=this.time.now+450;return;}
       state.wave++;
       state.wavesSinceBomb++;
       state.wavesSinceBonus++;
       const scoreTier=Math.floor(state.score/500);
-      const count=Math.min(room,2+Math.floor(Math.random()*2)+Math.min(2,Math.floor(scoreTier/3)));
+      let count;
+      if(state.wave===1) count=1;
+      else if(state.wave===2) count=2;
+      else if(state.wave===3) count=3;
+      else {
+        const difficultyLevel=state.score<10000
+          ? Math.floor(state.score/2500)
+          : 4+Math.floor((state.score-10000)/5000);
+        const maxWaveSize=Math.min(7,3+difficultyLevel);
+        const minWaveSize=difficultyLevel>=4
+          ? Math.min(7,1+Math.floor((difficultyLevel-4)/1))
+          : 1;
+        count=minWaveSize+Math.floor(Math.random()*(maxWaveSize-minWaveSize+1));
+      }
+      count=Math.min(room,count);
       const bombReady=state.wavesSinceBomb>=this.bombInterval();
       const bonusReady=state.wavesSinceBonus>=this.bonusInterval();
       const bombChance=bombReady?Math.min(.48,.32+scoreTier*.008):0;
@@ -165,7 +179,7 @@
       items.forEach((item,i)=>{
         const offset=(i-(items.length-1)/2)*gap;
         const x=Phaser.Math.Clamp(baseX+offset+(Math.random()-.5)*34,45,this.scale.width-45);
-        const delay=i*155+Math.random()*105;
+        const delay=i*190+Math.random()*70;
         state.pendingLaunches++;
         this.time.delayedCall(delay,()=>{
           if(token!==state.roundToken)return;
@@ -174,7 +188,8 @@
         });
       });
       const scorePace=Math.min(360,Math.floor(scoreTier*5));
-      this.nextWaveAt=this.time.now+Math.max(520,1050-scorePace)+Math.random()*240;
+      const baseInterval=state.score<1800?1650:state.score<4500?1500:state.score<9000?1350:1220;
+      this.nextWaveAt=this.time.now+Math.max(1120,baseInterval-Math.min(180,Math.floor(scoreTier*2)))+Math.random()*220;
     }
     launch(item,x,index,total){
       const key=item.id;
@@ -255,7 +270,7 @@
         if(item.kind==='bomb'||item.kind==='hazard'){
           state.lives=Math.max(0,state.lives-1);state.streak=0;state.swipeCutCount=0;
           floatText(x,y,item.kind==='bomb'?'БА-БАХ! −1 ❤️':'ОПАСНО! −1 ❤️');
-          this.burst(x,y,0xff704d);playSound('hazard');haptic('heavy');
+          this.burst(x,y,0xff704d);playSound(item.kind==='bomb'?'bomb':'life');haptic('heavy');
         } else {
           state.streak++;
           state.swipeCutCount++;
@@ -270,7 +285,7 @@
             const streakBonus=Math.min(3,1+Math.floor(state.streak/5));
             const pts=10*combo*streakBonus*state.multiplier;
             state.score+=pts;state.multiplier=1;
-            floatText(x,y,'+'+pts);playSound('slice');haptic('light');
+            floatText(x,y,'+'+pts);playSound(state.swipeCutCount>=2&&state.swipeCutCount%2===0?'combo':'slice');haptic('light');
             this.burst(x,y,0x9bdcff);
           }
         }
@@ -356,32 +371,95 @@
   }
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
+  function audioContext(){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return null;
+    if(!state.audio)state.audio=new Ctx();
+    if(state.audio.state==='suspended')state.audio.resume().catch(()=>{});
+    return state.audio;
+  }
   function playSound(kind){
+    if(!state.audioEnabled)return;
     try{
-      const Ctx=window.AudioContext||window.webkitAudioContext;
-      if(!Ctx)return;
-      if(!state.audio)state.audio=new Ctx();
-      if(state.audio.state==='suspended')state.audio.resume();
-      const ctx=state.audio,now=ctx.currentTime;
-      const osc=ctx.createOscillator(),gain=ctx.createGain();
-      const presets={slice:[520,260,.075,'triangle',.055],bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
+      const ctx=audioContext();if(!ctx)return;
+      const now=ctx.currentTime;
+      const presets={
+        slice:[620,250,.095,'triangle',.075],
+        combo:[880,420,.24,'sawtooth',.085],
+        bomb:[125,38,.48,'sawtooth',.15],
+        life:[190,72,.32,'triangle',.095],
+        miss:[190,72,.32,'triangle',.095],
+        bonus:[740,1320,.25,'sine',.085],
+        start:[330,660,.42,'sine',.075],
+        end:[520,130,.7,'triangle',.09]
+      };
       const p=presets[kind]||presets.slice;
-      osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
-      gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
+      const osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(28,p[1]),now+p[2]);
+      gain.gain.setValueAtTime(p[4],now);
+      gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
       osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+p[2]);
-      if(kind==='slice'){
-        const length=Math.max(1,Math.floor(ctx.sampleRate*.055));
+      if(kind==='slice'||kind==='combo'||kind==='bomb'){
+        const duration=kind==='bomb'?.22:.065;
+        const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
         const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
         for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
-        const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),noiseGain=ctx.createGain();
-        noise.buffer=buffer;filter.type='highpass';filter.frequency.setValueAtTime(1450,now);
-        noiseGain.gain.setValueAtTime(.0001,now);noiseGain.gain.exponentialRampToValueAtTime(.022,now+.008);
-        noiseGain.gain.exponentialRampToValueAtTime(.0001,now+.055);
-        noise.connect(filter);filter.connect(noiseGain);noiseGain.connect(ctx.destination);
-        noise.start(now);noise.stop(now+.06);
+        const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),ng=ctx.createGain();
+        noise.buffer=buffer;filter.type=kind==='bomb'?'lowpass':'highpass';
+        filter.frequency.setValueAtTime(kind==='bomb'?650:kind==='combo'?2100:1450,now);
+        ng.gain.setValueAtTime(.0001,now);ng.gain.exponentialRampToValueAtTime(kind==='bomb'?.12:.035,now+.009);
+        ng.gain.exponentialRampToValueAtTime(.0001,now+duration);
+        noise.connect(filter);filter.connect(ng);ng.connect(ctx.destination);noise.start(now);noise.stop(now+duration);
       }
     }catch(e){}
   }
+  function startMusic(){
+    if(!state.audioEnabled||state.musicTimer)return;
+    const ctx=audioContext();if(!ctx)return;
+    const master=ctx.createGain();master.gain.setValueAtTime(.0001,ctx.currentTime);
+    master.gain.exponentialRampToValueAtTime(.032,ctx.currentTime+1.2);
+    master.connect(ctx.destination);state.musicGain=master;state.musicStep=0;
+    const notes=[220,261.63,329.63,293.66,196,246.94,293.66,261.63,174.61,220,261.63,329.63,196,246.94,293.66,349.23];
+    state.musicTimer=setInterval(()=>{
+      if(!state.running||state.paused||!state.audioEnabled)return;
+      try{
+        const t=ctx.currentTime,frequency=notes[state.musicStep++%notes.length];
+        const osc=ctx.createOscillator(),g=ctx.createGain();
+        osc.type='triangle';osc.frequency.setValueAtTime(frequency,t);
+        g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.23,t+.025);
+        g.gain.exponentialRampToValueAtTime(.0001,t+.23);
+        osc.connect(g);g.connect(master);osc.start(t);osc.stop(t+.24);
+        if(state.musicStep%4===0){
+          const bass=ctx.createOscillator(),bg=ctx.createGain();
+          bass.type='sine';bass.frequency.setValueAtTime(frequency/2,t);
+          bg.gain.setValueAtTime(.0001,t);bg.gain.exponentialRampToValueAtTime(.12,t+.04);
+          bg.gain.exponentialRampToValueAtTime(.0001,t+.42);
+          bass.connect(bg);bg.connect(master);bass.start(t);bass.stop(t+.43);
+        }
+      }catch(e){}
+    },260);
+  }
+  function stopMusic(){
+    if(state.musicTimer){clearInterval(state.musicTimer);state.musicTimer=null;}
+    if(state.musicGain){
+      try{const g=state.musicGain,ctx=state.audio;g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setTargetAtTime(.0001,ctx.currentTime,.06);setTimeout(()=>{try{g.disconnect();}catch(e){}},450);}catch(e){}
+      state.musicGain=null;
+    }
+  }
+  function updateSoundButton(){
+    const button=$('sliceSoundToggle');if(!button)return;
+    button.textContent=state.audioEnabled?'♫ ЗВУК ВКЛ':'♫ ЗВУК ВЫКЛ';
+    button.setAttribute('aria-pressed',state.audioEnabled?'true':'false');
+  }
+  function toggleSound(){
+    state.audioEnabled=!state.audioEnabled;
+    try{localStorage.setItem('kayukSliceAudioEnabled',state.audioEnabled?'1':'0');}catch(e){}
+    updateSoundButton();
+    if(state.audioEnabled){audioContext();if(state.running&&!state.paused)startMusic();}
+    else stopMusic();
+  }
+
   function hud(){
     $('sliceScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceLives').textContent='❤️'.repeat(Math.max(0,state.lives))+'🖤'.repeat(Math.max(0,3-state.lives));
@@ -408,7 +486,8 @@
     if(state.startBusy||state.running)return;
     if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
     if(!tg?.initData&&!DEMO_MODE){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
-    playSound('slice');
+    audioContext();
+    playSound('start');
     enterFullscreen(true);
     try{tg?.disableVerticalSwipes?.();}catch(e){}
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
@@ -426,6 +505,7 @@
       $('sliceIntro').classList.add('hidden');$('sliceEnd').classList.add('hidden');
       $('sliceHud').classList.remove('hidden');$('sliceStart').classList.add('hidden');
       hud();
+      startMusic();
       if(!state.game){
         state.game=new Phaser.Game({type:Phaser.AUTO,parent:'sliceGame',transparent:false,backgroundColor:'#081321',
           scale:{mode:Phaser.Scale.RESIZE,width:Math.max(320,document.getElementById('sliceGame')?.clientWidth||window.innerWidth),height:Math.max(480,document.getElementById('sliceGame')?.clientHeight||window.innerHeight),autoCenter:Phaser.Scale.CENTER_BOTH},
@@ -492,6 +572,7 @@
   async function finish(){
     if(state.lives>0||state.finished||!state.sessionId)return;
     state.finished=true;state.running=false;state.paused=false;
+    stopMusic();playSound('end');
     document.body.classList.remove('slice-playing');
     state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
     state.rewardPending=true;
@@ -507,6 +588,7 @@
   async function close(){
     if(state.running&&!state.finished){
       state.paused=true;
+      stopMusic();
       state.pointer=null;
       state.swipeHits=[];
       state.scene?.scene.pause();
@@ -547,6 +629,7 @@
     if(state.rewardPending){$('sliceIntro').classList.add('hidden');$('sliceEnd').classList.remove('hidden');$('sliceHud').classList.remove('hidden');}
     if(state.running&&!state.finished){
       state.paused=false;
+      startMusic();
       document.body.classList.add('slice-playing');
       state.scene?.scene.resume();
     }
@@ -557,6 +640,9 @@
       const subtitle=$('sliceIntro')?.querySelector('p');
       if(subtitle)subtitle.textContent='Демо-просмотр полноценной игры. Очки и награды не зачисляются в виртуальный баланс.';
     }
+    try{state.audioEnabled=localStorage.getItem('kayukSliceAudioEnabled')!=='0';}catch(e){}
+    updateSoundButton();
+    $('sliceSoundToggle')?.addEventListener('click',toggleSound);
     $('sliceStart')?.addEventListener('click',start);
     $('slicePlayAgain')?.addEventListener('click',()=>state.rewardPending?submitReward():start());
     try{
