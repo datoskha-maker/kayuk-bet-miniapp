@@ -77,7 +77,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .slice-card .slice-card-icon{font-size:29px}.slice-card-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}.slice-card-copy b{font-size:14px;letter-spacing:.5px}.slice-card-copy small{font-size:10px;line-height:1.4;color:#b7d1e5}.slice-card-arrow{font-size:27px;color:#8cc6f2}
 .slice-intro{padding:18px;border:1px solid #345775;border-radius:18px;background:linear-gradient(145deg,#1b3045,#111b28);margin-bottom:13px}.slice-title{font-size:25px;font-weight:1000;letter-spacing:1px;color:#d9efff}.slice-subtitle{font-size:11px;color:#9fb8ce;line-height:1.5;margin-top:5px}.slice-rules{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px}.slice-rule{padding:9px 6px;text-align:center;background:#0f1b28;border:1px solid #2b4258;border-radius:11px}.slice-rule b{display:block;color:#d9efff;font-size:13px}.slice-rule small{display:block;color:#829bb1;font-size:9px;margin-top:3px}
 .slice-hud{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:7px;margin:10px 0}.slice-hud-item{padding:9px 10px;background:#172534;border:1px solid #2c465d;border-radius:11px;min-width:0}.slice-hud-item small{display:block;font-size:9px;color:#8fa8be;letter-spacing:.7px}.slice-hud-item b{display:block;margin-top:4px;font-size:16px;color:#e8f5ff;font-variant-numeric:tabular-nums;white-space:nowrap}
-.slice-stage{position:relative;overflow:hidden;border:1px solid #365775;border-radius:17px;background:#0b1623;box-shadow:0 12px 28px #0004}.slice-stage canvas{display:block;width:100%;height:430px;touch-action:none;user-select:none;-webkit-user-select:none}
+.slice-stage{position:relative;overflow:hidden;border:1px solid #365775;border-radius:17px;background:#0b1623;box-shadow:0 12px 28px #0004}.slice-stage canvas{display:block;width:100%;height:430px;touch-action:none;user-select:none;-webkit-user-select:none}.slice-stage #sliceGame{width:100%;height:430px;min-height:0;flex:1}.slice-stage #sliceGame canvas{display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none}body.slice-fullscreen #slice .slice-stage #sliceGame,body.slice-playing #slice .slice-stage #sliceGame{height:100%!important;min-height:0;flex:1}
 .slice-overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:linear-gradient(145deg,#0d1c2bef,#0a1424f2)}.slice-overlay.hidden,.slice-hud.hidden,.slice-overlay .hidden{display:none!important}.slice-overlay h3{margin:0 0 8px;font-size:23px;color:#e7f5ff}.slice-overlay p{max-width:290px;color:#a7bfd3;font-size:12px;line-height:1.55}.slice-overlay .primary{max-width:270px;margin-top:12px}.slice-end-score{font-size:39px;font-weight:1000;color:#d9efff;margin:5px 0}.slice-reward{font-size:13px;color:#8ee0b5;font-weight:900;line-height:1.5}
 .slice-float{position:absolute;z-index:3;pointer-events:none;transform:translate(-50%,-50%);font-size:13px;font-weight:1000;color:#dff4ff;text-shadow:0 2px 8px #000;animation:slice-float-up .8s ease forwards}@keyframes slice-float-up{to{opacity:0;transform:translate(-50%,-145%)}}
 .slice-board{margin-top:18px;padding:14px;border:1px solid #35465a;border-radius:16px;background:linear-gradient(145deg,#172638,#111923 70%)}.slice-board-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}.slice-board-head h3{margin:0;font-size:14px}.slice-board-head span{font-size:10px;color:#9db0c5}.slice-leader{display:grid;grid-template-columns:27px minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff12}.slice-leader:last-child{border-bottom:0}.slice-rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#20384d;border:1px solid #355775;color:#b9dcf5;font-weight:900;font-size:11px}.slice-leader:nth-child(2) .slice-rank{background:#b4d7ee;color:#0c1a28}.slice-name{font-size:12px;font-weight:850;overflow-wrap:anywhere}.slice-name small{color:#7dbbe8;font-weight:600}.slice-leader>b{font-size:13px;color:#d9efff;font-variant-numeric:tabular-nums}.slice-footnote{font-size:10px;color:#8295aa;line-height:1.5;margin:12px 2px}
@@ -97,7 +97,7 @@ body.slice-fullscreen #slice .slice-intro{flex-shrink:0;margin:0;padding:12px 14
 body.slice-fullscreen #slice .slice-intro .slice-title{font-size:15px}
 body.slice-fullscreen #slice .slice-intro .slice-subtitle{font-size:10px}
 body.slice-fullscreen #slice .slice-rules{margin-top:8px}
-body.slice-fullscreen #slice .slice-hud{flex-shrink:0;margin:0;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+body.slice-fullscreen #slice .slice-hud{flex-shrink:0;margin:0;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 body.slice-fullscreen #slice .slice-hud-item{padding:7px 5px;text-align:center}
 body.slice-fullscreen #slice .slice-hud-item small{font-size:8px}
 body.slice-fullscreen #slice .slice-hud-item b{font-size:14px}
@@ -113,29 +113,38 @@ body.slice-fullscreen #slice .slice-float{font-size:18px}
 @media(orientation:landscape){body.slice-fullscreen #slice.page.active{padding-left:calc(env(safe-area-inset-left) + 12px);padding-right:calc(env(safe-area-inset-right) + 12px)}}
 
 
-/* KAYUK SLICE temporarily hidden from the Mini App UI; game code and backend are preserved. */
-.slice-card{display:none!important}
-#slice{display:none!important}
+/* KAYUK SLICE true edge-to-edge playfield */
+html.slice-fullscreen,html.slice-fullscreen body{width:100%;height:var(--slice-viewport-height,100dvh);min-height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none}
+body.slice-fullscreen{position:fixed;inset:0;padding:0!important;touch-action:pan-x pan-y}
+body.slice-fullscreen .app{display:flex;flex-direction:column;width:100%;max-width:none!important;height:var(--slice-viewport-height,100dvh);min-height:var(--slice-stable-height,100svh);margin:0}
+body.slice-fullscreen main{display:flex;flex:1;min-height:0;width:100%;height:var(--slice-viewport-height,100dvh)!important;padding:0!important;overflow:hidden}
+body.slice-fullscreen #slice.page.active{position:fixed;inset:0;width:100vw;max-width:none;height:var(--slice-viewport-height,100dvh);min-height:var(--slice-stable-height,100svh);margin:0;padding:calc(env(safe-area-inset-top) + 7px) calc(env(safe-area-inset-right) + 7px) calc(env(safe-area-inset-bottom) + 7px) calc(env(safe-area-inset-left) + 7px);border:0;border-radius:0;gap:8px}
+body.slice-playing #slice .slice-stage{width:100%;min-height:0;height:auto;flex:1;border:0;border-radius:0;background:#081321;box-shadow:none}
+body.slice-playing #slice .slice-stage #sliceGame{width:100%;height:100%!important;min-height:0;flex:1}
+body.slice-playing #slice .slice-stage canvas{display:block;width:100%!important;height:100%!important;min-height:0;touch-action:none}
+body.slice-playing #slice .slice-gamebar{flex:0 0 auto}
+body.slice-playing #slice .slice-hud{flex:0 0 auto}
+
 </style></head><body><div class="app"><header><div class="brand"><div class="logo">КБ</div><div><b>КАЮК BET</b><div class="sub">ЛИГА СВОИХ · DEMO</div></div></div><div class="avatar" id="avatar">К</div></header><main>
 <section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
 <section class="page" id="slice">
   <button class="chip" onclick="page('home')">← Главная</button>
-  <div class="slice-gamebar"><div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div><button class="slice-exit" type="button" onclick="KayukSlice.close()">✕ ВЫЙТИ</button></div>
+  <div class="slice-gamebar"><div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div></div>
   <div class="slice-intro">
     <div class="slice-title">РЕЖЬ. СОБИРАЙ. ЗАРАБАТЫВАЙ.</div>
-    <div class="slice-subtitle">60 секунд · 3 жизни · каждое очко = 1 виртуальная единица на общем балансе КАЮК BET.</div>
+    <div class="slice-subtitle">3 жизни · раунд до последнего сердечка · каждое очко = 1 виртуальная единица на общем балансе КАЮК BET.</div>
     <div class="slice-rules"><div class="slice-rule"><b>❤️ ×3</b><small>Жизни</small></div><div class="slice-rule"><b>×2 / ×3 / ×5</b><small>Бонусы</small></div><div class="slice-rule"><b>1:1</b><small>Обмен очков</small></div></div>
   </div>
   <div class="slice-hud hidden" id="sliceHud">
     <div class="slice-hud-item"><small>СЧЁТ</small><b id="sliceScore">0</b></div>
     <div class="slice-hud-item"><small>ЖИЗНИ</small><b id="sliceLives">❤️❤️❤️</b></div>
-    <div class="slice-hud-item"><small>ВРЕМЯ</small><b id="sliceTimer">60с</b></div><div class="slice-hud-item"><small>СЕРИЯ</small><b id="sliceStreak">0</b></div><div class="slice-hud-item"><small>БУСТ</small><b id="sliceMultiplier">×1</b></div>
+    <div class="slice-hud-item"><small>СЕРИЯ</small><b id="sliceStreak">0</b></div><div class="slice-hud-item"><small>БУСТ</small><b id="sliceMultiplier">×1</b></div>
   </div>
   <div class="slice-stage" id="sliceStage">
-    <canvas id="sliceCanvas" aria-label="Игровое поле КАЮК SLICE"></canvas>
+    <div id="sliceGame" aria-label="Игровое поле КАЮК SLICE"></div>
     <div class="slice-overlay" id="sliceIntro">
       <h3>ГОТОВ РЕЗАТЬ?</h3>
-      <p>Веди пальцем по экрану, разрезай футбольные бутылки и фрукты. Абсент и бомбу не трогай. Кокос и банан возвращают жизнь.</p>
+      <p>Веди пальцем по экрану, разрезай предметы и собирай очки. Берегись бомб и опасных бутылок. Кокос и банан возвращают жизнь.</p>
       <button class="primary" id="sliceStart">НАЧАТЬ ИГРУ</button>
     </div>
     <div class="slice-overlay hidden" id="sliceEnd">
@@ -226,4 +235,4 @@ async function spinSlots(){
 }
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
-</script><script src="/slice.js" defer></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js" defer></script></body></html>

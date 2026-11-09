@@ -17,10 +17,10 @@ export default async function handler(req, res) {
   if (profileError || !profile) return res.status(profileError ? 500 : 404).json({ error: 'Player profile not found. Open the main app first.' });
   const { data: session, error } = await supabase
     .from('slice_game_sessions').insert({ user_id: profile.id })
-    .select('id, started_at, expires_at').single();
+    .select('id, started_at').single();
   if (error) {
     console.error('KAYUK SLICE session start failed:', error.message);
     return res.status(500).json({ error: 'Не удалось начать игру. Попробуй ещё раз.' });
   }
-  return res.status(200).json({ sessionId: session.id, startedAt: session.started_at, expiresAt: session.expires_at, durationSeconds: 60 });
+  return res.status(200).json({ sessionId: session.id, startedAt: session.started_at });
 }
