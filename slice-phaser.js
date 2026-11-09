@@ -532,9 +532,16 @@
     const app=document.querySelector('.app');
     if(app){
       app.style.width='100%';
-      app.style.maxWidth='560px';
-      app.style.marginLeft='auto';
-      app.style.marginRight='auto';
+      app.style.maxWidth='none';
+      app.style.marginLeft='0';
+      app.style.marginRight='0';
+    }
+    const tabs=document.querySelector('.tabs');
+    if(tabs){
+      tabs.style.width='100%';
+      tabs.style.maxWidth='none';
+      tabs.style.left='0';
+      tabs.style.right='0';
     }
     const main=document.querySelector('.app>main');
     if(main)main.style.width='100%';
