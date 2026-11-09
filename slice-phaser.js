@@ -574,6 +574,10 @@
     setTimeout(()=>{state.restoreViewportPending=false;},1200);
   }
   function syncViewport(){
+    // SLICE owns these viewport variables only while its immersive screen is open.
+    // Telegram may emit delayed viewportChanged/resize events after returning home;
+    // ignore those so they cannot restore stale game dimensions on the main page.
+    if(!document.body.classList.contains('slice-fullscreen'))return;
     const height=Math.max(320,Number(tg?.viewportHeight)||window.visualViewport?.height||window.innerHeight||0);
     const stable=Math.max(320,Number(tg?.viewportStableHeight)||height);
     document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
