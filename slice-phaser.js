@@ -509,7 +509,6 @@
     try{tg?.expand?.();}catch(e){}
     document.documentElement.style.removeProperty('--slice-viewport-height');
     document.documentElement.style.removeProperty('--slice-stable-height');
-    window.dispatchEvent(new Event('resize'));
     if(state.game){state.game.scale.refresh();}
   }
   async function close(){
@@ -542,7 +541,6 @@
     document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
     document.documentElement.style.setProperty('--slice-stable-height',stable+'px');
     if(state.game){state.game.scale.refresh();}
-    if(state.restoreViewportPending && !tg?.isFullscreen)restoreMainViewport();
   }
   function handleFullscreenChanged(){
     syncViewport();
