@@ -37,7 +37,7 @@
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
     scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
-    rewardPending:false, rewardPayload:null, rewardSubmitting:false
+    rewardPending:false, rewardPayload:null, rewardSubmitting:false, restoreViewportPending:false
   };
 
   function createSliceSceneClass(){
@@ -504,6 +504,14 @@
     $('slicePlayAgain').textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';
     await submitReward();
   }
+  function restoreMainViewport(){
+    if(document.body.classList.contains('slice-fullscreen'))return;
+    try{tg?.expand?.();}catch(e){}
+    document.documentElement.style.removeProperty('--slice-viewport-height');
+    document.documentElement.style.removeProperty('--slice-stable-height');
+    window.dispatchEvent(new Event('resize'));
+    if(state.game){state.game.scale.refresh();}
+  }
   async function close(){
     if(state.running&&!state.finished){
       state.paused=true;
@@ -513,13 +521,20 @@
       document.body.classList.remove('slice-playing');
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
+    state.restoreViewportPending=true;
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
     try{tg?.enableVerticalSwipes?.();}catch(e){}
-    try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
-    try{tg?.expand?.();}catch(e){}
-    syncViewport();
+    try{
+      if(tg?.exitFullscreen && tg.isFullscreen!==false)await tg.exitFullscreen();
+      else if(document.fullscreenElement)await document.exitFullscreen();
+    }catch(e){}
     if(typeof window.page==='function')window.page('home');
+    restoreMainViewport();
+    requestAnimationFrame(restoreMainViewport);
+    setTimeout(restoreMainViewport,180);
+    setTimeout(restoreMainViewport,500);
+    setTimeout(()=>{state.restoreViewportPending=false;},1200);
   }
   function syncViewport(){
     const height=Math.max(320,Number(tg?.viewportHeight)||window.visualViewport?.height||window.innerHeight||0);
@@ -527,6 +542,11 @@
     document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
     document.documentElement.style.setProperty('--slice-stable-height',stable+'px');
     if(state.game){state.game.scale.refresh();}
+    if(state.restoreViewportPending && !tg?.isFullscreen)restoreMainViewport();
+  }
+  function handleFullscreenChanged(){
+    syncViewport();
+    if(state.restoreViewportPending && !tg?.isFullscreen)restoreMainViewport();
   }
   function enterFullscreen(requestNative=false){
     document.body.classList.add('slice-fullscreen');
@@ -580,7 +600,7 @@
     if(gameHost){gameHost.style.width='100%';gameHost.style.height='100%';gameHost.style.minHeight='0';gameHost.style.touchAction='none';}
     syncViewport();
     tg?.onEvent?.('viewportChanged',syncViewport);
-    tg?.onEvent?.('fullscreenChanged',syncViewport);
+    tg?.onEvent?.('fullscreenChanged',handleFullscreenChanged);
     window.addEventListener('resize',syncViewport,{passive:true});
     window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
     document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running&&!state.paused)state.scene?.scene.resume();});
