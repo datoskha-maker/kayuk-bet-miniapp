@@ -517,6 +517,8 @@
     document.documentElement.classList.remove('slice-fullscreen');
     try{tg?.enableVerticalSwipes?.();}catch(e){}
     try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
+    try{tg?.expand?.();}catch(e){}
+    syncViewport();
     if(typeof window.page==='function')window.page('home');
   }
   function syncViewport(){
