@@ -482,7 +482,7 @@
   }
   async function finish(){
     if(state.lives>0||state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;state.paused=false;stopBackground();
+    state.finished=true;state.running=false;state.paused=false;stopBackground();stopBackground();
     document.body.classList.remove('slice-playing');
     state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
     state.rewardPending=true;
@@ -500,6 +500,7 @@
     // a CSS state; leaving it means removing those classes and navigating home.
     if(state.running&&!state.finished){
       state.paused=true;
+      stopBackground();
       state.pointer=null;
       state.swipeHits=[];
       state.scene?.scene.pause();
@@ -537,6 +538,7 @@
     if(state.rewardPending){$('sliceIntro').classList.add('hidden');$('sliceEnd').classList.remove('hidden');$('sliceHud').classList.remove('hidden');}
     if(state.running&&!state.finished){
       state.paused=false;
+      startBackground();
       document.body.classList.add('slice-playing');
       state.scene?.scene.resume();
       startBackground();
