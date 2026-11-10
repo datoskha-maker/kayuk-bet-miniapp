@@ -585,7 +585,7 @@
     if(!intro||$('sliceAudioDiagnostics'))return;
     const panel=document.createElement('section');
     panel.id='sliceAudioDiagnostics';
-    panel.style.cssText='margin:16px auto 0;padding:12px;border:1px solid #36536d;border-radius:14px;background:#101e2d;color:#eaf4ff;max-width:420px;text-align:left';
+    panel.style.cssText='margin:16px auto 0;padding:12px;border:1px solid #36536d;border-radius:14px;background:#101e2d;color:#eaf4ff;max-width:420px;text-align:left;position:relative;z-index:5;display:block;box-sizing:border-box;width:100%';
     const title=document.createElement('div');
     title.textContent='ПРОВЕРКА ТВОИХ ЗВУКОВ';
     title.style.cssText='font-size:11px;font-weight:900;letter-spacing:1px;margin-bottom:9px;color:#a9d7fb';
@@ -612,7 +612,7 @@
     const note=document.createElement('div');
     note.textContent='Нажми каждую кнопку и посмотри статус справа.';
     note.style.cssText='margin-top:8px;color:#8da7bd;font-size:10px';
-    panel.appendChild(note);intro.appendChild(panel);
+    panel.appendChild(note);const stage=intro.closest('.slice-stage');if(stage&&stage.parentElement)stage.parentElement.insertBefore(panel,stage.nextSibling);else document.body.appendChild(panel);
   }
   function init(){
     installAudioDiagnostics();
