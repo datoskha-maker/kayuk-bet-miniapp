@@ -122,7 +122,7 @@
     update(time,delta){
       this.renderBlade(time);
       if(!state.running||state.paused) return;
-      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); playSound('miss'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
+      this.objects = this.objects.filter(o => { if(!o.active || !o.body || o.isCut) return false; if(o.y > this.scale.height + 130){ if(!o.missHandled && o.item && (o.item.kind==='fruit'||o.item.kind==='club')){ o.missHandled=true; state.lives=Math.max(0,state.lives-1); state.streak=0; state.swipeCutCount=0; floatText(this.scale.width/2,this.scale.height-90,'ПРОПУЩЕНО! −1 ❤️'); haptic('warning'); hud(); if(state.lives<=0) finish(); } o.destroy(); return false; } return true; });
       if(!state.running)return;
       if(this.objects.length < this.maxOnScreen() && time >= this.nextWaveAt) this.spawnWave();
       if(time-this.lastHudAt>120){hud();this.lastHudAt=time;}
@@ -263,7 +263,7 @@
           if(item.kind==='bonus'){
             state.multiplier=item.multiplier;
             floatText(x,y,'БУСТ ×'+item.multiplier);
-            this.burst(x,y,0xf5d77c);playSound('bonus');haptic('success');
+            this.burst(x,y,0xf5d77c);haptic('success');
           } else {
             if(item.life){const before=state.lives;state.lives=Math.min(3,state.lives+1);floatText(x,y,before<3?'＋1 ❤️':'МАКС. ЖИЗНИ');}
             const combo=Math.max(1,Math.min(5,state.swipeCutCount));
@@ -356,7 +356,18 @@
   }
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
-  function playSound(kind){ /* All legacy synthesized sounds disabled; custom audio will be wired separately. */ }
+  const AUDIO_URLS={background:'/audio/slice/background.mp3?v=3',slice:'/audio/slice/slice.mp3?v=3',bomb:'/audio/slice/bomb.mp3?v=3',start:'/audio/slice/start.mp3?v=3'};
+  function startBackground(){
+    try{
+      if(!state.bgm){state.bgm=new Audio(AUDIO_URLS.background);state.bgm.loop=true;state.bgm.volume=0.38;state.bgm.preload='auto';state.bgm.playsInline=true;}
+      if(state.bgm.paused)state.bgm.play().catch(()=>{});
+    }catch(e){}
+  }
+  function stopBackground(){try{if(state.bgm){state.bgm.pause();state.bgm.currentTime=0;}}catch(e){}}
+  function playSound(kind){
+    const url=AUDIO_URLS[kind];if(!url)return;
+    try{const a=new Audio(url);a.preload='auto';a.volume=kind==='start'?0.9:1;a.playsInline=true;a.play().catch(()=>{});}catch(e){}
+  }
   function hud(){
     $('sliceScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceLives').textContent='❤️'.repeat(Math.max(0,state.lives))+'🖤'.repeat(Math.max(0,3-state.lives));
