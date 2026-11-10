@@ -36,7 +36,7 @@
     sessionId:null, running:false, paused:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
-    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
+    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, bgm:null, sfx:[], debrisCount:0, pendingLaunches:0, roundToken:0,
     rewardPending:false, rewardPayload:null, rewardSubmitting:false
   };
 
@@ -259,7 +259,7 @@
         if(item.kind==='bomb'||item.kind==='hazard'){
           state.lives=Math.max(0,state.lives-1);state.streak=0;state.swipeCutCount=0;
           floatText(x,y,item.kind==='bomb'?'БА-БАХ! −1 ❤️':'ОПАСНО! −1 ❤️');
-          this.burst(x,y,0xff704d);playSound('hazard');haptic('heavy');
+          this.burst(x,y,0xff704d);playSound(item.kind==='bomb'?'bomb':'hazard');haptic('heavy');
         } else {
           state.streak++;
           state.swipeCutCount++;
@@ -360,7 +360,42 @@
   }
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
+  const AUDIO_URLS={
+    background:'/audio/slice/%D0%B7%D0%B2%D1%83%D0%BA%20%D0%BD%D0%B0%20%D1%84%D0%BE%D0%BD.mp3',
+    slice:'/audio/slice/%D0%BC%D1%8F%D1%83.mp3',
+    bomb:'/audio/slice/%D1%83%D0%B2%D1%83.mp3',
+    start:'/audio/slice/%D1%8F%D0%BC%D0%B0%D1%82%D1%8D%20%D0%BA%D1%83%D0%B4%D0%B0%D1%81%D0%B0%D0%B8%CC%86.mp3'
+  };
+  function startBackground(){
+    try{
+      if(!state.bgm){
+        state.bgm=new Audio(AUDIO_URLS.background);
+        state.bgm.loop=true;
+        state.bgm.preload='auto';
+        state.bgm.volume=.32;
+      }
+      if(state.bgm.paused){
+        const p=state.bgm.play();
+        if(p&&typeof p.catch==='function')p.catch(()=>{});
+      }
+    }catch(e){}
+  }
+  function stopBackground(){
+    try{if(state.bgm){state.bgm.pause();state.bgm.currentTime=0;}}catch(e){}
+  }
   function playSound(kind){
+    if(kind==='slice'||kind==='bomb'||kind==='start'){
+      try{
+        const sound=new Audio(AUDIO_URLS[kind]);
+        sound.preload='auto';
+        sound.volume=kind==='start'?.9:kind==='bomb'?.95:.85;
+        state.sfx.push(sound);
+        sound.addEventListener('ended',()=>{state.sfx=state.sfx.filter(x=>x!==sound);},{once:true});
+        const p=sound.play();
+        if(p&&typeof p.catch==='function')p.catch(()=>{});
+      }catch(e){}
+      return;
+    }
     try{
       const Ctx=window.AudioContext||window.webkitAudioContext;
       if(!Ctx)return;
@@ -368,22 +403,11 @@
       if(state.audio.state==='suspended')state.audio.resume();
       const ctx=state.audio,now=ctx.currentTime;
       const osc=ctx.createOscillator(),gain=ctx.createGain();
-      const presets={slice:[520,260,.075,'triangle',.055],bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
-      const p=presets[kind]||presets.slice;
+      const presets={bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
+      const p=presets[kind]||presets.miss;
       osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
       gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
       osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+p[2]);
-      if(kind==='slice'){
-        const length=Math.max(1,Math.floor(ctx.sampleRate*.055));
-        const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
-        for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
-        const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),noiseGain=ctx.createGain();
-        noise.buffer=buffer;filter.type='highpass';filter.frequency.setValueAtTime(1450,now);
-        noiseGain.gain.setValueAtTime(.0001,now);noiseGain.gain.exponentialRampToValueAtTime(.022,now+.008);
-        noiseGain.gain.exponentialRampToValueAtTime(.0001,now+.055);
-        noise.connect(filter);filter.connect(noiseGain);noiseGain.connect(ctx.destination);
-        noise.start(now);noise.stop(now+.06);
-      }
     }catch(e){}
   }
   function hud(){
@@ -412,7 +436,8 @@
     if(state.startBusy||state.running)return;
     if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
     if(!tg?.initData&&!DEMO_MODE){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
-    playSound('slice');
+    playSound('start');
+    startBackground();
     enterFullscreen(true);
     try{tg?.disableVerticalSwipes?.();}catch(e){}
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
@@ -440,7 +465,7 @@
         state.scene?.scene.restart();
       }
     }catch(e){
-      state.running=false;if(typeof window.toast==='function')window.toast(e.message);
+      state.running=false;stopBackground();if(typeof window.toast==='function')window.toast(e.message);
       $('sliceStart').disabled=false;$('sliceStart').textContent='НАЧАТЬ ИГРУ';
     }finally{state.startBusy=false;}
   }
@@ -495,7 +520,7 @@
   }
   async function finish(){
     if(state.lives>0||state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;state.paused=false;
+    state.finished=true;state.running=false;state.paused=false;stopBackground();
     document.body.classList.remove('slice-playing');
     state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
     state.rewardPending=true;
@@ -516,6 +541,7 @@
       state.pointer=null;
       state.swipeHits=[];
       state.scene?.scene.pause();
+      stopBackground();
       document.body.classList.remove('slice-playing');
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
@@ -551,6 +577,7 @@
       state.paused=false;
       document.body.classList.add('slice-playing');
       state.scene?.scene.resume();
+      startBackground();
     }
   }
   function init(){
@@ -582,7 +609,7 @@
     tg?.onEvent?.('viewportChanged',syncViewport);
     window.addEventListener('resize',syncViewport,{passive:true});
     window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
-    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running&&!state.paused)state.scene?.scene.resume();});
+    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden){state.scene?.scene.pause();state.bgm?.pause();}else if(state.running&&!state.paused){state.scene?.scene.resume();startBackground();}});
   }
   window.KayukSlice={open,close,leaderboard};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
