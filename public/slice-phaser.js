@@ -255,7 +255,7 @@
         if(item.kind==='bomb'||item.kind==='hazard'){
           state.lives=Math.max(0,state.lives-1);state.streak=0;state.swipeCutCount=0;
           floatText(x,y,item.kind==='bomb'?'БА-БАХ! −1 ❤️':'ОПАСНО! −1 ❤️');
-          this.burst(x,y,0xff704d);playSound('hazard');haptic('heavy');
+          this.burst(x,y,0xff704d);if(item.kind==='bomb')playSound('bomb');haptic('heavy');
         } else {
           state.streak++;
           state.swipeCutCount++;
@@ -394,7 +394,8 @@
     if(state.startBusy||state.running)return;
     if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
     if(!tg?.initData&&!DEMO_MODE){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
-    playSound('slice');
+    playSound('start');
+    startBackground();
     enterFullscreen(true);
     try{tg?.disableVerticalSwipes?.();}catch(e){}
     state.startBusy=true;$('sliceStart').disabled=true;$('sliceStart').textContent='ЗАПУСКАЕМ…';
@@ -477,7 +478,7 @@
   }
   async function finish(){
     if(state.lives>0||state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;state.paused=false;
+    state.finished=true;state.running=false;state.paused=false;stopBackground();
     document.body.classList.remove('slice-playing');
     state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
     state.rewardPending=true;
@@ -493,6 +494,7 @@
   async function close(){
     if(state.running&&!state.finished){
       state.paused=true;
+      stopBackground();
       state.pointer=null;
       state.swipeHits=[];
       state.scene?.scene.pause();
@@ -533,6 +535,7 @@
     if(state.rewardPending){$('sliceIntro').classList.add('hidden');$('sliceEnd').classList.remove('hidden');$('sliceHud').classList.remove('hidden');}
     if(state.running&&!state.finished){
       state.paused=false;
+      startBackground();
       document.body.classList.add('slice-playing');
       state.scene?.scene.resume();
     }
