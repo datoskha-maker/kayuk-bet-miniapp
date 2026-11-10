@@ -366,50 +366,11 @@
     bomb:'/audio/slice/bomb.mp3?v=2',
     start:'/audio/slice/start.mp3?v=2'
   };
-  function startBackground(){
-    try{
-      if(!state.bgm){
-        state.bgm=new Audio(AUDIO_URLS.background);
-        state.bgm.loop=true;
-        state.bgm.preload='auto';
-        state.bgm.volume=.32;
-      }
-      if(state.bgm.paused){
-        const p=state.bgm.play();
-        if(p&&typeof p.catch==='function')p.catch(()=>{});
-      }
-    }catch(e){}
-  }
+  function startBackground(){ /* Legacy audio disabled; custom tracks will be wired separately. */ }
   function stopBackground(){
     try{if(state.bgm){state.bgm.pause();state.bgm.currentTime=0;}}catch(e){}
   }
-  function playSound(kind){
-    if(kind==='slice'||kind==='bomb'||kind==='start'){
-      try{
-        const sound=new Audio(AUDIO_URLS[kind]);
-        sound.preload='auto';
-        sound.volume=kind==='start'?.9:kind==='bomb'?.95:.85;
-        state.sfx.push(sound);
-        sound.addEventListener('ended',()=>{state.sfx=state.sfx.filter(x=>x!==sound);},{once:true});
-        const p=sound.play();
-        if(p&&typeof p.catch==='function')p.catch(()=>{});
-      }catch(e){}
-      return;
-    }
-    try{
-      const Ctx=window.AudioContext||window.webkitAudioContext;
-      if(!Ctx)return;
-      if(!state.audio)state.audio=new Ctx();
-      if(state.audio.state==='suspended')state.audio.resume();
-      const ctx=state.audio,now=ctx.currentTime;
-      const osc=ctx.createOscillator(),gain=ctx.createGain();
-      const presets={bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
-      const p=presets[kind]||presets.miss;
-      osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
-      gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
-      osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+p[2]);
-    }catch(e){}
-  }
+  function playSound(kind){ /* Legacy sound effects disabled. */ }
   function hud(){
     $('sliceScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceLives').textContent='❤️'.repeat(Math.max(0,state.lives))+'🖤'.repeat(Math.max(0,3-state.lives));
@@ -580,42 +541,7 @@
       startBackground();
     }
   }
-  function installAudioDiagnostics(){
-    const intro=$('sliceIntro');
-    if(!intro||$('sliceAudioDiagnostics'))return;
-    const panel=document.createElement('section');
-    panel.id='sliceAudioDiagnostics';
-    panel.style.cssText='margin:16px auto 0;padding:12px;border:1px solid #36536d;border-radius:14px;background:#101e2d;color:#eaf4ff;max-width:420px;text-align:left;position:relative;z-index:5;display:block;box-sizing:border-box;width:100%';
-    const title=document.createElement('div');
-    title.textContent='ПРОВЕРКА ТВОИХ ЗВУКОВ';
-    title.style.cssText='font-size:11px;font-weight:900;letter-spacing:1px;margin-bottom:9px;color:#a9d7fb';
-    panel.appendChild(title);
-    const files=[['Фон','/audio/slice/background.mp3'],['Разрезание — мяу','/audio/slice/slice.mp3'],['Бомба — уву','/audio/slice/bomb.mp3'],['Старт — яматэ кудасаи','/audio/slice/start.mp3']];
-    files.forEach(([label,url])=>{
-      const row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:8px;margin:7px 0';
-      const button=document.createElement('button');
-      button.type='button';button.textContent='▶ '+label;
-      button.style.cssText='flex:1;min-width:0;padding:10px 8px;border:1px solid #42698a;border-radius:9px;background:#1d3a54;color:#fff;font-size:12px;font-weight:800';
-      const status=document.createElement('span');
-      status.textContent='…';status.style.cssText='width:84px;flex:0 0 84px;font-size:10px;color:#9db4c9;overflow-wrap:anywhere';
-      const audio=new Audio(url+'?check=20261111b');
-      audio.preload='auto';
-      audio.addEventListener('canplay',()=>{status.textContent='ЗАГРУЖЕН';status.style.color='#8ee0ae';},{once:true});
-      audio.addEventListener('error',()=>{status.textContent='ОШИБКА '+(audio.error?.code||'');status.style.color='#ff9999';});
-      button.addEventListener('click',async()=>{
-        try{audio.pause();audio.currentTime=0;await audio.play();status.textContent='ИГРАЕТ';status.style.color='#8ee0ae';}
-        catch(e){status.textContent=e.name||'ОШИБКА';status.style.color='#ff9999';}
-      });
-      row.append(button,status);panel.appendChild(row);
-    });
-    const note=document.createElement('div');
-    note.textContent='Нажми каждую кнопку и посмотри статус справа.';
-    note.style.cssText='margin-top:8px;color:#8da7bd;font-size:10px';
-    panel.appendChild(note);const stage=intro.closest('.slice-stage');if(stage&&stage.parentElement)stage.parentElement.insertBefore(panel,stage.nextSibling);else document.body.appendChild(panel);
-  }
   function init(){
-    installAudioDiagnostics();
     if(DEMO_MODE){
       $('sliceStart').textContent='ЗАПУСТИТЬ ДЕМО';
       const subtitle=$('sliceIntro')?.querySelector('p');
