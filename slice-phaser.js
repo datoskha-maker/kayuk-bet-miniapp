@@ -361,10 +361,10 @@
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   const AUDIO_URLS={
-    background:'/audio/slice/%D0%B7%D0%B2%D1%83%D0%BA%20%D0%BD%D0%B0%20%D1%84%D0%BE%D0%BD.mp3',
-    slice:'/audio/slice/%D0%BC%D1%8F%D1%83.mp3',
-    bomb:'/audio/slice/%D1%83%D0%B2%D1%83.mp3',
-    start:'/audio/slice/%D1%8F%D0%BC%D0%B0%D1%82%D1%8D%20%D0%BA%D1%83%D0%B4%D0%B0%D1%81%D0%B0%D0%B8%CC%86.mp3'
+    background:'/audio/slice/background.mp3?v=2',
+    slice:'/audio/slice/slice.mp3?v=2',
+    bomb:'/audio/slice/bomb.mp3?v=2',
+    start:'/audio/slice/start.mp3?v=2'
   };
   function startBackground(){
     try{
