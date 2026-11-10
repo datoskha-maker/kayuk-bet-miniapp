@@ -580,7 +580,42 @@
       startBackground();
     }
   }
+  function installAudioDiagnostics(){
+    const intro=$('sliceIntro');
+    if(!intro||$('sliceAudioDiagnostics'))return;
+    const panel=document.createElement('section');
+    panel.id='sliceAudioDiagnostics';
+    panel.style.cssText='margin:16px auto 0;padding:12px;border:1px solid #36536d;border-radius:14px;background:#101e2d;color:#eaf4ff;max-width:420px;text-align:left';
+    const title=document.createElement('div');
+    title.textContent='ПРОВЕРКА ТВОИХ ЗВУКОВ';
+    title.style.cssText='font-size:11px;font-weight:900;letter-spacing:1px;margin-bottom:9px;color:#a9d7fb';
+    panel.appendChild(title);
+    const files=[['Фон','/audio/slice/background.mp3'],['Разрезание — мяу','/audio/slice/slice.mp3'],['Бомба — уву','/audio/slice/bomb.mp3'],['Старт — яматэ кудасаи','/audio/slice/start.mp3']];
+    files.forEach(([label,url])=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;margin:7px 0';
+      const button=document.createElement('button');
+      button.type='button';button.textContent='▶ '+label;
+      button.style.cssText='flex:1;min-width:0;padding:10px 8px;border:1px solid #42698a;border-radius:9px;background:#1d3a54;color:#fff;font-size:12px;font-weight:800';
+      const status=document.createElement('span');
+      status.textContent='…';status.style.cssText='width:84px;flex:0 0 84px;font-size:10px;color:#9db4c9;overflow-wrap:anywhere';
+      const audio=new Audio(url+'?check=20261111b');
+      audio.preload='auto';
+      audio.addEventListener('canplay',()=>{status.textContent='ЗАГРУЖЕН';status.style.color='#8ee0ae';},{once:true});
+      audio.addEventListener('error',()=>{status.textContent='ОШИБКА '+(audio.error?.code||'');status.style.color='#ff9999';});
+      button.addEventListener('click',async()=>{
+        try{audio.pause();audio.currentTime=0;await audio.play();status.textContent='ИГРАЕТ';status.style.color='#8ee0ae';}
+        catch(e){status.textContent=e.name||'ОШИБКА';status.style.color='#ff9999';}
+      });
+      row.append(button,status);panel.appendChild(row);
+    });
+    const note=document.createElement('div');
+    note.textContent='Нажми каждую кнопку и посмотри статус справа.';
+    note.style.cssText='margin-top:8px;color:#8da7bd;font-size:10px';
+    panel.appendChild(note);intro.appendChild(panel);
+  }
   function init(){
+    installAudioDiagnostics();
     if(DEMO_MODE){
       $('sliceStart').textContent='ЗАПУСТИТЬ ДЕМО';
       const subtitle=$('sliceIntro')?.querySelector('p');
