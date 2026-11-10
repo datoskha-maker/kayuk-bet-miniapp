@@ -356,32 +356,7 @@
   }
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
-  function playSound(kind){
-    try{
-      const Ctx=window.AudioContext||window.webkitAudioContext;
-      if(!Ctx)return;
-      if(!state.audio)state.audio=new Ctx();
-      if(state.audio.state==='suspended')state.audio.resume();
-      const ctx=state.audio,now=ctx.currentTime;
-      const osc=ctx.createOscillator(),gain=ctx.createGain();
-      const presets={slice:[520,260,.075,'triangle',.055],bonus:[740,1180,.22,'sine',.07],hazard:[150,55,.28,'sawtooth',.09],miss:[220,90,.2,'triangle',.065]};
-      const p=presets[kind]||presets.slice;
-      osc.type=p[3];osc.frequency.setValueAtTime(p[0],now);osc.frequency.exponentialRampToValueAtTime(Math.max(35,p[1]),now+p[2]);
-      gain.gain.setValueAtTime(p[4],now);gain.gain.exponentialRampToValueAtTime(.001,now+p[2]);
-      osc.connect(gain);gain.connect(ctx.destination);osc.start(now);osc.stop(now+p[2]);
-      if(kind==='slice'){
-        const length=Math.max(1,Math.floor(ctx.sampleRate*.055));
-        const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
-        for(let i=0;i<length;i++)data[i]=(Math.random()*2-1)*(1-i/length);
-        const noise=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),noiseGain=ctx.createGain();
-        noise.buffer=buffer;filter.type='highpass';filter.frequency.setValueAtTime(1450,now);
-        noiseGain.gain.setValueAtTime(.0001,now);noiseGain.gain.exponentialRampToValueAtTime(.022,now+.008);
-        noiseGain.gain.exponentialRampToValueAtTime(.0001,now+.055);
-        noise.connect(filter);filter.connect(noiseGain);noiseGain.connect(ctx.destination);
-        noise.start(now);noise.stop(now+.06);
-      }
-    }catch(e){}
-  }
+  function playSound(kind){ /* All legacy synthesized sounds disabled; custom audio will be wired separately. */ }
   function hud(){
     $('sliceScore').textContent=state.score.toLocaleString('ru-RU');
     $('sliceLives').textContent='❤️'.repeat(Math.max(0,state.lives))+'🖤'.repeat(Math.max(0,3-state.lives));
