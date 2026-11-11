@@ -374,6 +374,116 @@ body .app .marketselect{
 }
 body .app input::placeholder{color:#aeb6c0!important}
 
+
+/* KAYUK BET — iOS-inspired Liquid Glass refinement; CSS only */
+body .app{
+ --ios-glass-panel:rgba(245,248,252,.105);
+ --ios-glass-panel-strong:rgba(245,248,252,.145);
+ --ios-glass-control:rgba(245,248,252,.12);
+ --ios-glass-border:rgba(255,255,255,.24);
+ --ios-glass-highlight:rgba(255,255,255,.20);
+}
+body .app header,
+body .app .tabs{
+ background:rgba(18,22,28,.30)!important;
+ border:1px solid rgba(255,255,255,.19)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 10px 30px rgba(0,0,0,.14)!important;
+ -webkit-backdrop-filter:blur(28px) saturate(155%)!important;
+ backdrop-filter:blur(28px) saturate(155%)!important;
+}
+body .app .balance,
+body .app .competition-home,
+body .app .match,
+body .app .item,
+body .app .empty,
+body .app .profile,
+body .app .stat,
+body .app .adminbox,
+body .app .slots-hero,
+body .app .slots-machine,
+body .app .slots-custom,
+body .app .casino-board,
+body .app .casino-summary-card,
+body .app .slice-card,
+body .app .slice-intro,
+body .app .slice-hud-item,
+body .app .slice-board,
+body .app .slice-rule,
+body .app .personal-luck,
+body .app .leader,
+body .app .casino-player{
+ background:var(--ios-glass-panel)!important;
+ background-image:none!important;
+ border:1px solid var(--ios-glass-border)!important;
+ box-shadow:inset 0 1px 0 var(--ios-glass-highlight),0 12px 30px rgba(0,0,0,.12)!important;
+ -webkit-backdrop-filter:blur(26px) saturate(160%)!important;
+ backdrop-filter:blur(26px) saturate(160%)!important;
+}
+body .app button,
+body .app .pill,
+body .app .chip,
+body .app .odd,
+body .app .slots-stake,
+body .app .rank,
+body .app .crest,
+body .app .vs,
+body .app .league-tag,
+body .app .match-status,
+body .app .calendar-day,
+body .app .logo,
+body .app .avatar{
+ background:var(--ios-glass-control)!important;
+ background-image:none!important;
+ border:1px solid rgba(255,255,255,.26)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.20),0 5px 16px rgba(0,0,0,.10)!important;
+ -webkit-backdrop-filter:blur(22px) saturate(165%)!important;
+ backdrop-filter:blur(22px) saturate(165%)!important;
+}
+body .app .tab,
+body .app .head button,
+body .app .remove{
+ background:rgba(245,248,252,.075)!important;
+ border-color:rgba(255,255,255,.19)!important;
+ -webkit-backdrop-filter:blur(20px) saturate(150%)!important;
+ backdrop-filter:blur(20px) saturate(150%)!important;
+}
+body .app .odd.selected,
+body .app .slots-stake.active,
+body .app .tab.active{
+ background:rgba(255,255,255,.23)!important;
+ border-color:rgba(255,255,255,.48)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 4px 16px rgba(0,0,0,.12)!important;
+}
+body .app input,
+body .app select,
+body .app .marketselect,
+body .app .slots-custom input{
+ background:rgba(12,16,22,.24)!important;
+ border-color:rgba(255,255,255,.23)!important;
+ -webkit-backdrop-filter:blur(22px) saturate(150%)!important;
+ backdrop-filter:blur(22px) saturate(150%)!important;
+}
+body .app .toast{
+ background:rgba(22,26,32,.68)!important;
+ border-color:rgba(255,255,255,.24)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 32px rgba(0,0,0,.18)!important;
+ -webkit-backdrop-filter:blur(28px) saturate(155%)!important;
+ backdrop-filter:blur(28px) saturate(155%)!important;
+}
+body .app .slice-stage{
+ border-color:rgba(255,255,255,.22)!important;
+}
+body .app .slice-overlay{
+ background:rgba(10,14,20,.66)!important;
+ -webkit-backdrop-filter:blur(24px) saturate(145%)!important;
+ backdrop-filter:blur(24px) saturate(145%)!important;
+}
+body .app .slot-reel{
+ background:rgba(232,236,240,.92)!important;
+ -webkit-backdrop-filter:none!important;
+ backdrop-filter:none!important;
+}
+
 </style></head><body><div class="app"><header><div class="brand"><div class="logo">КБ</div><div><b>КАЮК BET</b><div class="sub">ЛИГА СВОИХ · DEMO</div></div></div><div class="avatar" id="avatar">К</div></header><main>
 <section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
 <section class="page" id="slice">
