@@ -744,6 +744,17 @@ body:not(.slice-fullscreen) {
   /* Keep the gradient at the top; start the wallpaper halfway down the balance card */
   background-position: center top, center 91px !important;
 }
+/* Stack the new panoramic image directly above the existing wallpaper */
+body:not(.slice-fullscreen) {
+  background-image:
+    linear-gradient(rgba(7,13,22,.66),rgba(7,13,22,.72)),
+    url("https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1888.jpeg"),
+    url("https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/06D05155-2BFB-4101-982F-1B3E622AEA0D.png") !important;
+  background-size: 100% 100%, 100vw auto, contain !important;
+  background-position: center top, center top, center calc(27.551vw) !important;
+  background-repeat: no-repeat !important;
+}
+
 /* Fully glass-clear home panels; reveal the page wallpaper underneath */
 body .app .balance,
 body .app #home > button[onclick*="toggleCompetitions"],
