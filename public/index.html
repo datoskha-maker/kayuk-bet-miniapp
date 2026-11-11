@@ -741,7 +741,8 @@ body:not(.slice-fullscreen) {
 
 /* Home screen: pin the wallpaper to the very top, behind the balance area */
 body:not(.slice-fullscreen) {
-  background-position: center top, center top !important;
+  /* Keep the gradient at the top; start the wallpaper halfway down the balance card */
+  background-position: center top, center 194px !important;
 }
 /* Fully glass-clear home panels; reveal the page wallpaper underneath */
 body .app .balance,
