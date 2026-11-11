@@ -587,6 +587,85 @@ body .app .slot-reel{
  backdrop-filter:none!important;
 }
 
+
+/* KAYUK BET — remove every blue UI accent; neutral transparent glass only (CSS visual override) */
+:root{
+ --blue:#e4e8ed!important;
+ --blue-bright:#f5f6f8!important;
+ --blue-soft:rgba(255,255,255,.12)!important;
+ --panel:rgba(18,21,26,.20)!important;
+ --panel2:rgba(225,231,238,.055)!important;
+ --line:rgba(255,255,255,.16)!important;
+ --muted:#b9c0c8!important;
+}
+body .app *{
+ background-image:none!important;
+}
+body .app :is(header,.tabs,.balance,.competition-home,.match,.item,.empty,.profile,.stat,.adminbox,
+ .slots-hero,.slots-machine,.slots-custom,.casino-board,.casino-summary-card,.slice-card,.slice-intro,
+ .slice-hud-item,.slice-board,.slice-rule,.personal-luck,.leader,.casino-player,.slice-stage,.slice-overlay){
+ background-color:rgba(232,237,243,.045)!important;
+ border-color:rgba(255,255,255,.19)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 12px 32px rgba(0,0,0,.12)!important;
+ -webkit-backdrop-filter:blur(30px) saturate(115%)!important;
+ backdrop-filter:blur(30px) saturate(115%)!important;
+}
+body .app :is(button,.pill,.chip,.odd,.slots-stake,.rank,.crest,.vs,.league-tag,.match-status,.calendar-day,.logo,.avatar,
+ .quick button,.admin-actions button,.adminsave,.slots-custom button,.slots-spin,.primary,.slice-exit,.tab,.head button,.remove,.slice-rank){
+ background-color:rgba(238,242,247,.055)!important;
+ border-color:rgba(255,255,255,.22)!important;
+ color:#edf0f3!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.19),0 5px 18px rgba(0,0,0,.10)!important;
+ -webkit-backdrop-filter:blur(24px) saturate(125%)!important;
+ backdrop-filter:blur(24px) saturate(125%)!important;
+}
+body .app :is(.odd.selected,.slots-stake.active,.tab.active,.personal-luck-toggle:checked){
+ background-color:rgba(255,255,255,.19)!important;
+ border-color:rgba(255,255,255,.46)!important;
+ color:#fff!important;
+}
+body .app :is(input,select,.marketselect,.slots-custom input){
+ background-color:rgba(8,11,15,.20)!important;
+ background-image:none!important;
+ border-color:rgba(255,255,255,.20)!important;
+ color:#f2f4f6!important;
+ -webkit-backdrop-filter:blur(24px)!important;
+ backdrop-filter:blur(24px)!important;
+}
+body .app :is(.logo,.avatar,.pill,.balance .pill,.rank,.crest,.vs,.league-tag,.match-status,.calendar-day,
+ .competition-home-arrow,.summary strong,.head button,.tab.active,.admin-actions .settle,.slice-rank,.slice-float,
+ .balance .eyebrow,.balance .balancefoot .muted,.eyebrow){
+ color:#e5e9ed!important;
+}
+body .app :is(.match,.balance)::before,
+body .app .balance-art{display:none!important;background:none!important}
+body .app .leader:nth-child(1),
+body .app .leader:nth-child(2),
+body .app .leader:nth-child(3),
+body .app .leader:nth-child(1) .rank,
+body .app .leader:nth-child(2) .rank,
+body .app .leader:nth-child(3) .rank{
+ background-color:rgba(238,242,247,.055)!important;
+ border-color:rgba(255,255,255,.19)!important;
+ color:#edf0f3!important;
+}
+body .app .toast{
+ background:rgba(16,19,24,.62)!important;
+ border:1px solid rgba(255,255,255,.23)!important;
+ color:#f2f4f6!important;
+ -webkit-backdrop-filter:blur(30px)!important;
+ backdrop-filter:blur(30px)!important;
+}
+body .app .slot-reel{
+ background:rgba(232,236,240,.92)!important;
+ color:#171b20!important;
+ -webkit-backdrop-filter:none!important;
+ backdrop-filter:none!important;
+}
+body .app .slice-overlay{background:rgba(8,11,15,.62)!important}
+body .app :is(.positive,.win){color:#b8e2c5!important}
+body .app :is(.negative,.loss){color:#f0b9b9!important}
+
 </style></head><body><div class="app"><header><div class="brand"><div class="logo">КБ</div><div><b>КАЮК BET</b><div class="sub">ЛИГА СВОИХ · DEMO</div></div></div><div class="avatar" id="avatar">К</div></header><main>
 <section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
 <section class="page" id="slice">
