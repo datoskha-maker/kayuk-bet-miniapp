@@ -132,7 +132,9 @@
       const s=state.score;
       let n=s>=10000?6:s>=5000?7:s>=2500?8:9;
       if(state.lives===1) n+=2;
-      return n;
+      // Scale bomb frequency at the agreed score milestones.
+      const frequencyMultiplier=s>=20000?4:s>=10000?3:s>=5000?2:1;
+      return n/frequencyMultiplier;
     }
     bonusInterval(){
       const s=state.score;
