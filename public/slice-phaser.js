@@ -357,21 +357,36 @@
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   const AUDIO_URLS={background:'/audio/slice/background.mp3?v=3',slice:'/audio/slice/slice.mp3?v=3',bomb:'/audio/slice/bomb.mp3?v=3',start:'/audio/slice/start.mp3?v=3'};
-  // Four lightweight voices per effect are enough for rapid swipes without
-  // creating sixteen simultaneous media players on mobile Safari.
-  const AUDIO_POOL_SIZE=4;
+  let effectAudioContext=null;
+  let effectBuffers={};
+  let effectLoadPromise=null;
   const AUDIO_POOLS={slice:[],bomb:[],start:[]};
   const AUDIO_CURSORS={slice:0,bomb:0,start:0};
+  function initEffectAudio(){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return Promise.resolve(false);
+    try{
+      if(!effectAudioContext)effectAudioContext=new Ctx();
+      if(effectAudioContext.state==='suspended')effectAudioContext.resume().catch(()=>{});
+      if(effectLoadPromise)return effectLoadPromise;
+      effectLoadPromise=Promise.all(['slice','bomb','start'].map(async kind=>{
+        try{
+          const response=await fetch(AUDIO_URLS[kind],{cache:'force-cache'});
+          if(!response.ok)throw new Error('Audio fetch failed');
+          const bytes=await response.arrayBuffer();
+          effectBuffers[kind]=await effectAudioContext.decodeAudioData(bytes);
+        }catch(e){}
+      })).then(()=>Object.keys(effectBuffers).length>0);
+      return effectLoadPromise;
+    }catch(e){return Promise.resolve(false);}
+  }
   function prepareSoundPools(kind){
     if(!AUDIO_POOLS[kind]||AUDIO_POOLS[kind].length)return;
-    const count=kind==='start'?1:AUDIO_POOL_SIZE;
+    const count=kind==='start'?1:2;
     for(let i=0;i<count;i++){
       const a=new Audio(AUDIO_URLS[kind]);
-      a.preload='auto';
-      a.volume=kind==='start'?0.9:1;
-      a.playsInline=true;
+      a.preload='auto';a.volume=kind==='start'?0.9:1;a.playsInline=true;
       AUDIO_POOLS[kind].push(a);
-      try{a.load();}catch(e){}
     }
   }
   function startBackground(){
@@ -384,14 +399,22 @@
   function playSound(kind){
     if(!AUDIO_URLS[kind])return;
     try{
+      const ctx=effectAudioContext, buffer=effectBuffers[kind];
+      if(ctx&&buffer){
+        if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+        const source=ctx.createBufferSource();
+        source.buffer=buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        return;
+      }
+      // Small fallback pool is used only while Web Audio is decoding.
       prepareSoundPools(kind);
       const pool=AUDIO_POOLS[kind];
       if(!pool.length)return;
-      // Pure round-robin avoids scanning media elements on every cut.
-      const index=AUDIO_CURSORS[kind];
+      const index=AUDIO_CURSORS[kind]%pool.length;
       AUDIO_CURSORS[kind]=(index+1)%pool.length;
       const a=pool[index];
-      if(!a.paused&&!a.ended)a.pause();
       try{a.currentTime=0;}catch(e){}
       const playback=a.play();
       if(playback&&typeof playback.catch==='function')playback.catch(()=>{});
@@ -423,6 +446,7 @@
     if(state.startBusy||state.running)return;
     if(state.rewardPending){if(typeof window.toast==='function')window.toast('Сначала повтори начисление предыдущего раунда.');return;}
     if(!tg?.initData&&!DEMO_MODE){if(typeof window.toast==='function')window.toast('Открой КАЮК BET внутри Telegram');return;}
+    initEffectAudio();
     playSound('start');
     startBackground();
     enterFullscreen(true);
