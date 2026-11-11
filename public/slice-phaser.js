@@ -357,21 +357,21 @@
 
   function haptic(kind){try{if(kind==='success'||kind==='warning')tg?.HapticFeedback?.notificationOccurred?.(kind);else tg?.HapticFeedback?.impactOccurred?.(kind);}catch(e){}}
   const AUDIO_URLS={background:'/audio/slice/background.mp3?v=3',slice:'/audio/slice/slice.mp3?v=3',bomb:'/audio/slice/bomb.mp3?v=3',start:'/audio/slice/start.mp3?v=3'};
-  const AUDIO_POOL_SIZE=8;
+  // Four lightweight voices per effect are enough for rapid swipes without
+  // creating sixteen simultaneous media players on mobile Safari.
+  const AUDIO_POOL_SIZE=4;
   const AUDIO_POOLS={slice:[],bomb:[],start:[]};
   const AUDIO_CURSORS={slice:0,bomb:0,start:0};
-  function prepareSoundPools(){
-    for(const kind of ['slice','bomb','start']){
-      if(AUDIO_POOLS[kind].length)continue;
-      const count=kind==='start'?1:AUDIO_POOL_SIZE;
-      for(let i=0;i<count;i++){
-        const a=new Audio(AUDIO_URLS[kind]);
-        a.preload='auto';
-        a.volume=kind==='start'?0.9:1;
-        a.playsInline=true;
-        AUDIO_POOLS[kind].push(a);
-        try{a.load();}catch(e){}
-      }
+  function prepareSoundPools(kind){
+    if(!AUDIO_POOLS[kind]||AUDIO_POOLS[kind].length)return;
+    const count=kind==='start'?1:AUDIO_POOL_SIZE;
+    for(let i=0;i<count;i++){
+      const a=new Audio(AUDIO_URLS[kind]);
+      a.preload='auto';
+      a.volume=kind==='start'?0.9:1;
+      a.playsInline=true;
+      AUDIO_POOLS[kind].push(a);
+      try{a.load();}catch(e){}
     }
   }
   function startBackground(){
@@ -384,16 +384,17 @@
   function playSound(kind){
     if(!AUDIO_URLS[kind])return;
     try{
-      prepareSoundPools();
+      prepareSoundPools(kind);
       const pool=AUDIO_POOLS[kind];
       if(!pool.length)return;
-      let index=pool.findIndex(a=>a.paused||a.ended);
-      if(index<0){index=AUDIO_CURSORS[kind]%pool.length;}
+      // Pure round-robin avoids scanning media elements on every cut.
+      const index=AUDIO_CURSORS[kind];
       AUDIO_CURSORS[kind]=(index+1)%pool.length;
       const a=pool[index];
-      a.pause();
+      if(!a.paused&&!a.ended)a.pause();
       try{a.currentTime=0;}catch(e){}
-      a.play().catch(()=>{});
+      const playback=a.play();
+      if(playback&&typeof playback.catch==='function')playback.catch(()=>{});
     }catch(e){}
   }
   function hud(){
