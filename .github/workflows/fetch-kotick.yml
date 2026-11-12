@@ -1,0 +1,29 @@
+name: Retrieve kotick model
+on:
+  push:
+    paths:
+      - ".github/workflows/fetch-kotick.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  retrieve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release asset
+        run: |
+          curl -fL --retry 3 \
+            "https://github.com/datoskha-maker/kayuk-bet-miniapp/releases/download/kotick-model-v1/Meshy_AI_Anime_Kitten_with_Bow_2_20261111_character.zip" \
+            -o kotick-model.zip
+          test -s kotick-model.zip
+          unzip -t kotick-model.zip
+      - name: Upload ZIP as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotick-model-transfer
+          path: kotick-model.zip
+          if-no-files-found: error
+          retention-days: 1
