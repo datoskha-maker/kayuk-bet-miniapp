@@ -7,7 +7,7 @@ async function telegram(method, token, payload) {
     body: JSON.stringify(payload)
   });
   const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error(data.description || 'Telegram API error');
+  if (!response.ok || !data.ok) throw new Error('Telegram API ' + method + ' failed: HTTP ' + response.status + ', error_code ' + String(data.error_code || 'unknown') + ', description: ' + String(data.description || 'Telegram API error'));
   return data.result;
 }
 
