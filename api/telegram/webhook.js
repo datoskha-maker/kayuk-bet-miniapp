@@ -217,7 +217,7 @@ export default async function handler(req, res) {
       await telegram('sendMessage', token, {
         chat_id: chatId,
         text: '📋 ЛИНИЯ КАЮК BET\n\n' + listing + '\n\nТолько виртуальные средства.',
-        reply_markup: openAppKeyboard(),
+        reply_markup: openAppKeyboard(groupOnly),
         disable_web_page_preview: true
       });
       return res.status(200).json({ ok: true });
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
       await telegram('sendMessage', token, {
         chat_id: chatId,
         text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/help — помощь',
-        reply_markup: openAppKeyboard()
+        reply_markup: openAppKeyboard(groupOnly)
       });
       return res.status(200).json({ ok: true });
     }
