@@ -76,6 +76,19 @@ export default async function handler(req, res) {
     const displayName = [auth.user.first_name, auth.user.last_name].filter(Boolean).join(' ');
     return res.status(200).json({ ok: true, displayName });
   }
+  if (action === 'repairWebhook') {
+    const webhookUrl = 'https://kayuk-bet-miniapp-9nfa.vercel.app/api/telegram/webhook';
+    const payload = { url: webhookUrl, allowed_updates: ['message', 'edited_message'], drop_pending_updates: false };
+    if (process.env.TELEGRAM_WEBHOOK_SECRET) payload.secret_token = process.env.TELEGRAM_WEBHOOK_SECRET;
+    try {
+      await telegramCall(botToken, 'setWebhook', payload);
+      const info = await telegramCall(botToken, 'getWebhookInfo', {});
+      return res.status(200).json({ ok: true, url: info.url || '', pendingUpdateCount: Number(info.pending_update_count || 0), lastErrorMessage: info.last_error_message || null, detail: 'Webhook направлен на действующий домен проекта. Ожидающие обновления не удалялись.' });
+    } catch (error) {
+      console.error('Telegram webhook repair failed:', error?.message || error);
+      return res.status(502).json({ error: 'Не удалось восстановить webhook: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') });
+    }
+  }
   if (!chatId) return res.status(503).json({ error: 'Не настроен TELEGRAM_GROUP_CHAT_ID в Production' });
 
   if (action === 'check') {
@@ -111,7 +124,7 @@ export default async function handler(req, res) {
     } catch (error) {
       console.error('Telegram announce getChat failed:', error?.message || 'unknown error');
       return res.status(502).json({
-        error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Webhook: ' + (webhookInfo?.url || 'НЕ НАСТРОЕН') + '; ожидающих обновлений: ' + (webhookInfo?.pendingUpdateCount ?? '?') + '; последняя ошибка доставки: ' + (webhookInfo?.lastErrorMessage || 'нет') + '. Проверьте ID беседы и что в группе добавлен именно этот бот.',
+        error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Webhook: ' + (webhookInfo?.url || 'НЕ НАСТРОЕН') + '; ожидающих обновлений: ' + (webhookInfo?.pendingUpdateCount ?? '?') + '; последняя ошибка доставки: ' + (webhookInfo?.lastErrorMessage || 'нет') + '. Настроенный ID беседы: ' + String(chatId) + '. Проверьте ID и что в группе добавлен именно этот бот.',
         diagnostic: { stage: 'getChat', tokenAccepted: true, botUsername: me.username || null, configuredChatId: String(chatId), webhookInfo }
       });
     }
