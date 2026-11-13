@@ -12,30 +12,22 @@ function safeEqualHex(a, b) {
 
 function verifyTelegramInitData(initData, botToken) {
   if (typeof initData !== 'string' || !initData || initData.length > 8192) return null;
-
   const params = new URLSearchParams(initData);
   const receivedHash = params.get('hash');
   if (!receivedHash) return null;
-
   const pairs = [];
-  for (const [key, value] of params.entries()) {
-    if (key !== 'hash') pairs.push([key, value]);
-  }
+  for (const [key, value] of params.entries()) if (key !== 'hash') pairs.push([key, value]);
   pairs.sort(([a], [b]) => a.localeCompare(b));
   const dataCheckString = pairs.map(([key, value]) => `${key}=${value}`).join('\n');
-
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
   if (!safeEqualHex(receivedHash, calculatedHash)) return null;
-
   const authDate = Number(params.get('auth_date'));
   const now = Math.floor(Date.now() / 1000);
   if (!Number.isFinite(authDate) || authDate > now + 60 || now - authDate > 86400) return null;
-
   let user;
   try { user = JSON.parse(params.get('user') || 'null'); } catch { return null; }
   if (!user || !user.id) return null;
-
   return { user, authDate };
 }
 
@@ -43,6 +35,21 @@ function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   try { return new URL(origin).host === String(req.headers.host || ''); } catch { return false; }
+}
+
+async function telegramCall(token, method, payload) {
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    const error = new Error(result.description || `Telegram API error ${response.status}`);
+    error.telegramDescription = result.description || '';
+    throw error;
+  }
+  return result.result;
 }
 
 export default async function handler(req, res) {
@@ -60,42 +67,55 @@ export default async function handler(req, res) {
   const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
   const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
 
-  if (!botToken || !adminId) {
-    return res.status(503).json({ error: 'Не настроены Telegram bot token или ID администратора' });
-  }
-
+  if (!botToken || !adminId) return res.status(503).json({ error: 'Не настроены Telegram bot token или ID администратора' });
   const auth = verifyTelegramInitData(body.initData, botToken);
   if (!auth) return res.status(401).json({ error: 'Открой панель через Telegram, используя команду /announce боту.' });
-  if (String(auth.user.id) !== adminId) {
-    return res.status(403).json({ error: 'Доступ разрешён только администратору КАЮК BET.' });
-  }
+  if (String(auth.user.id) !== adminId) return res.status(403).json({ error: 'Доступ разрешён только администратору КАЮК BET.' });
 
   if (action === 'auth') {
     const displayName = [auth.user.first_name, auth.user.last_name].filter(Boolean).join(' ');
     return res.status(200).json({ ok: true, displayName });
   }
-
-  if (action !== 'send') return res.status(400).json({ error: 'Неизвестное действие' });
   if (!chatId) return res.status(503).json({ error: 'Не настроен TELEGRAM_GROUP_CHAT_ID в Production' });
 
+  if (action === 'check') {
+    try {
+      const me = await telegramCall(botToken, 'getMe', {});
+      const chat = await telegramCall(botToken, 'getChat', { chat_id: chatId });
+      const member = await telegramCall(botToken, 'getChatMember', { chat_id: chatId, user_id: me.id });
+      const canSend = member.status === 'creator' || member.status === 'administrator' ||
+        (member.status === 'member' && member.can_send_messages !== false) ||
+        (member.status === 'restricted' && member.can_send_messages === true);
+      return res.status(200).json({
+        ok: true,
+        botUsername: me.username ? '@' + me.username : 'бот',
+        chatTitle: chat.title || chat.username || 'Telegram-беседа',
+        memberStatus: member.status,
+        canSend,
+        detail: canSend
+          ? 'Бот видит беседу и может отправлять сообщения.'
+          : 'Бот состоит в беседе, но Telegram не разрешает ему отправлять сообщения.'
+      });
+    } catch (error) {
+      console.error('Telegram announce check failed:', error?.message || 'unknown error');
+      return res.status(502).json({ error: 'Проверка Telegram: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') });
+    }
+  }
+
+  if (action !== 'send') return res.status(400).json({ error: 'Неизвестное действие' });
   const message = String(body.message || '').trim();
   if (!message) return res.status(400).json({ error: 'Напиши текст сообщения' });
   if (message.length > 4000) return res.status(400).json({ error: 'Максимум 4000 символов' });
 
   try {
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message, disable_web_page_preview: true })
+    const result = await telegramCall(botToken, 'sendMessage', {
+      chat_id: chatId,
+      text: message,
+      disable_web_page_preview: true
     });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      console.error('Telegram announce failed:', result.description || response.status);
-      return res.status(502).json({ error: 'Telegram не принял сообщение. Проверь, что бот состоит в беседе и может писать.' });
-    }
-    return res.status(200).json({ ok: true, message_id: result.result?.message_id });
+    return res.status(200).json({ ok: true, message_id: result?.message_id });
   } catch (error) {
-    console.error('Telegram announce request failed:', error?.message || 'unknown error');
-    return res.status(502).json({ error: 'Не удалось связаться с Telegram' });
+    console.error('Telegram announce failed:', error?.message || 'unknown error');
+    return res.status(502).json({ error: 'Telegram отклонил отправку: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') });
   }
 }
