@@ -2,26 +2,33 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
 
 function verifyTelegramInitData(initData, botToken) {
-  if (!initData || !botToken) return null;
+  if (!initData) return { user: null, reason: 'missing_init_data' };
+  if (!botToken) return { user: null, reason: 'missing_bot_token' };
   const params = new URLSearchParams(initData);
   const hash = params.get('hash');
-  if (!hash) return null;
+  if (!hash) return { user: null, reason: 'missing_hash' };
   params.delete('hash');
 
   const authDate = Number(params.get('auth_date'));
-  if (!authDate || Math.abs(Date.now() / 1000 - authDate) > 86400) return null;
+  if (!authDate) return { user: null, reason: 'missing_auth_date' };
+  if (Math.abs(Date.now() / 1000 - authDate) > 86400) return { user: null, reason: 'auth_date_out_of_range' };
 
   const dataCheckString = [...params.entries()]
     .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`)
-    .join('\n');
+    .join('\\n');
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
   const a = Buffer.from(calculatedHash, 'hex');
   const b = Buffer.from(hash, 'hex');
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return { user: null, reason: 'hash_mismatch' };
 
-  try { return JSON.parse(params.get('user') || 'null'); } catch { return null; }
+  try {
+    const user = JSON.parse(params.get('user') || 'null');
+    return user?.id ? { user, reason: null } : { user: null, reason: 'invalid_user' };
+  } catch {
+    return { user: null, reason: 'invalid_user_json' };
+  }
 }
 
 export default async function handler(req, res) {
@@ -36,8 +43,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration missing' });
   }
 
-  const user = verifyTelegramInitData(req.headers['x-telegram-init-data'], botToken);
-  if (!user?.id) return res.status(401).json({ error: 'Telegram authentication failed. Reopen the Mini App.' });
+  const auth = verifyTelegramInitData(req.headers['x-telegram-init-data'], botToken);
+  if (!auth.user?.id) {
+    console.warn('[profile] Telegram auth rejected:', auth.reason);
+    return res.status(401).json({ error: 'Telegram authentication failed. Reopen the Mini App.' });
+  }
+  const user = auth.user;
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   let { data: profile, error } = await supabase
