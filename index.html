@@ -938,11 +938,11 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
   const bounds=new THREE.Box3().setFromObject(model);const size=bounds.getSize(new THREE.Vector3());const center=bounds.getCenter(new THREE.Vector3());model.position.sub(center);model.scale.setScalar(1.42/Math.max(size.y,.01));walker.add(model);
   const clip=gltf.animations.find(a=>a.name==='Walk_Calm_Cat_v3')||gltf.animations.find(a=>/walk/i.test(a.name));if(!clip)throw new Error('Walk animation not found');
   const mixer=new THREE.AnimationMixer(model);const action=mixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();host.classList.add('is-ready');
-  let last=0,raf=0;const cycle=13.2,travel=5.9,turn=.65,start=-1.38,end=1.38;
+  let last=0,raf=0;const cycle=13.2,travel=5.9,turn=.65;
   function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
   const ro=new ResizeObserver(resize);ro.observe(host);
   function tick(now){raf=requestAnimationFrame(tick);const home=document.getElementById('home');if(document.hidden||!home||!home.classList.contains('active')){last=now;return;}
-   const dt=last?Math.min((now-last)/1000,.04):0;last=now;const t=(now/1000)%cycle;let x,dir,turnBlend=0;
+   const dt=last?Math.min((now-last)/1000,.04):0;last=now;const t=(now/1000)%cycle;const range=Math.max(1.4,Math.min(3.35,camera.position.z*Math.tan(34*Math.PI/360)*camera.aspect-.85));const start=-range,end=range;let x,dir,turnBlend=0;
    if(t<travel){x=start+(end-start)*(t/travel);dir=1;}else if(t<travel+turn){x=end;dir=1;turnBlend=(t-travel)/turn;}else if(t<travel+turn+travel){x=end-(end-start)*((t-travel-turn)/travel);dir=-1;}else{x=start;dir=-1;turnBlend=(t-travel-turn-travel)/turn;}
    walker.position.x=x;if(turnBlend>0){const blend=Math.min(1,turnBlend);walker.rotation.y=dir>0?Math.PI*blend:Math.PI+Math.PI*blend;}else walker.rotation.y=dir>0?0:Math.PI;
    mixer.update(dt);renderer.render(scene,camera);
