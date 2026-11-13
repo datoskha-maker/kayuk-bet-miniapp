@@ -19,6 +19,15 @@ function openAppKeyboard() {
   return { inline_keyboard: [[{ text: '🎰 Открыть КАЮК BET', url }]] };
 }
 
+function announcePanelKeyboard() {
+  return {
+    inline_keyboard: [[{
+      text: '📝 Открыть панель отправки',
+      web_app: { url: 'https://kayuk-bet-miniapp.vercel.app/announce.html' }
+    }]]
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -49,14 +58,31 @@ export default async function handler(req, res) {
     if (command === '/announce') {
       const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
       const senderId = String(message.from?.id || '');
+      if (!adminId || senderId !== adminId) return res.status(200).json({ ok: true });
+
       const announcement = text.replace(/^\/\S+\s*/, '').trim();
-      if (!adminId || senderId !== adminId || !groupOnly) {
+      if (!announcement) {
+        if (groupOnly) {
+          const username = String(process.env.TELEGRAM_BOT_USERNAME || 'aeslibaba_bot').replace(/^@/, '');
+          await telegram('sendMessage', token, {
+            chat_id: chatId,
+            text: 'Чтобы открыть панель отправки, перейди в личный чат с ботом и напиши ему /announce.',
+            reply_markup: { inline_keyboard: [[{ text: 'Открыть личный чат с ботом', url: `https://t.me/${username}` }]] }
+          });
+        } else {
+          await telegram('sendMessage', token, {
+            chat_id: chatId,
+            text: 'Панель отправки сообщений. Только твой Telegram-аккаунт имеет доступ.',
+            reply_markup: announcePanelKeyboard()
+          });
+        }
         return res.status(200).json({ ok: true });
       }
-      if (!announcement) {
+
+      if (!groupOnly) {
         await telegram('sendMessage', token, {
           chat_id: chatId,
-          text: 'Напиши текст после команды, например:\n/announce 👻 охаё! заходи скорее в игру! 🐱'
+          text: 'Чтобы отправить сообщение в беседу, открой панель кнопкой выше: /announce'
         });
         return res.status(200).json({ ok: true });
       }
@@ -88,7 +114,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (command === '/help') {
-      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce <текст> — сообщение в беседу (только администратор)\n/help — помощь', reply_markup: openAppKeyboard() });
+      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/help — помощь', reply_markup: openAppKeyboard() });
     }
   } catch (error) { console.error('Telegram webhook error:', error?.message || error); }
   return res.status(200).json({ ok: true });
