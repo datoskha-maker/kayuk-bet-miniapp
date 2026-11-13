@@ -1,40 +1,48 @@
 import crypto from 'node:crypto';
 
-const COOKIE = 'kayuk_announce_session';
-const SESSION_TTL = 8 * 60 * 60;
-
 function parseBody(body) {
   if (body && typeof body === 'object') return body;
   try { return JSON.parse(body || '{}'); } catch { return {}; }
 }
-function safeEqual(a, b) {
-  const left = Buffer.from(String(a || ''));
-  const right = Buffer.from(String(b || ''));
-  return left.length === right.length && crypto.timingSafeEqual(left, right);
+
+function safeEqualHex(a, b) {
+  if (!/^[a-f0-9]{64}$/i.test(String(a || '')) || !/^[a-f0-9]{64}$/i.test(String(b || ''))) return false;
+  return crypto.timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
 }
-function sign(value, secret) {
-  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
+
+function verifyTelegramInitData(initData, botToken) {
+  if (typeof initData !== 'string' || !initData || initData.length > 8192) return null;
+
+  const params = new URLSearchParams(initData);
+  const receivedHash = params.get('hash');
+  if (!receivedHash) return null;
+
+  const pairs = [];
+  for (const [key, value] of params.entries()) {
+    if (key !== 'hash') pairs.push([key, value]);
+  }
+  pairs.sort(([a], [b]) => a.localeCompare(b));
+  const dataCheckString = pairs.map(([key, value]) => `${key}=${value}`).join('\n');
+
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  if (!safeEqualHex(receivedHash, calculatedHash)) return null;
+
+  const authDate = Number(params.get('auth_date'));
+  const now = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(authDate) || authDate > now + 60 || now - authDate > 86400) return null;
+
+  let user;
+  try { user = JSON.parse(params.get('user') || 'null'); } catch { return null; }
+  if (!user || !user.id) return null;
+
+  return { user, authDate };
 }
-function getCookie(req, name) {
-  const raw = String(req.headers.cookie || '');
-  const entry = raw.split(';').map(x => x.trim()).find(x => x.startsWith(name + '='));
-  return entry ? decodeURIComponent(entry.slice(name.length + 1)) : '';
-}
-function validSession(req, secret) {
-  const token = getCookie(req, COOKIE);
-  const [expires, signature, extra] = token.split('.');
-  if (!expires || !signature || extra || !/^\d+$/.test(expires) || Number(expires) < Math.floor(Date.now() / 1000)) return false;
-  return safeEqual(signature, sign(expires, secret));
-}
+
 function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return true;
   try { return new URL(origin).host === String(req.headers.host || ''); } catch { return false; }
-}
-function setSessionCookie(res, token, maxAge) {
-  res.setHeader('Set-Cookie', token
-    ? `${COOKIE}=${encodeURIComponent(token)}; Path=/api/telegram; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`
-    : `${COOKIE}=; Path=/api/telegram; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
 }
 
 export default async function handler(req, res) {
@@ -48,35 +56,31 @@ export default async function handler(req, res) {
 
   const body = parseBody(req.body);
   const action = String(body.action || '');
-  const panelPassword = process.env.ANNOUNCE_PANEL_PASSWORD;
-  const sessionSecret = process.env.ANNOUNCE_SESSION_SECRET;
-  if (!panelPassword || !sessionSecret || sessionSecret.length < 32) {
-    return res.status(503).json({ error: 'Панель ещё не настроена в Vercel Environment Variables' });
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
+  const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
+
+  if (!botToken || !adminId) {
+    return res.status(503).json({ error: 'Не настроены Telegram bot token или ID администратора' });
   }
 
-  if (action === 'login') {
-    if (!safeEqual(body.password, panelPassword)) return res.status(401).json({ error: 'Неверный пароль' });
-    const expires = String(Math.floor(Date.now() / 1000) + SESSION_TTL);
-    const token = expires + '.' + sign(expires, sessionSecret);
-    setSessionCookie(res, token, SESSION_TTL);
-    return res.status(200).json({ ok: true });
+  const auth = verifyTelegramInitData(body.initData, botToken);
+  if (!auth) return res.status(401).json({ error: 'Открой панель через Telegram, используя команду /announce боту.' });
+  if (String(auth.user.id) !== adminId) {
+    return res.status(403).json({ error: 'Доступ разрешён только администратору КАЮК BET.' });
   }
 
-  if (action === 'logout') {
-    setSessionCookie(res, '', 0);
-    return res.status(200).json({ ok: true });
+  if (action === 'auth') {
+    const displayName = [auth.user.first_name, auth.user.last_name].filter(Boolean).join(' ');
+    return res.status(200).json({ ok: true, displayName });
   }
 
-  if (!validSession(req, sessionSecret)) return res.status(401).json({ error: 'Сессия истекла. Войди снова.' });
   if (action !== 'send') return res.status(400).json({ error: 'Неизвестное действие' });
+  if (!chatId) return res.status(503).json({ error: 'Не настроен TELEGRAM_GROUP_CHAT_ID в Production' });
 
   const message = String(body.message || '').trim();
   if (!message) return res.status(400).json({ error: 'Напиши текст сообщения' });
   if (message.length > 4000) return res.status(400).json({ error: 'Максимум 4000 символов' });
-
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
-  if (!botToken || !chatId) return res.status(503).json({ error: 'Не настроены TELEGRAM_BOT_TOKEN или TELEGRAM_GROUP_CHAT_ID' });
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
