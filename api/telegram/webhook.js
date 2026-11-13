@@ -1,13 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
 async function telegram(method, token, payload) {
-  const response = await fetch('https://api.telegram.org/bot' + token + '/' + method, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json();
-  if (!response.ok || !data.ok) throw new Error('Telegram API ' + method + ' failed: HTTP ' + response.status + ', error_code ' + String(data.error_code || 'unknown') + ', description: ' + String(data.description || 'Telegram API error'));
+  const endpoint = 'https://api.telegram.org/bot' + token + '/' + method;
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (error) {
+    throw new Error('Telegram fetch ' + method + ' failed: ' + String(error && error.message || error));
+  }
+  const raw = await response.text();
+  let data;
+  try { data = JSON.parse(raw); } catch {
+    throw new Error('Telegram API ' + method + ' returned non-JSON: HTTP ' + response.status + ', body: ' + raw.slice(0, 300));
+  }
+  if (!response.ok || !data.ok) {
+    throw new Error('Telegram API ' + method + ' failed: HTTP ' + response.status + ', error_code ' + String(data.error_code || 'unknown') + ', description: ' + String(data.description || 'Telegram API error'));
+  }
   return data.result;
 }
 
@@ -179,7 +191,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
   } catch (error) {
-    console.error('Telegram webhook error:', error && (error.message || error));
+    console.error('Telegram webhook error for command ' + command + ':', error && (error.stack || error.message || error));
   }
 
   return res.status(200).json({ ok: true });
