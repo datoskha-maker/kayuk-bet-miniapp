@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
   const { data: bets, error: betsError } = await supabase
     .from('bets')
-    .select('id, event_title, selection, stake, odds, status, potential_payout, created_at, settled_at')
+    .select('id, event_title, selection, stake, odds, status, potential_payout, created_at')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(50);
