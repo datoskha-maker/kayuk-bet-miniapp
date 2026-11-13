@@ -915,7 +915,7 @@ async function spinSlots(){
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
 </script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script>
-<div id="catPremiere" aria-label="3D-котик свободно гуляет по главному экрану"><div id="catFallback" aria-hidden="true">🐈</div></div>
+<div id="catPremiere" aria-label="3D-котик свободно гуляет по главному экрану" style="position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483647!important;display:block!important;visibility:visible!important;opacity:1!important;overflow:visible!important;background:transparent!important;pointer-events:none!important"><div id="catFallback" aria-hidden="true" style="position:fixed!important;left:35vw!important;top:42vh!important;display:block!important;visibility:visible!important;opacity:1!important;font-size:64px!important;line-height:1!important;z-index:2147483647!important;pointer-events:none!important;filter:drop-shadow(0 8px 12px #0008)!important;animation:catFallbackWalk 14s linear infinite alternate!important">🐈</div></div>
 <script>
 (function(){
  const h=document.getElementById('catPremiere');if(!h)return;
