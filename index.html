@@ -943,9 +943,13 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
 
   const walker=new THREE.Group();
   scene.add(walker);
-  const modelUrl=encodeURI('/ОЧЕНЬ ВАЖНЫЙ КОТИК СО СКЕЛЕТОМ.glb')+'?v=walk-cat-2';
+  const modelName='ОЧЕНЬ ВАЖНЫЙ КОТИК СО СКЕЛЕТОМ.glb';
+  const modelUrl='https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/'+encodeURIComponent(modelName);
+  const backupUrl='https://cdn.jsdelivr.net/gh/datoskha-maker/kayuk-bet-miniapp@main/'+encodeURIComponent(modelName);
   const loader=new GLTFLoader();
-  const gltf=await new Promise((resolve,reject)=>loader.load(modelUrl,resolve,undefined,reject));
+  const loadModel=url=>new Promise((resolve,reject)=>loader.load(url,resolve,undefined,reject));
+  let gltf;
+  try{gltf=await loadModel(modelUrl)}catch(primaryError){console.warn('Primary cat model host failed; trying backup CDN',primaryError);gltf=await loadModel(backupUrl)}
   const model=gltf.scene;
   const bounds=new THREE.Box3().setFromObject(model);
   const size=bounds.getSize(new THREE.Vector3());
