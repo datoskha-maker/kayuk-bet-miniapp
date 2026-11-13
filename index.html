@@ -919,10 +919,15 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
 <script>
 (function(){
  const h=document.getElementById('catPremiere');if(!h)return;
- h.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483000!important;overflow:hidden!important;background:transparent!important;pointer-events:none!important';
- const d=document.createElement('div');d.id='catPremiereDiagnostic';d.textContent='КОТИК: проверка запуска…';
- d.style.cssText='position:absolute;left:12px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:2147483000;padding:10px 12px;border-radius:12px;background:#10243bea;border:1px solid #76b7e8;color:#eaf5ff;font:12px -apple-system,sans-serif;text-align:center;pointer-events:none';
- h.appendChild(d);window.__kayukCatStatus=function(s){d.textContent='КОТИК: '+s};
+ // Move the cat layer out of the app/page tree into the document body.
+ // This avoids clipping and stacking contexts created by app containers.
+ if(h.parentElement!==document.body)document.body.appendChild(h);
+ const f=document.getElementById('catFallback');
+ if(f){f.style.cssText='position:fixed!important;left:38vw!important;top:42vh!important;display:block!important;visibility:visible!important;opacity:1!important;font-size:68px!important;line-height:1!important;z-index:2147483647!important;pointer-events:none!important;filter:drop-shadow(0 8px 12px #000b)!important;animation:catFallbackWalk 14s linear infinite alternate!important';}
+ h.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483647!important;display:block!important;visibility:visible!important;opacity:1!important;overflow:visible!important;background:transparent!important;pointer-events:none!important';
+ const d=document.createElement('div');d.id='catPremiereDiagnostic';d.textContent='КОТИК: слой подключён';
+ d.style.cssText='position:fixed!important;left:12px!important;right:12px!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;z-index:2147483647!important;padding:10px 12px!important;border-radius:12px!important;background:#10243bea!important;border:1px solid #76b7e8!important;color:#eaf5ff!important;font:12px -apple-system,sans-serif!important;text-align:center!important;pointer-events:none!important;display:block!important;visibility:visible!important;opacity:1!important';
+ document.body.appendChild(d);window.__kayukCatStatus=function(s){d.textContent='КОТИК: '+s};
 })();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
