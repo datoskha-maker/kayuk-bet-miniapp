@@ -61,7 +61,40 @@ export default async function handler(req, res) {
   const message = update && (update.message || update.edited_message);
   const chatId = message && message.chat && message.chat.id;
   const text = String((message && message.text) || '').trim();
-  if (!chatId || !text.startsWith('/')) return res.status(200).json({ ok: true });
+  if (!chatId || !text) return res.status(200).json({ ok: true });
+
+  // Admin can publish plain text from the private bot chat without using /announce.
+  const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
+  const senderId = String((message.from && message.from.id) || '');
+  if (message.chat.type === 'private' && adminId && senderId === adminId && !text.startsWith('/')) {
+    const groupChatId = process.env.TELEGRAM_GROUP_CHAT_ID;
+    if (!groupChatId) {
+      await telegram('sendMessage', token, { chat_id: chatId, text: 'Не настроен ID целевой беседы. Обратись к настройкам КАЮК BET.' });
+      return res.status(200).json({ ok: true });
+    }
+    if (text.length > 4000) {
+      await telegram('sendMessage', token, { chat_id: chatId, text: 'Сообщение слишком длинное. Максимум 4000 символов.' });
+      return res.status(200).json({ ok: true });
+    }
+    try {
+      await telegram('sendMessage', token, {
+        chat_id: groupChatId,
+        text,
+        disable_web_page_preview: true
+      });
+      await telegram('sendMessage', token, { chat_id: chatId, text: '✓ Сообщение опубликовано в беседе КАЮК BET.' });
+    } catch (error) {
+      console.error('Telegram private announcement failed:', error && (error.stack || error.message || error));
+      try {
+        await telegram('sendMessage', token, { chat_id: chatId, text: 'Не удалось отправить сообщение в беседу. Проверь права бота и попробуй ещё раз.' });
+      } catch (notifyError) {
+        console.error('Telegram private announcement notification failed:', notifyError && (notifyError.message || notifyError));
+      }
+    }
+    return res.status(200).json({ ok: true });
+  }
+
+  if (!text.startsWith('/')) return res.status(200).json({ ok: true });
 
   const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
   const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
