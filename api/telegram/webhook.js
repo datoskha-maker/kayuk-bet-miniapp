@@ -23,12 +23,20 @@ async function telegram(method, token, payload) {
   return data.result;
 }
 
-function openAppKeyboard() {
-  const username = String(process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '');
-  const url = username
-    ? 'https://t.me/' + username + '?startapp=group'
-    : (process.env.MINI_APP_URL || 'https://kayuk-bet-miniapp-9nfa.vercel.app');
-  return { inline_keyboard: [[{ text: '🎰 Открыть КАЮК BET', url: url }]] };
+function openAppKeyboard(groupChat = false) {
+  const appUrl = process.env.MINI_APP_URL || 'https://kayuk-bet-miniapp-9nfa.vercel.app';
+  if (!groupChat) {
+    // In a private chat, use a real Telegram Web App button so Telegram supplies initData.
+    return { inline_keyboard: [[{
+      text: '🎰 Открыть КАЮК BET',
+      web_app: { url: appUrl }
+    }]] };
+  }
+  const username = String(process.env.TELEGRAM_BOT_USERNAME || 'aeslibaba_bot').replace(/^@/, '');
+  return { inline_keyboard: [[{
+    text: '🎰 Открыть КАЮК BET',
+    url: 'https://t.me/' + username + '?startapp=group'
+  }]] };
 }
 
 function announcePanelKeyboard() {
@@ -107,7 +115,7 @@ export default async function handler(req, res) {
       await telegram('sendMessage', token, {
         chat_id: chatId,
         text: greeting,
-        reply_markup: openAppKeyboard(),
+        reply_markup: openAppKeyboard(groupOnly),
         disable_web_page_preview: true
       });
       return res.status(200).json({ ok: true });
