@@ -90,6 +90,21 @@ export default async function handler(req, res) {
       });
     }
 
+    let webhookInfo = null;
+    try {
+      const info = await telegramCall(botToken, 'getWebhookInfo', {});
+      webhookInfo = {
+        url: info.url || '',
+        pendingUpdateCount: Number(info.pending_update_count || 0),
+        lastErrorDate: info.last_error_date || null,
+        lastErrorMessage: info.last_error_message || null,
+        hasCustomCertificate: Boolean(info.has_custom_certificate),
+        allowedUpdates: info.allowed_updates || []
+      };
+    } catch (error) {
+      webhookInfo = { diagnosticError: error.telegramDescription || error.message || 'unknown error' };
+    }
+
     let chat;
     try {
       chat = await telegramCall(botToken, 'getChat', { chat_id: chatId });
@@ -97,7 +112,7 @@ export default async function handler(req, res) {
       console.error('Telegram announce getChat failed:', error?.message || 'unknown error');
       return res.status(502).json({
         error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Проверьте ID беседы и что в группе добавлен именно этот бот.',
-        diagnostic: { stage: 'getChat', tokenAccepted: true, botUsername: me.username || null, configuredChatId: String(chatId) }
+        diagnostic: { stage: 'getChat', tokenAccepted: true, botUsername: me.username || null, configuredChatId: String(chatId), webhookInfo }
       });
     }
 
@@ -121,6 +136,7 @@ export default async function handler(req, res) {
       chatTitle: chat.title || chat.username || 'Telegram-беседа',
       memberStatus: member.status,
       canSend,
+      webhookInfo,
       detail: canSend
         ? 'Все три этапа пройдены: токен действителен, беседа найдена, бот может отправлять сообщения.'
         : 'Беседа найдена, но Telegram не разрешает боту отправлять сообщения. Проверьте ограничения и права участника.'
