@@ -795,8 +795,23 @@ body .app #home button[onclick*="toggleCompetitions"] small { display:none !impo
 /* Hide only the home-screen tournament shortcut and quick navigation row */
 body .app #home > button[onclick*="toggleCompetitions"],
 body .app #home > .quick { display:none !important; }
+
+.cat-premiere{position:relative;height:190px;margin:4px 0 18px;overflow:hidden;border:1px solid #344c61;border-radius:20px;background:radial-gradient(ellipse at 76% 88%,#294c654d 0,transparent 46%),linear-gradient(135deg,#172737 0%,#111b28 62%,#101720 100%);box-shadow:inset 0 1px 0 #b8dcf21a,0 8px 22px #03080e45}
+.cat-premiere:before{content:"";position:absolute;left:7%;right:7%;bottom:24px;height:1px;background:linear-gradient(90deg,transparent,#8eb8d344,transparent)}
+.cat-premiere-copy{position:absolute;z-index:2;left:15px;top:13px;pointer-events:none}
+.cat-premiere-kicker{font-size:9px;letter-spacing:1.7px;font-weight:900;color:#91b9d7}
+.cat-premiere-title{margin-top:5px;font-size:14px;font-weight:900;color:#f1f6fa;text-shadow:0 2px 10px #0008}
+.cat-premiere-sub{margin-top:4px;font-size:10px;color:#a9bac9}
+.cat-premiere canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;pointer-events:none}
+.cat-premiere-shadow{position:absolute;z-index:0;left:50%;bottom:17px;width:100px;height:13px;transform:translateX(-50%);border-radius:50%;background:#02070c80;filter:blur(7px);pointer-events:none}
+.cat-premiere-loading{position:absolute;right:13px;top:14px;z-index:3;font-size:9px;color:#91a9bd;background:#101b28b8;border:1px solid #344b60;border-radius:20px;padding:5px 8px}
+.cat-premiere.is-ready .cat-premiere-loading{display:none}
+.cat-premiere-error{position:absolute;inset:auto 12px 12px;z-index:4;color:#e5b7b7;font-size:10px;display:none}
+.cat-premiere.has-error .cat-premiere-error{display:block}
+@media(max-width:380px){.cat-premiere{height:174px}.cat-premiere-title{font-size:13px}.cat-premiere-sub{max-width:185px}}
+
 </style></head><body><div class="app"><header><div class="brand"><div class="logo">КБ</div><div><b>КАЮК BET</b><div class="sub">ЛИГА СВОИХ · DEMO</div></div></div><div class="avatar" id="avatar">К</div></header><main>
-<section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
+<section class="page active" id="home"><div class="balance"><div class="balance-art" aria-hidden="true"></div><div class="eyebrow">ТВОЙ ИГРОВОЙ БАЛАНС</div><div class="amount" id="balance">100 000 ₽</div><div class="balancefoot"><span class="muted">Только виртуальные средства</span><span class="pill">● DEMO</span></div></div><div class="cat-premiere" id="catPremiere" aria-label="3D-котик гуляет по главному экрану"><div class="cat-premiere-copy"><div class="cat-premiere-kicker">НОВЫЙ УЧАСТНИК КАЮКА</div><div class="cat-premiere-title">Знакомьтесь, наш котик 🐾</div><div class="cat-premiere-sub">Пока осваивается и гуляет по экрану</div></div><div class="cat-premiere-shadow"></div><div class="cat-premiere-loading">Загружаем 3D-котика…</div><div class="cat-premiere-error">Не удалось загрузить 3D-модель. Проверьте подключение и обновите экран.</div></div><button onclick="page('line');selectCompetition('Все');toggleCompetitions()" style="display:flex!important;visibility:visible!important;opacity:1!important;width:100%;min-height:76px;align-items:center;gap:12px;text-align:left;margin:14px 0 18px;padding:16px;border:1px solid #426889;border-radius:16px;background:linear-gradient(110deg,#203C54,#182533);color:#F2F6FA;font-size:14px;font-weight:800"><span style="font-size:28px;flex-shrink:0">🏆</span><span style="display:flex;flex:1;min-width:0;flex-direction:column;gap:5px"><b>Чемпионаты и турниры</b><small style="font-size:10px;line-height:1.4;color:#B7D1E5;font-weight:500">РПЛ · Серия А · Ла Лига · Бундеслига · АПЛ · Лига чемпионов · ЧМ</small></span><span style="font-size:28px;color:#8CC6F2">›</span></button><div class="quick"><button onclick="page('line')"><span>⚽</span>Матчи</button><button onclick="page('slip')"><span>🎟️</span>Купон <i id="count"></i></button><button onclick="page('rating')"><span>🏅</span>Рейтинг</button></div><button class="competition-home" onclick="page('slots')" style="margin:0 0 22px;border-color:#8c6a2c;background:linear-gradient(110deg,#3a2b17,#1b2430)"><span>🎰</span><span class="competition-home-copy"><b>КАЮК SLOTS</b><small>Крути барабаны · джекпот ×500 · только виртуальные ₽</small></span><span class="competition-home-arrow" style="color:#e6c47b">›</span></button><button class="slice-card" onclick="page('slice')"><span class="slice-card-icon">⚔️</span><span class="slice-card-copy"><b>КАЮК SLICE</b><small>Режь бутылки и фрукты · зарабатывай виртуальные ₽</small></span><span class="slice-card-arrow">›</span></button><div class="head"><h2>Ближайшие матчи</h2><button onclick="page('line')">Вся линия ↗</button></div><div id="homeMatches"></div><p class="notice">События создаёт администратор. Итоги рассчитанных матчей остаются в архиве. Используются только виртуальные средства.</p></section>
 <section class="page" id="slice">
   <button class="chip" onclick="window.KayukSlice?.close()">← Главная</button>
   <div class="slice-gamebar"><div class="head"><h2>⚔️ КАЮК SLICE</h2><span class="pill">ARCADE</span></div></div>
@@ -905,4 +920,35 @@ async function spinSlots(){
 }
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
-</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script>
+<script type="module">
+(async function(){
+ const host=document.getElementById('catPremiere'); if(!host)return;
+ try {
+  const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+  const GLTFLoader=(await import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')).GLTFLoader;
+  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(host.clientWidth,host.clientHeight,false);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.setClearColor(0x000000,0);host.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(34,host.clientWidth/host.clientHeight,0.1,100);camera.position.set(0,1.45,5.1);camera.lookAt(0,.72,0);
+  scene.add(new THREE.HemisphereLight(0xe8f4ff,0x263748,2.0));const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(-2.5,4,4);scene.add(key);const fill=new THREE.DirectionalLight(0x8dbde8,.85);fill.position.set(3,2,-3);scene.add(fill);
+  const walker=new THREE.Group();scene.add(walker);const loader=new GLTFLoader();
+  const modelUrl='https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%9E%D0%A7%D0%95%D0%9D%D0%AC%20%D0%92%D0%90%D0%96%D0%9D%D0%AB%D0%98%CC%86%20%D0%9A%D0%9E%D0%A2%D0%98%D0%9A%20%D0%A1%D0%9E%20%D0%A1%D0%9A%D0%95%D0%9B%D0%95%D0%A2%D0%9E%D0%9C.glb';
+  const gltf=await new Promise((resolve,reject)=>loader.load(modelUrl,resolve,undefined,reject));const model=gltf.scene;
+  const bounds=new THREE.Box3().setFromObject(model);const size=bounds.getSize(new THREE.Vector3());const center=bounds.getCenter(new THREE.Vector3());model.position.sub(center);model.scale.setScalar(1.42/Math.max(size.y,.01));walker.add(model);
+  const clip=gltf.animations.find(a=>a.name==='Walk_Calm_Cat_v3')||gltf.animations.find(a=>/walk/i.test(a.name));if(!clip)throw new Error('Walk animation not found');
+  const mixer=new THREE.AnimationMixer(model);const action=mixer.clipAction(clip);action.setLoop(THREE.LoopRepeat,Infinity);action.play();host.classList.add('is-ready');
+  let last=0,raf=0;const cycle=13.2,travel=5.9,turn=.65,start=-1.38,end=1.38;
+  function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+  const ro=new ResizeObserver(resize);ro.observe(host);
+  function tick(now){raf=requestAnimationFrame(tick);const home=document.getElementById('home');if(document.hidden||!home||!home.classList.contains('active')){last=now;return;}
+   const dt=last?Math.min((now-last)/1000,.04):0;last=now;const t=(now/1000)%cycle;let x,dir,turnBlend=0;
+   if(t<travel){x=start+(end-start)*(t/travel);dir=1;}else if(t<travel+turn){x=end;dir=1;turnBlend=(t-travel)/turn;}else if(t<travel+turn+travel){x=end-(end-start)*((t-travel-turn)/travel);dir=-1;}else{x=start;dir=-1;turnBlend=(t-travel-turn-travel)/turn;}
+   walker.position.x=x;if(turnBlend>0){const blend=Math.min(1,turnBlend);walker.rotation.y=dir>0?Math.PI*blend:Math.PI+Math.PI*blend;}else walker.rotation.y=dir>0?0:Math.PI;
+   mixer.update(dt);renderer.render(scene,camera);
+  }
+  raf=requestAnimationFrame(tick);window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);ro.disconnect();renderer.dispose();},{once:true});
+ }catch(err){console.error('KAYUK cat premiere:',err);host.classList.add('has-error');const label=host.querySelector('.cat-premiere-loading');if(label)label.textContent='3D-котик пока не загрузился';}
+})();
+</script>
+</body></html>
