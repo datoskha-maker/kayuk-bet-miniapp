@@ -10,6 +10,12 @@ function safeEqualHex(a, b) {
   return crypto.timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
 }
 
+function safeEqualSecret(a, b) {
+  const left = Buffer.from(String(a || ''), 'utf8');
+  const right = Buffer.from(String(b || ''), 'utf8');
+  return left.length >= 32 && left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
 function verifyTelegramInitData(initData, botToken) {
   if (typeof initData !== 'string' || !initData || initData.length > 8192) return null;
   const params = new URLSearchParams(initData);
@@ -68,6 +74,32 @@ export default async function handler(req, res) {
   const chatId = process.env.TELEGRAM_GROUP_CHAT_ID;
 
   if (!botToken || !adminId) return res.status(503).json({ error: 'Не настроены Telegram bot token или ID администратора' });
+
+  // Authenticated ChatGPT Action: send a message without Telegram WebApp initData.
+  if (action === 'chatgpt_send') {
+    const expectedSecret = process.env.CHATGPT_ANNOUNCE_SECRET || '';
+    const authorization = String(req.headers.authorization || '');
+    const suppliedSecret = authorization.replace(/^Bearer\\s+/i, '');
+    if (!expectedSecret || !safeEqualSecret(suppliedSecret, expectedSecret)) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!chatId) return res.status(503).json({ error: 'Не настроен TELEGRAM_GROUP_CHAT_ID в Production' });
+    const message = String(body.message || '').trim();
+    if (!message) return res.status(400).json({ error: 'Напиши текст сообщения' });
+    if (message.length > 4000) return res.status(400).json({ error: 'Максимум 4000 символов' });
+    try {
+      const result = await telegramCall(botToken, 'sendMessage', {
+        chat_id: chatId,
+        text: message,
+        disable_web_page_preview: true
+      });
+      return res.status(200).json({ ok: true, message_id: result?.message_id });
+    } catch (error) {
+      console.error('ChatGPT Telegram announce failed:', error?.message || 'unknown error');
+      return res.status(502).json({ error: 'Telegram отклонил отправку: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') });
+    }
+  }
+
   const auth = verifyTelegramInitData(body.initData, botToken);
   if (!auth) return res.status(401).json({ error: 'Открой панель через Telegram, используя команду /announce боту.' });
   if (String(auth.user.id) !== adminId) return res.status(403).json({ error: 'Доступ разрешён только администратору КАЮК BET.' });
