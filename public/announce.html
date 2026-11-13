@@ -12,7 +12,7 @@
 main{width:100%;max-width:480px}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.logo{width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#6db4ef,#28649d);display:grid;place-items:center;font-size:25px}.brand b{font-size:17px;letter-spacing:.7px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:4px;letter-spacing:1.4px}
 .card{background:#152235ed;border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 18px 55px #0005}.card h1{font-size:22px;margin:0 0 8px}.hint{color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 20px}
 textarea{width:100%;border:1px solid #354b64;background:#0d1928;color:var(--text);border-radius:13px;padding:14px;font:inherit;font-size:16px;outline:none;min-height:170px;resize:vertical;line-height:1.45}textarea:focus{border-color:var(--blue)}
-button,.link{display:block;width:100%;border:0;border-radius:13px;padding:15px;background:linear-gradient(100deg,#347dbb,#4b9bd8);color:white;font-size:15px;font-weight:800;margin-top:14px;text-align:center;text-decoration:none}button:disabled{opacity:.55}.status{font-size:13px;line-height:1.45;margin-top:14px;min-height:18px;color:#b7c8da}.status.error{color:#ff9c9c}.status.success{color:#91e0b0}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:8px}.hidden{display:none!important}
+button,.link{display:block;width:100%;border:0;border-radius:13px;padding:15px;background:linear-gradient(100deg,#347dbb,#4b9bd8);color:white;font-size:15px;font-weight:800;margin-top:14px;text-align:center;text-decoration:none}button.secondary{background:#263b53;border:1px solid #49617b}button:disabled{opacity:.55}.status{font-size:13px;line-height:1.45;margin-top:14px;min-height:18px;color:#b7c8da}.status.error{color:#ff9c9c}.status.success{color:#91e0b0}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-top:8px}.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -22,6 +22,7 @@ button,.link{display:block;width:100%;border:0;border-radius:13px;padding:15px;b
 <section class="card hidden" id="sendCard">
 <h1>Сообщение в беседу</h1><p class="hint" id="welcome">Бот отправит сообщение в закреплённую беседу КАЮК от своего имени.</p>
 <form id="sendForm"><label for="message">Текст сообщения</label><textarea id="message" maxlength="4000" placeholder="Напиши, что нужно отправить..." required></textarea><div class="meta"><span>Сообщение от @aeslibaba_bot</span><span id="count">0 / 4000</span></div><button id="sendBtn">Отправить в беседу</button></form>
+<button class="secondary" id="checkBtn" type="button">Проверить подключение бота</button>
 <div class="status" id="sendStatus" role="status"></div>
 </section>
 <section class="card hidden" id="outsideCard"><h1>Открой через Telegram</h1><p class="hint">Эта панель работает только внутри Telegram, чтобы безопасно проверить твой аккаунт.</p><a class="link" href="https://t.me/aeslibaba_bot?start=announce">Открыть @aeslibaba_bot</a></section>
@@ -48,6 +49,15 @@ async function start(){
     if(err.message.includes('Открой панель')){setTimeout(()=>{$('loadingCard').classList.add('hidden');$('outsideCard').classList.remove('hidden')},1200);}
   }
 }
+$('checkBtn').addEventListener('click',async()=>{
+  $('checkBtn').disabled=true;$('sendStatus').className='status';$('sendStatus').textContent='Проверяем доступ бота к беседе…';
+  try{
+    const d=await call({action:'check'});
+    $('sendStatus').className=d.canSend?'status success':'status error';
+    $('sendStatus').textContent=d.botUsername+' · '+d.chatTitle+' · статус: '+d.memberStatus+'. '+d.detail;
+  }catch(err){$('sendStatus').className='status error';$('sendStatus').textContent=err.message;}
+  finally{$('checkBtn').disabled=false;}
+});
 $('sendForm').addEventListener('submit',async e=>{
   e.preventDefault();const message=$('message').value.trim();if(!message)return;
   $('sendBtn').disabled=true;$('sendStatus').className='status';$('sendStatus').textContent='Отправляем…';
