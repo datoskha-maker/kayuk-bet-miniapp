@@ -45,13 +45,13 @@ export default async function handler(req, res) {
   const chatId = message?.chat?.id;
   const text = String(message?.text || '').trim();
   if (!chatId || !text.startsWith('/')) return res.status(200).json({ ok: true });
-  const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
+  const command = text.split(/\\s+/)[0].split('@')[0].toLowerCase();
   const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
   try {
     if (['/start', '/bet', '/app'].includes(command)) {
       const greeting = groupOnly
-        ? '⚽ КАЮК BET — виртуальная букмекерка вашей компании.\nОткрой Mini App, выбирай матч, ставь виртуальные монеты и следи за рейтингом.'
-        : 'Добро пожаловать в КАЮК BET!\nОткрой приложение: баланс, ставки, история и рейтинг. Все средства виртуальные.';
+        ? '⚽ КАЮК BET — виртуальная букмекерка вашей компании.\\nОткрой Mini App, выбирай матч, ставь виртуальные монеты и следи за рейтингом.'
+        : 'Добро пожаловать в КАЮК BET!\\nОткрой приложение: баланс, ставки, история и рейтинг. Все средства виртуальные.';
       await telegram('sendMessage', token, { chat_id: chatId, text: greeting, reply_markup: openAppKeyboard(), disable_web_page_preview: true });
       return res.status(200).json({ ok: true });
     }
@@ -59,8 +59,7 @@ export default async function handler(req, res) {
       const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
       const senderId = String(message.from?.id || '');
       if (!adminId || senderId !== adminId) return res.status(200).json({ ok: true });
-
-      const announcement = text.replace(/^\/\S+\s*/, '').trim();
+      const announcement = text.replace(/^\\/\\S+\\s*/, '').trim();
       if (!announcement) {
         if (groupOnly) {
           const username = String(process.env.TELEGRAM_BOT_USERNAME || 'aeslibaba_bot').replace(/^@/, '');
@@ -78,7 +77,6 @@ export default async function handler(req, res) {
         }
         return res.status(200).json({ ok: true });
       }
-
       if (!groupOnly) {
         await telegram('sendMessage', token, {
           chat_id: chatId,
@@ -94,7 +92,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (['/id', '/chatid'].includes(command)) {
-      await telegram('sendMessage', token, { chat_id: chatId, text: `🆔 ID этой беседы: ${chatId}` });
+      const configuredChatId = String(process.env.TELEGRAM_GROUP_CHAT_ID || '').trim();
+      let configuredCheck = 'не задан';
+      if (configuredChatId) {
+        try {
+          const configuredChat = await telegram('getChat', token, { chat_id: configuredChatId });
+          configuredCheck = 'OK: ' + (configuredChat.title || configuredChat.username || 'чат найден');
+        } catch (error) {
+          configuredCheck = 'ОШИБКА: ' + (error.message || 'неизвестная ошибка');
+        }
+      }
+      let incomingCheck = 'не проверен';
+      try {
+        const incomingChat = await telegram('getChat', token, { chat_id: chatId });
+        incomingCheck = 'OK: ' + (incomingChat.title || incomingChat.username || 'чат найден');
+      } catch (error) {
+        incomingCheck = 'ОШИБКА: ' + (error.message || 'неизвестная ошибка');
+      }
+      const report = [
+        `🆔 ID этой беседы: ${chatId}`,
+        `ID в настройке панели совпадает: ${configuredChatId === String(chatId)}`,
+        `Проверка ID из настройки: ${configuredCheck}`,
+        `Проверка ID входящего сообщения: ${incomingCheck}`
+      ].join('\\n');
+      await telegram('sendMessage', token, { chat_id: chatId, text: report });
       return res.status(200).json({ ok: true });
     }
     if (['/line', '/matches'].includes(command)) {
@@ -108,13 +129,13 @@ export default async function handler(req, res) {
       const upcoming = (data || []).filter(m => !m.result && m.status === 'NS' && new Date(m.start_time).getTime() > Date.now()).slice(0, 8);
       const listing = upcoming.length ? upcoming.map(m => {
         const odds = ['П1', 'X', 'П2'].filter(k => m.markets?.[k] != null).map(k => `${k} ${Number(m.markets[k]).toFixed(2)}`).join(' · ');
-        return `⚽ ${m.home_team} — ${m.away_team}\n🏆 ${m.league} · ${new Date(m.start_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} МСК\n${odds || 'Коэффициенты уточняются'}`;
-      }).join('\n\n') : 'Сейчас нет предстоящих матчей в ручной линии.';
-      await telegram('sendMessage', token, { chat_id: chatId, text: `📋 ЛИНИЯ КАЮК BET\n\n${listing}\n\nТолько виртуальные средства.`, reply_markup: openAppKeyboard(), disable_web_page_preview: true });
+        return `⚽ ${m.home_team} — ${m.away_team}\\n🏆 ${m.league} · ${new Date(m.start_time).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} МСК\\n${odds || 'Коэффициенты уточняются'}`;
+      }).join('\\n\\n') : 'Сейчас нет предстоящих матчей в ручной линии.';
+      await telegram('sendMessage', token, { chat_id: chatId, text: `📋 ЛИНИЯ КАЮК BET\\n\\n${listing}\\n\\nТолько виртуальные средства.`, reply_markup: openAppKeyboard(), disable_web_page_preview: true });
       return res.status(200).json({ ok: true });
     }
     if (command === '/help') {
-      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/help — помощь', reply_markup: openAppKeyboard() });
+      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\\n/bet — открыть приложение\\n/line — предстоящие матчи\\n/announce — панель отправки сообщений (администратор)\\n/help — помощь', reply_markup: openAppKeyboard() });
     }
   } catch (error) { console.error('Telegram webhook error:', error?.message || error); }
   return res.status(200).json({ ok: true });
