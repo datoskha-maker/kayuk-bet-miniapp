@@ -796,7 +796,10 @@ body .app #home button[onclick*="toggleCompetitions"] small { display:none !impo
 body .app #home > button[onclick*="toggleCompetitions"],
 body .app #home > .quick { display:none !important; }
 
-/* 3D cat: transparent full-screen overlay above every home-screen element */
+/* Visible cat fallback while the 3D model loads (also confirms overlay is alive) */
+#catFallback{position:absolute!important;left:0;top:42%;font-size:58px;line-height:1;filter:drop-shadow(0 8px 12px #0008);animation:catFallbackWalk 18s linear infinite alternate;will-change:transform;z-index:2147483000;pointer-events:none}
+@keyframes catFallbackWalk{0%{transform:translate3d(-15vw,0,0) scaleX(1)}48%{transform:translate3d(45vw,12vh,0) scaleX(1)}50%{transform:translate3d(45vw,12vh,0) scaleX(-1)}100%{transform:translate3d(105vw,-8vh,0) scaleX(-1)}}
+\n/* 3D cat: transparent full-screen overlay above every home-screen element */
 #catPremiere{position:fixed;inset:0;width:100vw;height:100dvh;z-index:99999;overflow:hidden;background:transparent;pointer-events:none;isolation:isolate}
 #catPremiere canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
 #catPremiere .cat-premiere-loading,#catPremiere .cat-premiere-error{display:none!important}
@@ -912,7 +915,7 @@ async function spinSlots(){
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
 </script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script>
-<div id="catPremiere" aria-label="3D-котик свободно гуляет по главному экрану"></div>
+<div id="catPremiere" aria-label="3D-котик свободно гуляет по главному экрану"><div id="catFallback" aria-hidden="true">🐈</div></div>
 <script>
 (function(){
  const h=document.getElementById('catPremiere');if(!h)return;
@@ -981,7 +984,7 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
    walker.rotation.y=(nextX-x)>=0?0:Math.PI;
    mixer.update(dt);renderer.render(scene,camera);
   }
-  window.__kayukCatStatus?.('модель загружена; котик гуляет 🐈');
+  window.__kayukCatStatus?.('3D-модель загружена; котик гуляет 🐈');\n  const fallback=document.getElementById('catFallback');if(fallback)fallback.style.display='none';
   requestAnimationFrame(tick);
  }catch(err){window.__kayukCatStatus?.('ошибка: '+(err?.message||String(err)));showError(err);}
 })();
