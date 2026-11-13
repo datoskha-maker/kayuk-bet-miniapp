@@ -905,4 +905,121 @@ async function spinSlots(){
 }
 
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
-</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script></body></html>
+</script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script><div id="catPremiere" aria-label="3D-котик" style="position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483647!important;overflow:hidden!important;background:transparent!important;pointer-events:none!important"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module">
+(async function(){
+ const host=document.getElementById('catPremiere');
+ if(!host)return;
+ try{
+  const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+  const GLTFLoader=(await import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')).GLTFLoader;
+  const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  renderer.setClearColor(0x000000,0);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.15;
+  renderer.domElement.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;display:block!important;pointer-events:none!important';
+  host.appendChild(renderer.domElement);
+
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(35,window.innerWidth/Math.max(1,window.innerHeight),0.1,100);
+  camera.position.set(0,0,7.2);
+  camera.lookAt(0,0,0);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x66788c,2.4));
+  const key=new THREE.DirectionalLight(0xffffff,2.7);
+  key.position.set(-3,5,6);
+  scene.add(key);
+  const fill=new THREE.DirectionalLight(0xb6d9ff,1.25);
+  fill.position.set(3,2,-4);
+  scene.add(fill);
+
+  const walker=new THREE.Group();
+  scene.add(walker);
+  const modelName='Sit_Down_Test.glb';
+  const modelUrl='https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/'+encodeURIComponent(modelName);
+  const backupUrl='https://cdn.jsdelivr.net/gh/datoskha-maker/kayuk-bet-miniapp@main/'+encodeURIComponent(modelName);
+  const loader=new GLTFLoader();
+  const loadModel=url=>new Promise((resolve,reject)=>loader.load(url,resolve,undefined,reject));
+  let gltf;
+  try{gltf=await loadModel(modelUrl)}catch(primaryError){console.warn('Primary cat model host failed; trying backup CDN',primaryError);gltf=await loadModel(backupUrl)}
+  const model=gltf.scene;
+  const bounds=new THREE.Box3().setFromObject(model);
+  const size=bounds.getSize(new THREE.Vector3());
+  const center=bounds.getCenter(new THREE.Vector3());
+  model.position.sub(center);
+  model.scale.setScalar(1.05/Math.max(size.y,0.01));
+  walker.add(model);
+
+  const clip=gltf.animations.find(a=>/walk/i.test(a.name))||gltf.animations[0];
+  const mixer=new THREE.AnimationMixer(model);
+  if(clip){
+   const action=mixer.clipAction(clip);
+   action.setLoop(THREE.LoopRepeat,Infinity);
+   action.play();
+  }
+
+  const position=new THREE.Vector2(0,0);
+  const target=new THREE.Vector2(0,0);
+  let last=0;
+  let pauseUntil=0;
+  let speed=0.55;
+
+  function chooseTarget(){
+   const halfH=camera.position.z*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+   const halfW=halfH*camera.aspect;
+   const marginX=Math.min(0.48,halfW*0.35);
+   const marginY=Math.min(0.58,halfH*0.25);
+   target.set(
+    THREE.MathUtils.randFloat(-Math.max(0.08,halfW-marginX),Math.max(0.08,halfW-marginX)),
+    THREE.MathUtils.randFloat(-Math.max(0.08,halfH-marginY),Math.max(0.08,halfH-marginY))
+   );
+   speed=THREE.MathUtils.randFloat(0.42,0.72);
+  }
+  function resize(){
+   const w=Math.max(1,window.innerWidth),h=Math.max(1,window.innerHeight);
+   camera.aspect=w/h;
+   camera.updateProjectionMatrix();
+   renderer.setSize(w,h,false);
+   chooseTarget();
+  }
+  window.addEventListener('resize',resize,{passive:true});
+  window.addEventListener('orientationchange',resize,{passive:true});
+  chooseTarget();
+
+  function tick(now){
+   requestAnimationFrame(tick);
+   const dt=last?Math.min((now-last)/1000,0.05):0;
+   last=now;
+   if(document.hidden)return;
+   const dx=target.x-position.x;
+   const dy=target.y-position.y;
+   const distance=Math.hypot(dx,dy);
+   if(distance<0.07){
+    if(!pauseUntil)pauseUntil=now+THREE.MathUtils.randFloat(450,1300);
+    if(now>=pauseUntil){
+     pauseUntil=0;
+     chooseTarget();
+    }
+   }else{
+    pauseUntil=0;
+    const step=Math.min(distance,speed*dt);
+    position.x+=(dx/distance)*step;
+    position.y+=(dy/distance)*step;
+    if(Math.abs(dx)>0.025)walker.rotation.y=dx>0?0:Math.PI;
+   }
+   walker.position.set(position.x,position.y,0);
+   mixer.update(dt);
+   renderer.render(scene,camera);
+  }
+  resize();
+  requestAnimationFrame(tick);
+  window.__kayukCat3DReady=true;
+ }catch(err){
+  console.error('KAYUK BET 3D cat failed to load:',err);
+  window.__kayukCat3DError=String(err&&err.message||err);
+ }
+})();
+</script>
+</body></html>
