@@ -54,7 +54,7 @@ $('checkBtn').addEventListener('click',async()=>{
   try{
     const d=await call({action:'check'});
     $('sendStatus').className=d.canSend?'status success':'status error';
-    $('sendStatus').textContent=d.botUsername+' · '+d.chatTitle+' · статус: '+d.memberStatus+'. '+d.detail;
+    const w=d.webhookInfo||{};$('sendStatus').textContent=d.botUsername+' · '+d.chatTitle+' · статус: '+d.memberStatus+'. '+d.detail+' Webhook: '+(w.url||'НЕ НАСТРОЕН')+'; в очереди: '+(w.pendingUpdateCount??'?')+'; последняя ошибка доставки: '+(w.lastErrorMessage||'нет');
   }catch(err){$('sendStatus').className='status error';$('sendStatus').textContent=err.message;}
   finally{$('checkBtn').disabled=false;}
 });
