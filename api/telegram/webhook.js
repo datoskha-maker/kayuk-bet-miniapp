@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (command === '/help') {
-      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/help — помощь', reply_markup: openAppKeyboard() });
+      await telegram('sendMessage', token, { chat_id: chatId, text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce <текст> — сообщение в беседу (только администратор)\n/help — помощь', reply_markup: openAppKeyboard() });
     }
   } catch (error) { console.error('Telegram webhook error:', error?.message || error); }
   return res.status(200).json({ ok: true });
