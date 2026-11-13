@@ -79,27 +79,52 @@ export default async function handler(req, res) {
   if (!chatId) return res.status(503).json({ error: 'Не настроен TELEGRAM_GROUP_CHAT_ID в Production' });
 
   if (action === 'check') {
+    let me;
     try {
-      const me = await telegramCall(botToken, 'getMe', {});
-      const chat = await telegramCall(botToken, 'getChat', { chat_id: chatId });
-      const member = await telegramCall(botToken, 'getChatMember', { chat_id: chatId, user_id: me.id });
-      const canSend = member.status === 'creator' || member.status === 'administrator' ||
-        (member.status === 'member' && member.can_send_messages !== false) ||
-        (member.status === 'restricted' && member.can_send_messages === true);
-      return res.status(200).json({
-        ok: true,
-        botUsername: me.username ? '@' + me.username : 'бот',
-        chatTitle: chat.title || chat.username || 'Telegram-беседа',
-        memberStatus: member.status,
-        canSend,
-        detail: canSend
-          ? 'Бот видит беседу и может отправлять сообщения.'
-          : 'Бот состоит в беседе, но Telegram не разрешает ему отправлять сообщения.'
-      });
+      me = await telegramCall(botToken, 'getMe', {});
     } catch (error) {
-      console.error('Telegram announce check failed:', error?.message || 'unknown error');
-      return res.status(502).json({ error: 'Проверка Telegram: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') });
+      console.error('Telegram announce getMe failed:', error?.message || 'unknown error');
+      return res.status(502).json({
+        error: 'ЭТАП 1/3 — проверка токена бота не пройдена: ' + (error.telegramDescription || error.message || 'неизвестная ошибка'),
+        diagnostic: { stage: 'getMe', tokenAccepted: false }
+      });
     }
+
+    let chat;
+    try {
+      chat = await telegramCall(botToken, 'getChat', { chat_id: chatId });
+    } catch (error) {
+      console.error('Telegram announce getChat failed:', error?.message || 'unknown error');
+      return res.status(502).json({
+        error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Проверьте ID беседы и что в группе добавлен именно этот бот.',
+        diagnostic: { stage: 'getChat', tokenAccepted: true, botUsername: me.username || null, configuredChatId: String(chatId) }
+      });
+    }
+
+    let member;
+    try {
+      member = await telegramCall(botToken, 'getChatMember', { chat_id: chatId, user_id: me.id });
+    } catch (error) {
+      console.error('Telegram announce getChatMember failed:', error?.message || 'unknown error');
+      return res.status(502).json({
+        error: 'ЭТАП 3/3 — беседа найдена (' + (chat.title || chat.username || 'Telegram-беседа') + '), но не удалось проверить участника-бота: ' + (error.telegramDescription || error.message || 'неизвестная ошибка'),
+        diagnostic: { stage: 'getChatMember', tokenAccepted: true, botUsername: me.username || null, chatFound: true }
+      });
+    }
+
+    const canSend = member.status === 'creator' || member.status === 'administrator' ||
+      (member.status === 'member' && member.can_send_messages !== false) ||
+      (member.status === 'restricted' && member.can_send_messages === true);
+    return res.status(200).json({
+      ok: true,
+      botUsername: me.username ? '@' + me.username : 'бот',
+      chatTitle: chat.title || chat.username || 'Telegram-беседа',
+      memberStatus: member.status,
+      canSend,
+      detail: canSend
+        ? 'Все три этапа пройдены: токен действителен, беседа найдена, бот может отправлять сообщения.'
+        : 'Беседа найдена, но Telegram не разрешает боту отправлять сообщения. Проверьте ограничения и права участника.'
+    });
   }
 
   if (action !== 'send') return res.status(400).json({ error: 'Неизвестное действие' });
