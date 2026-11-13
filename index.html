@@ -913,15 +913,27 @@ async function spinSlots(){
 function resetDemo(){toast('Баланс и историю нельзя сбросить локально. Обратись к администратору.')}render();renderSlotBalance();addMarketEditor();addMarketEditor('',[],'globalMarketBuilder');loadProfile();loadOwnEvents();setInterval(loadOwnEvents,60000);
 </script><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script><script src="/slice-phaser.js?v=20261111-bombscale5" defer></script>
 <div id="catPremiere" aria-label="3D-котик свободно гуляет по главному экрану"></div>
+<script>
+(function(){
+ const h=document.getElementById('catPremiere');if(!h)return;
+ h.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483000!important;overflow:hidden!important;background:transparent!important;pointer-events:none!important';
+ const d=document.createElement('div');d.id='catPremiereDiagnostic';d.textContent='КОТИК: проверка запуска…';
+ d.style.cssText='position:absolute;left:12px;right:12px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:2147483000;padding:10px 12px;border-radius:12px;background:#10243bea;border:1px solid #76b7e8;color:#eaf5ff;font:12px -apple-system,sans-serif;text-align:center;pointer-events:none';
+ h.appendChild(d);window.__kayukCatStatus=function(s){d.textContent='КОТИК: '+s};
+})();
+</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 (async function(){
  const host=document.getElementById('catPremiere'); if(!host)return;
+ window.__kayukCatStatus?.('модуль запустился; загружаю Three.js…');
  host.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483000!important;overflow:hidden!important;background:transparent!important;pointer-events:none!important';
  const showError=(err)=>{console.error('KAYUK cat premiere:',err);const msg=document.createElement('div');msg.textContent='Котик не загрузился: '+(err?.message||String(err));msg.style.cssText='position:absolute;left:12px;right:12px;bottom:18px;padding:10px 12px;border-radius:12px;background:#171e28ee;color:#ffd2d2;font:12px -apple-system,sans-serif;text-align:center';host.appendChild(msg);};
  try{
   const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+  window.__kayukCatStatus?.('Three.js загружен; подключаю загрузчик модели…');
   const GLTFLoader=(await import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')).GLTFLoader;
+  window.__kayukCatStatus?.('загрузчик готов; загружаю 3D-модель…');
   const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
   renderer.setClearColor(0x000000,0);
@@ -941,6 +953,7 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
   const loader=new GLTFLoader();
   const modelUrl='https://cdn.jsdelivr.net/gh/datoskha-maker/kayuk-bet-miniapp@main/%D0%9E%D0%A7%D0%95%D0%9D%D0%AC%20%D0%92%D0%90%D0%96%D0%9D%D0%AB%D0%98%CC%86%20%D0%9A%D0%9E%D0%A2%D0%98%D0%9A%20%D0%A1%D0%9E%20%D0%A1%D0%9A%D0%95%D0%9B%D0%95%D0%A2%D0%9E%D0%9C.glb';
   const gltf=await new Promise((resolve,reject)=>loader.load(modelUrl,resolve,undefined,reject));
+  window.__kayukCatStatus?.('модель получена; готовлю отображение…');
   const model=gltf.scene;
   const bounds=new THREE.Box3().setFromObject(model);
   const size=bounds.getSize(new THREE.Vector3());
@@ -968,8 +981,9 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
    walker.rotation.y=(nextX-x)>=0?0:Math.PI;
    mixer.update(dt);renderer.render(scene,camera);
   }
+  window.__kayukCatStatus?.('модель загружена; котик гуляет 🐈');
   requestAnimationFrame(tick);
- }catch(err){showError(err);}
+ }catch(err){window.__kayukCatStatus?.('ошибка: '+(err?.message||String(err)));showError(err);}
 })();
 </script>
 </body></html>
