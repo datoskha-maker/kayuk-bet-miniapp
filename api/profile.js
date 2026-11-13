@@ -16,7 +16,7 @@ function verifyTelegramInitData(initData, botToken) {
   const dataCheckString = [...params.entries()]
     .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`)
-    .join('\\n');
+    .join('\n');
   const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
   const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
   const a = Buffer.from(calculatedHash, 'hex');
