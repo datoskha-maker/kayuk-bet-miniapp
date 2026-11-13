@@ -984,7 +984,8 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
    walker.rotation.y=(nextX-x)>=0?0:Math.PI;
    mixer.update(dt);renderer.render(scene,camera);
   }
-  window.__kayukCatStatus?.('3D-модель загружена; котик гуляет 🐈');\n  const fallback=document.getElementById('catFallback');if(fallback)fallback.style.display='none';
+  window.__kayukCatStatus?.('3D-модель загружена; котик гуляет 🐈');
+  const fallback=document.getElementById('catFallback');if(fallback)fallback.style.display='none';
   requestAnimationFrame(tick);
  }catch(err){window.__kayukCatStatus?.('ошибка: '+(err?.message||String(err)));showError(err);}
 })();
