@@ -46,6 +46,27 @@ export default async function handler(req, res) {
       await telegram('sendMessage', token, { chat_id: chatId, text: greeting, reply_markup: openAppKeyboard(), disable_web_page_preview: true });
       return res.status(200).json({ ok: true });
     }
+    if (command === '/announce') {
+      const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
+      const senderId = String(message.from?.id || '');
+      const announcement = text.replace(/^\/\S+\s*/, '').trim();
+      if (!adminId || senderId !== adminId || !groupOnly) {
+        return res.status(200).json({ ok: true });
+      }
+      if (!announcement) {
+        await telegram('sendMessage', token, {
+          chat_id: chatId,
+          text: 'Напиши текст после команды, например:\n/announce 👻 охаё! заходи скорее в игру! 🐱'
+        });
+        return res.status(200).json({ ok: true });
+      }
+      if (announcement.length > 4000) {
+        await telegram('sendMessage', token, { chat_id: chatId, text: 'Сообщение слишком длинное. Максимум 4000 символов.' });
+        return res.status(200).json({ ok: true });
+      }
+      await telegram('sendMessage', token, { chat_id: chatId, text: announcement, disable_web_page_preview: true });
+      return res.status(200).json({ ok: true });
+    }
     if (['/id', '/chatid'].includes(command)) {
       await telegram('sendMessage', token, { chat_id: chatId, text: `🆔 ID этой беседы: ${chatId}` });
       return res.status(200).json({ ok: true });
