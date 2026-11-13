@@ -111,7 +111,7 @@ export default async function handler(req, res) {
     } catch (error) {
       console.error('Telegram announce getChat failed:', error?.message || 'unknown error');
       return res.status(502).json({
-        error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Проверьте ID беседы и что в группе добавлен именно этот бот.',
+        error: 'ЭТАП 2/3 — токен принят (' + (me.username ? '@' + me.username : 'бот') + '), но Telegram не находит целевую беседу: ' + (error.telegramDescription || error.message || 'неизвестная ошибка') + '. Webhook: ' + (webhookInfo?.url || 'НЕ НАСТРОЕН') + '; ожидающих обновлений: ' + (webhookInfo?.pendingUpdateCount ?? '?') + '; последняя ошибка доставки: ' + (webhookInfo?.lastErrorMessage || 'нет') + '. Проверьте ID беседы и что в группе добавлен именно этот бот.',
         diagnostic: { stage: 'getChat', tokenAccepted: true, botUsername: me.username || null, configuredChatId: String(chatId), webhookInfo }
       });
     }
