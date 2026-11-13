@@ -15,7 +15,7 @@ function openAppKeyboard() {
   const username = String(process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '');
   const url = username
     ? \`https://t.me/\${username}?startapp=group\`
-    : (process.env.MINI_APP_URL || 'https://kayuk-bet-miniapp.vercel.app');
+    : (process.env.MINI_APP_URL || 'https://kayuk-bet-miniapp-9nfa.vercel.app');
   return { inline_keyboard: [[{ text: '🎰 Открыть КАЮК BET', url }]] };
 }
 
@@ -23,7 +23,7 @@ function announcePanelKeyboard() {
   return {
     inline_keyboard: [[{
       text: '📝 Открыть панель отправки',
-      web_app: { url: 'https://kayuk-bet-miniapp.vercel.app/announce.html' }
+      web_app: { url: 'https://kayuk-bet-miniapp-9nfa.vercel.app/announce.html' }
     }]]
   };
 }
