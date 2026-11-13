@@ -949,7 +949,7 @@ function resetDemo(){toast('Баланс и историю нельзя сбро
   const size=bounds.getSize(new THREE.Vector3());
   const center=bounds.getCenter(new THREE.Vector3());
   model.position.sub(center);
-  model.scale.setScalar(1.05/Math.max(size.y,0.01));
+  model.scale.setScalar(0.48/Math.max(size.y,0.01));
   walker.add(model);
 
   const clip=gltf.animations.find(a=>/walk/i.test(a.name))||gltf.animations[0];
