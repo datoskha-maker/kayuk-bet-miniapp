@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { handleKayukAiCommand, handleKayukAiMessage } from './kayuk-ai.js';
 
 async function telegram(method, token, payload) {
   const endpoint = 'https://api.telegram.org/bot' + token + '/' + method;
@@ -108,6 +109,20 @@ export default async function handler(req, res) {
   const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
 
   try {
+    if (groupOnly && command.startsWith('/kayuk_')) {
+      const url = process.env.SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!url || !key) throw new Error('Supabase is not configured for КАЮК AI');
+      const db = createClient(url, key, { auth: { persistSession: false } });
+      const handled = await handleKayukAiCommand({
+        command,
+        message,
+        db,
+        sendTelegram: (method, payload) => telegram(method, token, payload)
+      });
+      if (handled) return res.status(200).json({ ok: true });
+    }
+
     if (['/start', '/bet', '/app'].includes(command)) {
       const greeting = groupOnly
         ? '⚽ КАЮК BET — виртуальная букмекерка вашей компании.\nОткрой Mini App, выбирай матч, ставь виртуальные монеты и следи за рейтингом.'
