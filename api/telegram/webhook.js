@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  const command = text.split(/\\s+/)[0].split('@')[0].toLowerCase();
+  const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
 
 
   try {
