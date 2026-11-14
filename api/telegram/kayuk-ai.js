@@ -71,13 +71,15 @@ async function loadOptedInAppContext(db, optedInMembers) {
     const profileIds = profiles.map((profile) => profile.id);
     if (!profileIds.length) return [];
 
-    const [balancesResult, betsResult, slotsResult, sliceResult] = await Promise.all([
+    const [balancesResult, betsResult, slotsResult, sliceResult, transactionsResult] = await Promise.all([
       db.from('balances').select('user_id,balance').in('user_id', profileIds),
       db.from('bets').select('user_id,event_title,selection,stake,odds,status,potential_payout,created_at')
         .in('user_id', profileIds).order('created_at', { ascending: false }).limit(500),
       db.from('slot_spins').select('user_id,stake,payout,jackpot,created_at')
         .in('user_id', profileIds).order('created_at', { ascending: false }).limit(500),
       db.from('slice_game_scores').select('user_id,score,reward,max_combo,created_at')
+        .in('user_id', profileIds).order('created_at', { ascending: false }).limit(500),
+      db.from('transactions').select('user_id,amount,type,created_at')
         .in('user_id', profileIds).order('created_at', { ascending: false }).limit(500)
     ]);
 
@@ -92,6 +94,7 @@ async function loadOptedInAppContext(db, optedInMembers) {
     const bets = rowsOrEmpty(betsResult, 'bets');
     const slots = rowsOrEmpty(slotsResult, 'casino');
     const sliceScores = rowsOrEmpty(sliceResult, 'SLICE');
+    const transactions = rowsOrEmpty(transactionsResult, 'transactions');
 
     const balanceByUser = new Map(balances.map((row) => [row.user_id, Number(row.balance) || 0]));
     const optedByTelegram = new Map(optedInMembers.map((person) => [String(person.telegram_user_id), person]));
@@ -99,6 +102,7 @@ async function loadOptedInAppContext(db, optedInMembers) {
       const userBets = bets.filter((row) => row.user_id === profile.id);
       const userSlots = slots.filter((row) => row.user_id === profile.id);
       const userSlice = sliceScores.filter((row) => row.user_id === profile.id);
+      const userTransactions = transactions.filter((row) => row.user_id === profile.id);
       const won = userBets.filter((row) => row.status === 'won').length;
       const lost = userBets.filter((row) => row.status === 'lost').length;
       const pending = userBets.filter((row) => row.status === 'pending').length;
@@ -114,6 +118,13 @@ async function loadOptedInAppContext(db, optedInMembers) {
         _profile_id: profile.id,
         name: person?.display_name || profile.display_name || (profile.username ? '@' + profile.username : 'Участник'),
         balance: balanceByUser.has(profile.id) ? balanceByUser.get(profile.id) : null,
+        balance_activity: {
+          sampled_transactions: userTransactions.length,
+          net_movement: userTransactions.reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+          incoming: userTransactions.filter((row) => Number(row.amount) > 0).reduce((sum, row) => sum + Number(row.amount), 0),
+          outgoing: userTransactions.filter((row) => Number(row.amount) < 0).reduce((sum, row) => sum + Number(row.amount), 0),
+          recent_types: userTransactions.slice(0, 5).map((row) => row.type)
+        },
         bets: {
           sampled_records: userBets.length,
           won,
