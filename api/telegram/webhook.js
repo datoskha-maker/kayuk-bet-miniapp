@@ -103,10 +103,29 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  if (!text.startsWith('/')) return res.status(200).json({ ok: true });
-
-  const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
   const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
+  if (!text.startsWith('/')) {
+    if (groupOnly && String(chatId) === String(process.env.TELEGRAM_GROUP_CHAT_ID || '') && process.env.OPENAI_API_KEY) {
+      try {
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Supabase is not configured for КАЮК AI');
+        const db = createClient(url, key, { auth: { persistSession: false } });
+        await handleKayukAiMessage({
+          update,
+          message,
+          db,
+          sendTelegram: (method, payload) => telegram(method, token, payload)
+        });
+      } catch (error) {
+        console.error('КАЮК AI message handler failed:', error && (error.stack || error.message || error));
+      }
+    }
+    return res.status(200).json({ ok: true });
+  }
+
+  const command = text.split(/\\s+/)[0].split('@')[0].toLowerCase();
+
 
   try {
     if (groupOnly && command.startsWith('/kayuk_')) {
