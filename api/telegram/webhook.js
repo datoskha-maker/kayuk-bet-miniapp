@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { handleKayukAiCommand, handleKayukAiMessage } from './kayuk-ai.js';
+import { handleKayukAiCommand, handleKayukAiMessage } from '../../lib/kayuk-ai.js';
 
 async function telegram(method, token, payload) {
   const endpoint = 'https://api.telegram.org/bot' + token + '/' + method;
