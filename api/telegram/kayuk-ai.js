@@ -95,7 +95,6 @@ async function loadOptedInAppContext(db, optedInMembers) {
 
     const balanceByUser = new Map(balances.map((row) => [row.user_id, Number(row.balance) || 0]));
     const optedByTelegram = new Map(optedInMembers.map((person) => [String(person.telegram_user_id), person]));
-    const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
     const appRows = profiles.map((profile) => {
       const userBets = bets.filter((row) => row.user_id === profile.id);
       const userSlots = slots.filter((row) => row.user_id === profile.id);
@@ -112,6 +111,7 @@ async function loadOptedInAppContext(db, optedInMembers) {
       const slotPaid = userSlots.reduce((sum, row) => sum + (Number(row.payout) || 0), 0);
       const person = optedByTelegram.get(String(profile.telegram_id));
       return {
+        _profile_id: profile.id,
         name: person?.display_name || profile.display_name || (profile.username ? '@' + profile.username : 'Участник'),
         balance: balanceByUser.has(profile.id) ? balanceByUser.get(profile.id) : null,
         bets: {
@@ -152,8 +152,8 @@ async function loadOptedInAppContext(db, optedInMembers) {
     });
 
     const ranked = appRows.filter((row) => row.balance !== null).sort((a, b) => b.balance - a.balance);
-    const rankByName = new Map(ranked.map((row, index) => [row.name, index + 1]));
-    return appRows.map((row) => ({ ...row, balance_rank_among_opted_in: rankByName.get(row.name) || null }));
+    const rankById = new Map(ranked.map((row, index) => [row._profile_id, index + 1]));
+    return appRows.map(({ _profile_id, ...row }) => ({ ...row, balance_rank_among_opted_in: rankById.get(_profile_id) || null }));
   } catch (error) {
     console.error('КАЮК AI read-only app analytics unavailable:', error && (error.message || error));
     return [];
