@@ -35,7 +35,7 @@ function safeName(message) {
 }
 
 function isSensitiveMemory(value) {
-  return /(здоров|болезн|диагноз|лекарств|депресс|тревож|религи|вероиспов|национальност|этнич|политическ|сексуаль|интим|адрес|телефон|паспорт|парол|зарплат|доход|долг|кредит)/i.test(value);
+  return /(здоров|болезн|диагноз|лекарств|депресс|тревож|религи|вероиспов|национальност|этнич|политическ|сексуаль|интим|адрес|телефон|паспорт|парол|зарплат|доход|долг|кредит|medical|health|diagnos|medication|religio|politic|sexual|income|salary|credit|debt|password|passport|phone|email|home address)/i.test(value);
 }
 
 function cleanMemory(memory) {
@@ -236,7 +236,7 @@ export async function handleKayukAiCommand({ command, message, db, sendTelegram 
     if (saved.error) throw saved.error;
     await sendTelegram('sendMessage', process.env.TELEGRAM_BOT_TOKEN, {
       chat_id: chatId,
-      text: '🧠 Запомнил! КАЮК будет учитывать твои сообщения в общей беседе и хранить только безобидные факты, футбольные предпочтения и общие шутки. Отказаться можно командой /kayuk_optout.'
+      text: '🧠 Запомнил! КАЮК будет учитывать твои сообщения в общей беседе и хранить только безобидные факты, футбольные предпочтения и общие шутки. Текст сообщения передаётся OpenAI для анализа, но сырая переписка у нас не архивируется. Отказаться можно командой /kayuk_optout.'
     });
     return true;
   }
@@ -300,7 +300,7 @@ export async function handleKayukAiCommand({ command, message, db, sendTelegram 
   if (command === '/kayuk_privacy') {
     await sendTelegram('sendMessage', process.env.TELEGRAM_BOT_TOKEN, {
       chat_id: chatId,
-      text: '🔐 Память КАЮК AI добровольная: /kayuk_optin — включить, /kayuk_memory — посмотреть, /kayuk_optout — удалить и выключить. Без opt-in сообщения не анализируются и память не создаётся. Сырые тексты переписки не архивируются.'
+      text: '🔐 Память КАЮК AI добровольная: /kayuk_optin — включить, /kayuk_memory — посмотреть, /kayuk_optout — удалить и выключить. Без opt-in сообщения участника не отправляются на анализ и память не создаётся. Текст сообщений opted-in участников передаётся OpenAI; сырые тексты переписки в нашей базе не архивируются.'
     });
     return true;
   }
