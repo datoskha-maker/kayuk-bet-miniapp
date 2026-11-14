@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { handleKayukAiCommand, handleKayukAiMessage } from '../../lib/kayuk-ai.js';
 
 async function telegram(method, token, payload) {
   const endpoint = 'https://api.telegram.org/bot' + token + '/' + method;
@@ -102,12 +103,45 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  if (!text.startsWith('/')) return res.status(200).json({ ok: true });
+  const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
+  if (!text.startsWith('/')) {
+    if (groupOnly && String(chatId) === String(process.env.TELEGRAM_GROUP_CHAT_ID || '') && process.env.OPENAI_API_KEY) {
+      try {
+        const url = process.env.SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (!url || !key) throw new Error('Supabase is not configured for КАЮК AI');
+        const db = createClient(url, key, { auth: { persistSession: false } });
+        await handleKayukAiMessage({
+          update,
+          message,
+          db,
+          sendTelegram: (method, tokenOrPayload, maybePayload) => telegram(method, token, maybePayload || tokenOrPayload)
+        });
+      } catch (error) {
+        console.error('КАЮК AI message handler failed:', error && (error.stack || error.message || error));
+      }
+    }
+    return res.status(200).json({ ok: true });
+  }
 
   const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
-  const groupOnly = ['group', 'supergroup'].includes(message.chat.type);
+
 
   try {
+    if (groupOnly && command.startsWith('/kayuk_')) {
+      const url = process.env.SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!url || !key) throw new Error('Supabase is not configured for КАЮК AI');
+      const db = createClient(url, key, { auth: { persistSession: false } });
+      const handled = await handleKayukAiCommand({
+        command,
+        message,
+        db,
+        sendTelegram: (method, tokenOrPayload, maybePayload) => telegram(method, token, maybePayload || tokenOrPayload)
+      });
+      if (handled) return res.status(200).json({ ok: true });
+    }
+
     if (['/start', '/bet', '/app'].includes(command)) {
       const greeting = groupOnly
         ? '⚽ КАЮК BET — виртуальная букмекерка вашей компании.\nОткрой Mini App, выбирай матч, ставь виртуальные монеты и следи за рейтингом.'
@@ -226,7 +260,7 @@ export default async function handler(req, res) {
     if (command === '/help') {
       await telegram('sendMessage', token, {
         chat_id: chatId,
-        text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/help — помощь',
+        text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/kayuk_optin — включить память КАЮК AI\n/kayuk_optout — удалить свою память\n/kayuk_memory — посмотреть память\n/kayuk_privacy — правила памяти\n/help — помощь',
         reply_markup: openAppKeyboard(groupOnly)
       });
       return res.status(200).json({ ok: true });
