@@ -115,7 +115,7 @@ export default async function handler(req, res) {
           update,
           message,
           db,
-          sendTelegram: (method, payload) => telegram(method, token, payload)
+          sendTelegram: (method, tokenOrPayload, maybePayload) => telegram(method, token, maybePayload || tokenOrPayload)
         });
       } catch (error) {
         console.error('КАЮК AI message handler failed:', error && (error.stack || error.message || error));
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
         command,
         message,
         db,
-        sendTelegram: (method, payload) => telegram(method, token, payload)
+        sendTelegram: (method, tokenOrPayload, maybePayload) => telegram(method, token, maybePayload || tokenOrPayload)
       });
       if (handled) return res.status(200).json({ ok: true });
     }
