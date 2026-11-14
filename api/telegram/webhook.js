@@ -260,7 +260,7 @@ export default async function handler(req, res) {
     if (command === '/help') {
       await telegram('sendMessage', token, {
         chat_id: chatId,
-        text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/help — помощь',
+        text: 'Команды КАЮК BET:\n/bet — открыть приложение\n/line — предстоящие матчи\n/announce — панель отправки сообщений (администратор)\n/kayuk_optin — включить память КАЮК AI\n/kayuk_optout — удалить свою память\n/kayuk_memory — посмотреть память\n/kayuk_privacy — правила памяти\n/help — помощь',
         reply_markup: openAppKeyboard(groupOnly)
       });
       return res.status(200).json({ ok: true });
