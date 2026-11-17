@@ -3,7 +3,7 @@
   const tg = window.Telegram?.WebApp;
   const initData = tg?.initData || '';
   const api = async (method='GET', body=null) => {
-    const response = await fetch('/api/luna', {
+    const response = await fetch('/api/profile?scope=luna', {
       method,
       headers: { 'Content-Type':'application/json', 'x-telegram-init-data': initData },
       body: body ? JSON.stringify(body) : undefined
