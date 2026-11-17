@@ -24,13 +24,15 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #cat-stage{position:absolute;z-index:2;left:50%;bottom:8%;transform:translateX(-50%);width:min(62vw,360px);height:min(56vh,480px);pointer-events:none}
 #cat-canvas{width:100%;height:100%;display:block}
 #cat-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(100px,30vw,190px);filter:drop-shadow(0 18px 14px #0006)}
-#nav{position:absolute;z-index:8;left:12px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:9px}
-.nav-btn{width:66px;min-height:62px;border-radius:17px;background:rgba(15,28,23,.83);border:1px solid #ffffff38;backdrop-filter:blur(13px);box-shadow:0 5px 16px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:transform .15s,background .15s}
-.nav-btn:active{transform:scale(.94)}.nav-btn.active{background:rgba(245,196,99,.95);color:#26332a;border-color:#fff4}
-.nav-btn .ico{font-size:22px;line-height:1}.nav-btn .txt{font-size:9px;font-weight:800;letter-spacing:.1px}
+#nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:7px}
+.nav-btn{width:68px;height:68px;min-height:68px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
+.nav-btn:active{transform:scale(.92)}
+.nav-btn.active{filter:drop-shadow(0 0 5px rgba(255,218,120,.9))}
+.nav-btn img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
 #room-actions{position:absolute;z-index:6;right:13px;bottom:calc(var(--safe-bottom) + 18px);display:flex;flex-direction:column;gap:9px;align-items:flex-end}
-.action-btn{background:var(--glass);border:1px solid #ffffff3b;border-radius:15px;padding:11px 13px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(12px);font-size:12px;font-weight:800;box-shadow:0 5px 16px #0003}
-.action-btn .ico{font-size:19px}
+.phone-nav-btn{width:76px;height:76px;padding:0;border:0;border-radius:16px;background:transparent;box-shadow:0 5px 16px #0003;overflow:hidden;touch-action:manipulation}
+.phone-nav-btn img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.phone-nav-btn:active{transform:scale(.93)}
 #toast{position:absolute;z-index:30;left:50%;bottom:calc(var(--safe-bottom) + 18px);transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#14231d;color:#fff;border:1px solid #ffffff30;border-radius:14px;padding:11px 15px;font-size:12px;font-weight:700;transition:.22s;max-width:85%;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .overlay{position:absolute;z-index:20;inset:0;background:rgba(5,12,9,.68);backdrop-filter:blur(9px);display:none;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 16px) 14px calc(var(--safe-bottom) + 16px)}
@@ -52,7 +54,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 .phone-close{position:absolute;right:14px;top:calc(var(--safe-top) + 12px);z-index:3}
 #food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
-@media(max-height:650px){#cat-stage{height:48vh;bottom:5%}.nav-btn{min-height:53px;width:60px}.nav-btn .ico{font-size:19px}#location-title{top:calc(var(--safe-top) + 68px)}}
+@media(max-height:650px){#cat-stage{height:48vh;bottom:5%}.nav-btn{width:60px;height:60px;min-height:60px}.phone-nav-btn{width:66px;height:66px}#location-title{top:calc(var(--safe-top) + 68px)}}
 </style>
 </head>
 <body>
@@ -71,18 +73,27 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  <div id="location-title">СТАДИОН</div>
  <div id="cat-stage"><div id="cat-fallback">🐈</div><canvas id="cat-canvas"></canvas></div>
  <div id="room-actions">
-  <button class="action-btn" id="phone-open"><span class="ico">📱</span><span>Телефон Луны</span></button>
-  <button class="action-btn" id="pet-btn"><span class="ico">🤍</span><span>Погладить</span></button>
+  <button class="phone-nav-btn" id="phone-open" aria-label="Открыть телефон Луны" title="Телефон Луны">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD%D0%B0.heic" alt="Телефон Луны">
+  </button>
  </div>
  <div id="food-actions">
   <button id="feed-btn">🍗 Покормить</button>
   <button id="water-btn">💧 Напоить</button>
  </div>
  <nav id="nav" aria-label="Игровая навигация">
-  <button class="nav-btn active" data-scene="stadium"><span class="ico">🏟️</span><span class="txt">Стадион</span></button>
-  <button class="nav-btn" data-scene="room"><span class="ico">🐈</span><span class="txt">Демагоргон</span></button>
-  <button class="nav-btn" data-scene="food"><span class="ico">🥣</span><span class="txt">Питание</span></button>
-  <button class="nav-btn" id="shop-open"><span class="ico">🛍️</span><span class="txt">Магазин</span></button>
+  <button class="nav-btn active" data-scene="stadium" aria-label="Стадион" title="Стадион">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D1%81%D1%82%D0%B0%D0%B4%D0%B8%D0%BE%D0%BD.jpeg" alt="Стадион">
+  </button>
+  <button class="nav-btn" data-scene="room" aria-label="Демагоргон" title="Демагоргон">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%B4%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0.jpeg" alt="Демагоргон">
+  </button>
+  <button class="nav-btn" data-scene="food" aria-label="Питание" title="Питание">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%B5%D0%B4%D0%B0.jpeg" alt="Питание">
+  </button>
+  <button class="nav-btn" id="shop-open" aria-label="Магазин" title="Магазин">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD%D0%B0.jpeg" alt="Магазин">
+  </button>
  </nav>
  <div id="shop-overlay" class="overlay">
   <div class="panel">
@@ -119,7 +130,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>document.getElementById(b.dataset.close).classList.remove("open")));
  document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open")}));
  document.getElementById("phone-open").addEventListener("click",()=>openOverlay("phone-overlay"));
- document.getElementById("pet-btn").addEventListener("click",()=>{state.mood=Math.min(100,state.mood+12);state.energy=Math.max(0,state.energy-2);save();toast("Луна довольно мурлычет! 😻")});
+
  document.getElementById("feed-btn").addEventListener("click",()=>{if(state.hunger>=98){toast("Луна пока не голодна");return}state.hunger=Math.min(100,state.hunger+25);state.coins=Math.max(0,state.coins);save();toast("Луна с аппетитом поела 🍗")});
  document.getElementById("water-btn").addEventListener("click",()=>{if(state.thirst>=98){toast("Луна пока не хочет пить");return}state.thirst=Math.min(100,state.thirst+30);save();toast("Луна попила свежей воды 💧")});
  const items=[{id:"bed",icon:"🛏️",name:"Мягкая лежанка",desc:"Луне будет уютнее отдыхать",cost:120,comfort:8},{id:"scratch",icon:"🐾",name:"Когтеточка",desc:"Полезное развлечение для Луны",cost:90,comfort:5},{id:"toy",icon:"🧶",name:"Клубок игрушек",desc:"Поднимает настроение",cost:75,comfort:6},{id:"tree",icon:"🌳",name:"Кошачье дерево",desc:"Место для игр и наблюдений",cost:180,comfort:12}];
