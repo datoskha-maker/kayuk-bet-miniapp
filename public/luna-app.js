@@ -15,7 +15,7 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    #phone-screen{background:linear-gradient(160deg,rgba(7,20,34,.30),rgba(7,20,34,.48)),url('https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_2031.png') center center / cover no-repeat;color:#fff;display:block;padding:12px 11px 14px;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;text-align:left;font-size:12px;scrollbar-width:none;border-radius:8.5% / 4.8%;box-shadow:inset 0 0 0 1px #ffffff24}
+    #phone-screen{background:#00ff00 url('https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_2031.png') center center / 100% 100% no-repeat;color:#fff;display:block;padding:12px 11px 14px;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;text-align:left;font-size:12px;scrollbar-width:none;border-radius:8.5% / 4.8%;box-shadow:inset 0 0 0 1px #ffffff24}
     .luna-phone-head{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:13px;font-size:12px;font-weight:900;letter-spacing:.25px;min-height:28px;text-shadow:0 1px 5px #000}
     .luna-phone-back{background:#ffffff18;border:1px solid #ffffff35;border-radius:9px;padding:6px 9px;font-size:10px;color:#fff;white-space:nowrap}
     .luna-phone-menu{display:flex;flex-direction:column;gap:9px}
