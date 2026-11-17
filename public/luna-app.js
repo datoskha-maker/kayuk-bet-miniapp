@@ -77,12 +77,9 @@
     });
   }
 
-  const phoneScreen = $('#phone-screen');
+  let phoneScreen = null;
   const phoneTools = $('.phone-tools');
   if (phoneTools) phoneTools.style.display = 'none';
-  if (phoneScreen) {
-    phoneScreen.style.left='8.8%'; phoneScreen.style.top='10.7%'; phoneScreen.style.width='85.6%'; phoneScreen.style.height='81.7%'; phoneScreen.style.aspectRatio='540 / 1115';
-  }
 
   const shopOverlay = $('#shop-overlay');
   if (shopOverlay) shopOverlay.innerHTML = `
@@ -101,6 +98,11 @@
         <img class="phone-img" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%98%D0%B7%D0%BE%D0%B1%D1%80%D0%B0%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%20HEIF.jpeg" alt="Телефон Луны">
         <div class="phone-screen" id="phone-screen"><span>Загрузка…</span></div>
       </div>`;
+  }
+  // The overlay markup above replaces the original screen node; always bind to the live node.
+  phoneScreen = $('#phone-screen');
+  if (phoneScreen) {
+    phoneScreen.style.left='8.8%'; phoneScreen.style.top='10.7%'; phoneScreen.style.width='85.6%'; phoneScreen.style.height='81.7%'; phoneScreen.style.aspectRatio='540 / 1115';
   }
   const foodOverlay = document.createElement('div');
   foodOverlay.id='food-overlay'; foodOverlay.className='overlay';
