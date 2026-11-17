@@ -107,6 +107,19 @@ export default async function handler(req, res) {
     result = await supabase.rpc('luna_take_loan', { p_user_id: profile.id, p_amount: Number(body.amount) });
   } else if (body.action === 'repay') {
     result = await supabase.rpc('luna_repay_loan', { p_user_id: profile.id });
+  } else if (body.action === 'consume' && typeof body.itemId === 'string') {
+    result = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
+  } else if (body.action === 'equip' && typeof body.slot === 'string' && typeof body.itemId === 'string') {
+    const allowed = ['stadium','house','food','bed','scratchers','toys','interior','card'];
+    if (!allowed.includes(body.slot)) return fail(res, 400, 'Invalid equipment slot');
+    const owned = await supabase.from('luna_inventory').select('item_id').eq('user_id', profile.id).eq('item_id', body.itemId).maybeSingle();
+    if (owned.error || !owned.data) return fail(res, 400, 'Item is not owned');
+    const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
+    if (current.error) return fail(res, 500, 'Could not load Luna settings');
+    const equipped = { ...(current.data?.equipped || {}), [body.slot]: body.itemId };
+    const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
+    if (saved.error) return fail(res, 500, 'Could not save equipped item');
+    return res.status(200).json({ ok: true, equipped: saved.data.equipped });
   } else if (body.action === 'care' && body.state && typeof body.state === 'object') {
     const fields = ['hunger','thirst','mood','energy','comfort'];
     const update = { user_id: profile.id, updated_at: new Date().toISOString() };
