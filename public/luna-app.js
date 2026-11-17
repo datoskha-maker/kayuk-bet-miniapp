@@ -158,7 +158,7 @@
     if (name==='photos') {
       phoneScreen.innerHTML=phoneHeader('Фото Луны')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">📷<br>Альбом пока пуст.<br>Сюда добавим фотографии и видео Луны.</div></div>';
     } else if (name==='music') {
-      phoneScreen.innerHTML=phoneHeader('Музыка')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">🎧<br>Плейлист пока пуст.<br>Добавим треки, когда ты пришлёшь музыку.</div></div>';
+      phoneScreen.innerHTML=phoneHeader('Музыка')+'<div class="luna-phone-content"><div class="luna-mini-card"><b>🎵 Данза Кудуро</b><p class="luna-phone-muted">Первый трек Луны</p><audio controls preload="metadata" style="width:100%;max-width:100%;height:38px"><source src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%94%D0%B0%D0%BD%D0%B7%D0%B0%20%D0%9A%D1%83%D0%B4%D1%83%D1%80%D0%BE.m4a" type="audio/mp4">Твой браузер не поддерживает аудио.</audio></div></div>';
     } else if (name==='lavka') {
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
       phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card"><b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
