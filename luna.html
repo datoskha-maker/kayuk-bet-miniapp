@@ -21,9 +21,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 .stat{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:12px;padding:7px 9px;min-width:62px;text-align:center}
 .stat .label{font-size:9px;opacity:.8;display:block}.stat .value{font-size:12px;font-weight:800;display:block;margin-top:2px}
 #location-title{position:absolute;z-index:3;top:calc(var(--safe-top) + 76px);left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:99px;background:rgba(13,24,19,.48);border:1px solid #ffffff30;backdrop-filter:blur(8px);font-size:11px;font-weight:800;letter-spacing:1.2px;white-space:nowrap;text-shadow:0 2px 6px #0008}
-#cat-stage{position:absolute;z-index:2;left:50%;bottom:8%;transform:translateX(-50%);width:min(62vw,360px);height:min(56vh,480px);pointer-events:none}
-#cat-canvas{width:100%;height:100%;display:block}
-#cat-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(100px,30vw,190px);filter:drop-shadow(0 18px 14px #0006)}
 #nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:7px}
 .nav-btn{width:68px;height:68px;min-height:68px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
 .nav-btn:active{transform:scale(.92)}
@@ -54,7 +51,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 .phone-close{position:absolute;right:14px;top:calc(var(--safe-top) + 12px);z-index:3}
 #food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
-@media(max-height:650px){#cat-stage{height:48vh;bottom:5%}.nav-btn{width:60px;height:60px;min-height:60px}.phone-nav-btn{width:66px;height:66px}#location-title{top:calc(var(--safe-top) + 68px)}}
+@media(max-height:650px){.nav-btn{width:60px;height:60px;min-height:60px}.phone-nav-btn{width:66px;height:66px}#location-title{top:calc(var(--safe-top) + 68px)}}
 </style>
 </head>
 <body>
@@ -65,13 +62,13 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
   <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small></div>
   <div class="stats">
    <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
-   <div class="stat"><span class="label">💧 Вода</span><span class="value" id="thirst-v">80%</span></div>
+   <div class="stat"><span class="label">💧 Жажда</span><span class="value" id="thirst-v">80%</span></div>
    <div class="stat"><span class="label">💗 Настроение</span><span class="value" id="mood-v">80%</span></div>
    <div class="stat"><span class="label">⚡ Энергия</span><span class="value" id="energy-v">80%</span></div>
+   <div class="stat"><span class="label">🏡 Уют</span><span class="value" id="comfort-v">80%</span></div>
   </div>
  </div>
  <div id="location-title">СТАДИОН</div>
- <div id="cat-stage"><div id="cat-fallback">🐈</div><canvas id="cat-canvas"></canvas></div>
  <div id="room-actions">
   <button class="phone-nav-btn" id="phone-open" aria-label="Открыть телефон Луны" title="Телефон Луны">
    <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD%D0%B0.heic" alt="Телефон Луны">
@@ -118,11 +115,11 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  const tg=window.Telegram&&window.Telegram.WebApp;
  if(tg){tg.ready();tg.expand();try{tg.setBackgroundColor("#17251f");tg.setHeaderColor("#17251f")}catch(e){}}
  const scenes={stadium:{title:"СТАДИОН",image:"IMG_1984.jpeg"},room:{title:"ДЕМАГОРГОН",image:"IMG_1985.png"},food:{title:"ПИТАНИЕ",image:"IMG_1986.png"}};
- const defaults={hunger:80,thirst:80,mood:80,energy:80,coins:500,owned:[],last:Date.now()};
+ const defaults={hunger:80,thirst:80,mood:80,energy:80,comfort:80,coins:500,owned:[],last:Date.now()};
  let state;try{state=Object.assign({},defaults,JSON.parse(localStorage.getItem("lunaPetState")||"{}"))}catch(e){state=Object.assign({},defaults)}
  function save(){state.last=Date.now();try{localStorage.setItem("lunaPetState",JSON.stringify(state))}catch(e){};renderStats()}
  function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2100)}
- function renderStats(){["hunger","thirst","mood","energy"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
+ function renderStats(){["hunger","thirst","mood","energy","comfort"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
  function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.getElementById("location-title").textContent=scenes[name].title;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
  document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.addEventListener("click",()=>setScene(b.dataset.scene)));
  document.getElementById("shop-open").addEventListener("click",()=>openOverlay("shop-overlay"));
@@ -134,7 +131,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  document.getElementById("feed-btn").addEventListener("click",()=>{if(state.hunger>=98){toast("Луна пока не голодна");return}state.hunger=Math.min(100,state.hunger+25);state.coins=Math.max(0,state.coins);save();toast("Луна с аппетитом поела 🍗")});
  document.getElementById("water-btn").addEventListener("click",()=>{if(state.thirst>=98){toast("Луна пока не хочет пить");return}state.thirst=Math.min(100,state.thirst+30);save();toast("Луна попила свежей воды 💧")});
  const items=[{id:"bed",icon:"🛏️",name:"Мягкая лежанка",desc:"Луне будет уютнее отдыхать",cost:120,comfort:8},{id:"scratch",icon:"🐾",name:"Когтеточка",desc:"Полезное развлечение для Луны",cost:90,comfort:5},{id:"toy",icon:"🧶",name:"Клубок игрушек",desc:"Поднимает настроение",cost:75,comfort:6},{id:"tree",icon:"🌳",name:"Кошачье дерево",desc:"Место для игр и наблюдений",cost:180,comfort:12}];
- function renderShop(){document.getElementById("shop-grid").innerHTML=items.map(it=>{const owned=state.owned.includes(it.id);return '<div class="shop-item"><div class="shop-icon">'+it.icon+'</div><b>'+it.name+'</b><small>'+it.desc+'</small><button class="buy" data-buy="'+it.id+'" '+(owned?"disabled":"")+'>'+(owned?"Куплено ✓":it.cost+" 🐾 · Купить")+'</button></div>'}).join("");document.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{const it=items.find(x=>x.id===b.dataset.buy);if(!it||state.owned.includes(it.id))return;if(state.coins<it.cost){toast("Пока не хватает лапок");return}state.coins-=it.cost;state.owned.push(it.id);state.mood=Math.min(100,state.mood+it.comfort);save();renderShop();toast("Покупка для Луны оформлена! 🐾")}))}
+ function renderShop(){document.getElementById("shop-grid").innerHTML=items.map(it=>{const owned=state.owned.includes(it.id);return '<div class="shop-item"><div class="shop-icon">'+it.icon+'</div><b>'+it.name+'</b><small>'+it.desc+'</small><button class="buy" data-buy="'+it.id+'" '+(owned?"disabled":"")+'>'+(owned?"Куплено ✓":it.cost+" 🐾 · Купить")+'</button></div>'}).join("");document.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{const it=items.find(x=>x.id===b.dataset.buy);if(!it||state.owned.includes(it.id))return;if(state.coins<it.cost){toast("Пока не хватает лапок");return}state.coins-=it.cost;state.owned.push(it.id);state.comfort=Math.min(100,state.comfort+it.comfort);save();renderShop();toast("Покупка для Луны оформлена! 🐾")}))}
  document.getElementById("shop-open").addEventListener("click",renderShop);
  document.getElementById("phone-note").addEventListener("click",()=>{document.getElementById("phone-screen").innerHTML="<span>Напоминание:<br>покорми Луну и не забудь её погладить 💗</span>"});
  const phoneColors=["#19c94b","#b5d9ff","#f4b7d0","#f6d77b"];let phoneColor=0;
@@ -142,33 +139,9 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  // Offline needs gently affect care meters; cap elapsed time so long absences do not instantly empty them.
  const elapsed=Math.min(3600000,Math.max(0,Date.now()-(Number(state.last)||Date.now())));
  const decay=Math.floor(elapsed/60000)*0.35;
- if(decay>0){state.hunger=Math.max(0,state.hunger-decay);state.thirst=Math.max(0,state.thirst-decay*1.15);state.mood=Math.max(0,state.mood-decay*.55);state.energy=Math.max(0,state.energy-decay*.25)}
+ if(decay>0){state.hunger=Math.max(0,state.hunger-decay);state.thirst=Math.max(0,state.thirst-decay*1.15);state.mood=Math.max(0,state.mood-decay*.55);state.energy=Math.max(0,state.energy-decay*.25);state.comfort=Math.max(0,state.comfort-decay*.12)}
  save();renderShop();setScene("stadium");
- // Optional 3D Luna model. If WebGL/model loading fails, the friendly cat placeholder remains visible.
- (async function(){
-  const fallback=document.getElementById("cat-fallback"),canvas=document.getElementById("cat-canvas");
-  try{
-   const THREE=await import("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js");
-   const GLTFLoader=(await import("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js")).GLTFLoader;
-   const renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true,powerPreference:"low-power"});
-   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
-   const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(32,1,.1,100);camera.position.set(0,0,5.6);
-   scene.add(new THREE.HemisphereLight(0xffffff,0x71806b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(-3,5,5);scene.add(light);
-   const holder=new THREE.Group();scene.add(holder);let mixer=null;
-   const file="ОЧЕНЬ ВАЖНЫЙ КОТИК СО СКЕЛЕТОМ.glb";
-   const url="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/"+encodeURIComponent(file);
-   const gltf=await new GLTFLoader().loadAsync(url);const model=gltf.scene;holder.add(model);
-   const box=new THREE.Box3().setFromObject(model);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());model.position.sub(center);
-   const max=Math.max(size.x,size.y,size.z)||1;model.scale.setScalar(2.55/max);holder.position.y=-.08;
-   if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);mixer.clipAction(gltf.animations[0]).play()}
-   fallback.style.display="none";
-   const clock=new THREE.Clock();
-   function resize(){const w=canvas.clientWidth||300,h=canvas.clientHeight||400;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
-   const ro=new ResizeObserver(resize);ro.observe(canvas);resize();
-   function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.05);if(mixer)mixer.update(dt);holder.position.y=-.08+Math.sin(performance.now()*.0015)*.025;renderer.render(scene,camera)}
-   tick();
-  }catch(err){console.warn("Luna 3D model unavailable; using fallback",err)}
- })();
+ // Luna character intentionally omitted for this development phase.
  renderStats();
 })();
 </script>
