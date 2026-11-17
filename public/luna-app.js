@@ -29,6 +29,22 @@
     .luna-mini-card{padding:10px;margin:7px 0;border-radius:11px;background:#ffffff12;border:1px solid #ffffff20}
     .luna-phone-scroll{max-height:100%;overflow:auto}
     .luna-phone-muted{opacity:.72}
+    .luna-music-screen{padding:3px 2px 12px;color:#fff}
+    .luna-music-kicker{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#ff8295;font-weight:900;margin:2px 0 12px}
+    .luna-music-art{position:relative;width:min(100%,218px);aspect-ratio:1;margin:7px auto 17px;border-radius:17px;overflow:hidden;background:radial-gradient(circle at 70% 25%,#ffb2a5 0,transparent 27%),radial-gradient(circle at 25% 75%,#7d4b9c 0,transparent 38%),linear-gradient(145deg,#f06a65 0%,#a93d68 42%,#242d59 100%);box-shadow:0 14px 30px #0008}
+    .luna-music-art:before,.luna-music-art:after{content:"";position:absolute;border:1px solid #ffffff55;border-radius:50%;width:76%;aspect-ratio:1;left:12%;top:12%;box-shadow:0 0 0 13px #ffffff0c,0 0 0 27px #ffffff0a}
+    .luna-music-art:after{width:38%;left:31%;top:31%;background:#ffffff12;backdrop-filter:blur(2px)}
+    .luna-music-art-label{position:absolute;z-index:1;left:15px;right:15px;bottom:15px;text-align:left}
+    .luna-music-art-label strong{display:block;font-size:23px;line-height:1;font-weight:950;letter-spacing:-1px}
+    .luna-music-art-label span{display:block;margin-top:6px;font-size:8px;letter-spacing:3px;font-weight:800;opacity:.85}
+    .luna-track-title{font-size:18px;line-height:1.15;font-weight:850;letter-spacing:-.4px}
+    .luna-track-artist{font-size:11px;color:#ff9aa8;margin-top:4px}
+    .luna-track-progress{width:100%;height:4px;accent-color:#ff7188;margin:13px 0 2px;display:block}
+    .luna-track-times{display:flex;justify-content:space-between;font-size:9px;color:#ffffff8c;font-variant-numeric:tabular-nums}
+    .luna-player-controls{display:flex;align-items:center;justify-content:center;gap:27px;margin:11px 0 15px}
+    .luna-player-side{border:0;background:transparent;color:#ffffffb8;font-size:17px;padding:7px}
+    .luna-player-main{width:54px;height:54px;border:0;border-radius:50%;background:#fff;color:#171923;display:grid;place-items:center;font-size:22px;padding-left:4px;box-shadow:0 5px 18px #0005}
+    .luna-player-note{padding:10px 12px;border-radius:12px;background:#ffffff10;border:1px solid #ffffff18;font-size:10px;color:#ffffffb8}
     .luna-card-choice{display:inline-block;width:30%;padding:9px 2px;border-radius:9px;margin:2px 1%;color:white;font-size:9px;font-weight:900;border:2px solid transparent}
     .luna-card-choice.selected{border-color:#f4d17d}
     #food-actions{display:none;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);justify-content:flex-end}
@@ -158,7 +174,15 @@
     if (name==='photos') {
       phoneScreen.innerHTML=phoneHeader('Фото Луны')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">📷<br>Альбом пока пуст.<br>Сюда добавим фотографии и видео Луны.</div></div>';
     } else if (name==='music') {
-      phoneScreen.innerHTML=phoneHeader('Музыка')+'<div class="luna-phone-content"><div class="luna-mini-card"><b>🎵 Данза Кудуро</b><p class="luna-phone-muted">Первый трек Луны</p><audio controls preload="metadata" style="width:100%;max-width:100%;height:38px"><source src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%94%D0%B0%D0%BD%D0%B7%D0%B0%20%D0%9A%D1%83%D0%B4%D1%83%D1%80%D0%BE.m4a" type="audio/mp4">Твой браузер не поддерживает аудио.</audio></div></div>';
+      phoneScreen.innerHTML=phoneHeader('Музыка')+'<div class="luna-phone-content luna-music-screen"><div class="luna-music-kicker">LUNA MUSIC · PLAYING</div><div class="luna-music-art"><div class="luna-music-art-label"><strong>DANZA<br>KUDURO</strong><span>LUNA\'S PLAYLIST</span></div></div><div class="luna-track-title">Danza Kuduro</div><div class="luna-track-artist">Don Omar · Первый трек Луны</div><audio id="luna-audio" preload="metadata"><source src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%94%D0%B0%D0%BD%D0%B7%D0%B0%20%D0%9A%D1%83%D0%B4%D1%83%D1%80%D0%BE.m4a" type="audio/mp4">Твой браузер не поддерживает аудио.</audio><input id="luna-progress" class="luna-track-progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="Позиция воспроизведения"><div class="luna-track-times"><span id="luna-current-time">0:00</span><span id="luna-duration">--:--</span></div><div class="luna-player-controls"><button class="luna-player-side" id="luna-restart" aria-label="С начала">↺</button><button class="luna-player-main" id="luna-play" aria-label="Воспроизвести">▶</button><button class="luna-player-side" id="luna-forward" aria-label="Вперёд на 15 секунд">+15</button></div><div class="luna-player-note">♫ <b>Сейчас играет</b><br>Музыка Луны. Можно свернуть телефон — воспроизведение продолжится.</div></div>';
+      const audio=$('#luna-audio',phoneScreen), play=$('#luna-play',phoneScreen), progress=$('#luna-progress',phoneScreen);
+      const clock=value=>{if(!Number.isFinite(value))return '0:00';const m=Math.floor(value/60),sec=Math.floor(value%60);return m+':'+String(sec).padStart(2,'0');};
+      const sync=()=>{if(!audio)return;progress.value=audio.duration?audio.currentTime/audio.duration*100:0;$('#luna-current-time',phoneScreen).textContent=clock(audio.currentTime);$('#luna-duration',phoneScreen).textContent=clock(audio.duration);};
+      play.addEventListener('click',async()=>{try{if(audio.paused){await audio.play();play.textContent='Ⅱ';}else{audio.pause();play.textContent='▶';}}catch(e){toast2('Не удалось запустить музыку. Попробуй ещё раз.');}});
+      audio.addEventListener('play',()=>play.textContent='Ⅱ');audio.addEventListener('pause',()=>play.textContent='▶');audio.addEventListener('timeupdate',sync);audio.addEventListener('loadedmetadata',sync);audio.addEventListener('ended',()=>{play.textContent='▶';progress.value=0;});
+      progress.addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number(progress.value)/100*audio.duration;});
+      $('#luna-restart',phoneScreen).addEventListener('click',()=>{audio.currentTime=0;audio.play().then(()=>play.textContent='Ⅱ').catch(()=>{});});
+      $('#luna-forward',phoneScreen).addEventListener('click',()=>{if(Number.isFinite(audio.duration))audio.currentTime=Math.min(audio.duration,audio.currentTime+15);});
     } else if (name==='lavka') {
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
       phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card"><b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
