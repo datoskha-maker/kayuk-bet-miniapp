@@ -109,6 +109,13 @@ export default async function handler(req, res) {
     result = await supabase.rpc('luna_repay_loan', { p_user_id: profile.id });
   } else if (body.action === 'consume' && typeof body.itemId === 'string') {
     result = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
+  } else if (body.action === 'card' && ['midnight','barcelona','gold'].includes(body.card)) {
+    const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
+    if (current.error) return fail(res, 500, 'Could not load Luna settings');
+    const equipped = { ...(current.data?.equipped || {}), card: body.card };
+    const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
+    if (saved.error) return fail(res, 500, 'Could not save card design');
+    return res.status(200).json({ ok: true, equipped: saved.data.equipped });
   } else if (body.action === 'equip' && typeof body.slot === 'string' && typeof body.itemId === 'string') {
     const allowed = ['stadium','house','food','bed','scratchers','toys','interior','card'];
     if (!allowed.includes(body.slot)) return fail(res, 400, 'Invalid equipment slot');
