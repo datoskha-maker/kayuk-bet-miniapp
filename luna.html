@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101820">
+<title>Луна — виртуальная кошка</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--cream:#fff8e9;--ink:#25332c;--glass:rgba(18,29,25,.78);--gold:#f2c66d}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#17251f;color:var(--cream);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#263b31}
+#scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;user-select:none;-webkit-user-drag:none}
+#scene-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(7,15,12,.48),transparent 22%,transparent 65%,rgba(7,15,12,.32))}
+#top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
+.brand{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:15px;padding:9px 12px;box-shadow:0 5px 20px #0002}
+.brand b{display:block;font-size:15px;letter-spacing:.5px}.brand small{display:block;font-size:10px;opacity:.72;margin-top:2px}
+.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+.stat{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:12px;padding:7px 9px;min-width:62px;text-align:center}
+.stat .label{font-size:9px;opacity:.8;display:block}.stat .value{font-size:12px;font-weight:800;display:block;margin-top:2px}
+#location-title{position:absolute;z-index:3;top:calc(var(--safe-top) + 76px);left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:99px;background:rgba(13,24,19,.48);border:1px solid #ffffff30;backdrop-filter:blur(8px);font-size:11px;font-weight:800;letter-spacing:1.2px;white-space:nowrap;text-shadow:0 2px 6px #0008}
+#cat-stage{position:absolute;z-index:2;left:50%;bottom:8%;transform:translateX(-50%);width:min(62vw,360px);height:min(56vh,480px);pointer-events:none}
+#cat-canvas{width:100%;height:100%;display:block}
+#cat-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(100px,30vw,190px);filter:drop-shadow(0 18px 14px #0006)}
+#nav{position:absolute;z-index:8;left:12px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:9px}
+.nav-btn{width:66px;min-height:62px;border-radius:17px;background:rgba(15,28,23,.83);border:1px solid #ffffff38;backdrop-filter:blur(13px);box-shadow:0 5px 16px #0003;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:transform .15s,background .15s}
+.nav-btn:active{transform:scale(.94)}.nav-btn.active{background:rgba(245,196,99,.95);color:#26332a;border-color:#fff4}
+.nav-btn .ico{font-size:22px;line-height:1}.nav-btn .txt{font-size:9px;font-weight:800;letter-spacing:.1px}
+#room-actions{position:absolute;z-index:6;right:13px;bottom:calc(var(--safe-bottom) + 18px);display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.action-btn{background:var(--glass);border:1px solid #ffffff3b;border-radius:15px;padding:11px 13px;display:flex;align-items:center;gap:8px;backdrop-filter:blur(12px);font-size:12px;font-weight:800;box-shadow:0 5px 16px #0003}
+.action-btn .ico{font-size:19px}
+#toast{position:absolute;z-index:30;left:50%;bottom:calc(var(--safe-bottom) + 18px);transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#14231d;color:#fff;border:1px solid #ffffff30;border-radius:14px;padding:11px 15px;font-size:12px;font-weight:700;transition:.22s;max-width:85%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:absolute;z-index:20;inset:0;background:rgba(5,12,9,.68);backdrop-filter:blur(9px);display:none;align-items:center;justify-content:center;padding:calc(var(--safe-top) + 16px) 14px calc(var(--safe-bottom) + 16px)}
+.overlay.open{display:flex}
+.panel{width:min(100%,440px);max-height:100%;overflow:auto;background:#f8f1e3;color:#26342b;border-radius:24px;padding:18px;box-shadow:0 20px 70px #0008}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.panel-head h2{margin:0;font-size:20px}.close{width:34px;height:34px;border-radius:50%;background:#e8decb;color:#26342b;font-size:21px}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop-item{background:#fffaf0;border:1px solid #e5dac6;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.shop-icon{font-size:32px}.shop-item b{font-size:13px}.shop-item small{font-size:10px;line-height:1.4;color:#718071;min-height:28px}
+.buy{border-radius:10px;background:#2d5943;color:#fff;padding:9px;font-size:11px;font-weight:800;margin-top:auto}.buy:disabled{opacity:.45}
+.wallet{background:#e9dfca;border-radius:13px;padding:10px 12px;font-size:12px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between}
+.phone-wrap{width:min(80vw,330px);max-height:78vh;position:relative;display:flex;justify-content:center;align-items:center}
+.phone-img{display:block;width:100%;height:auto;max-height:78vh;object-fit:contain}
+.phone-screen{position:absolute;left:25%;top:12%;width:50%;height:72%;border-radius:7px;overflow:hidden;background:#19c94b;display:flex;align-items:center;justify-content:center;color:#05240e;text-align:center;font-weight:800;padding:8px;font-size:12px}
+.phone-screen img,.phone-screen video{width:100%;height:100%;object-fit:cover}
+.phone-tools{position:absolute;z-index:2;left:50%;bottom:calc(var(--safe-bottom) + 10px);transform:translateX(-50%);display:flex;gap:8px}
+.phone-tools button{background:#14231d;color:#fff;border:1px solid #ffffff55;border-radius:12px;padding:10px 13px;font-size:11px;font-weight:800}
+#phone-overlay{background:rgba(0,0,0,.86)}
+.phone-close{position:absolute;right:14px;top:calc(var(--safe-top) + 12px);z-index:3}
+#food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
+@media(max-height:650px){#cat-stage{height:48vh;bottom:5%}.nav-btn{min-height:53px;width:60px}.nav-btn .ico{font-size:19px}#location-title{top:calc(var(--safe-top) + 68px)}}
+</style>
+</head>
+<body>
+<div id="game">
+ <img id="scene-bg" src="IMG_1984.jpeg" alt="">
+ <div id="scene-shade"></div>
+ <div id="top-ui">
+  <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small></div>
+  <div class="stats">
+   <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
+   <div class="stat"><span class="label">💧 Вода</span><span class="value" id="thirst-v">80%</span></div>
+   <div class="stat"><span class="label">💗 Настроение</span><span class="value" id="mood-v">80%</span></div>
+   <div class="stat"><span class="label">⚡ Энергия</span><span class="value" id="energy-v">80%</span></div>
+  </div>
+ </div>
+ <div id="location-title">СТАДИОН</div>
+ <div id="cat-stage"><div id="cat-fallback">🐈</div><canvas id="cat-canvas"></canvas></div>
+ <div id="room-actions">
+  <button class="action-btn" id="phone-open"><span class="ico">📱</span><span>Телефон Луны</span></button>
+  <button class="action-btn" id="pet-btn"><span class="ico">🤍</span><span>Погладить</span></button>
+ </div>
+ <div id="food-actions">
+  <button id="feed-btn">🍗 Покормить</button>
+  <button id="water-btn">💧 Напоить</button>
+ </div>
+ <nav id="nav" aria-label="Игровая навигация">
+  <button class="nav-btn active" data-scene="stadium"><span class="ico">🏟️</span><span class="txt">Стадион</span></button>
+  <button class="nav-btn" data-scene="room"><span class="ico">🐈</span><span class="txt">Демагоргон</span></button>
+  <button class="nav-btn" data-scene="food"><span class="ico">🥣</span><span class="txt">Питание</span></button>
+  <button class="nav-btn" id="shop-open"><span class="ico">🛍️</span><span class="txt">Магазин</span></button>
+ </nav>
+ <div id="shop-overlay" class="overlay">
+  <div class="panel">
+   <div class="panel-head"><h2>Магазин Луны 🛍️</h2><button class="close" data-close="shop-overlay">×</button></div>
+   <div class="wallet"><span>Твои лапки 🐾</span><span id="coins-v">500</span></div>
+   <div class="shop-grid" id="shop-grid"></div>
+   <p style="font-size:10px;color:#7d897b;line-height:1.5;margin:14px 2px 0">Пока это тестовая витрина. Купленные предметы сохраняются на этом устройстве. Новые варианты оформления локаций появятся в следующих обновлениях.</p>
+  </div>
+ </div>
+ <div id="phone-overlay" class="overlay">
+  <button class="close phone-close" data-close="phone-overlay">×</button>
+  <div class="phone-wrap">
+   <img class="phone-img" src="Изображение HEIF.jpeg" alt="Телефон Луны">
+   <div class="phone-screen" id="phone-screen"><span>Экран телефона Луны<br>🐾</span></div>
+  </div>
+  <div class="phone-tools"><button id="phone-note">Заметка</button><button id="phone-color">Сменить экран</button></div>
+ </div>
+ <div id="toast"></div>
+</div>
+<script>
+(function(){
+ const tg=window.Telegram&&window.Telegram.WebApp;
+ if(tg){tg.ready();tg.expand();try{tg.setBackgroundColor("#17251f");tg.setHeaderColor("#17251f")}catch(e){}}
+ const scenes={stadium:{title:"СТАДИОН",image:"IMG_1984.jpeg"},room:{title:"ДЕМАГОРГОН",image:"IMG_1985.png"},food:{title:"ПИТАНИЕ",image:"IMG_1986.png"}};
+ const defaults={hunger:80,thirst:80,mood:80,energy:80,coins:500,owned:[],last:Date.now()};
+ let state;try{state=Object.assign({},defaults,JSON.parse(localStorage.getItem("lunaPetState")||"{}"))}catch(e){state=Object.assign({},defaults)}
+ function save(){state.last=Date.now();try{localStorage.setItem("lunaPetState",JSON.stringify(state))}catch(e){};renderStats()}
+ function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2100)}
+ function renderStats(){["hunger","thirst","mood","energy"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
+ function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.getElementById("location-title").textContent=scenes[name].title;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
+ document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.addEventListener("click",()=>setScene(b.dataset.scene)));
+ document.getElementById("shop-open").addEventListener("click",()=>openOverlay("shop-overlay"));
+ function openOverlay(id){document.getElementById(id).classList.add("open")}
+ document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>document.getElementById(b.dataset.close).classList.remove("open")));
+ document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open")}));
+ document.getElementById("phone-open").addEventListener("click",()=>openOverlay("phone-overlay"));
+ document.getElementById("pet-btn").addEventListener("click",()=>{state.mood=Math.min(100,state.mood+12);state.energy=Math.max(0,state.energy-2);save();toast("Луна довольно мурлычет! 😻")});
+ document.getElementById("feed-btn").addEventListener("click",()=>{if(state.hunger>=98){toast("Луна пока не голодна");return}state.hunger=Math.min(100,state.hunger+25);state.coins=Math.max(0,state.coins);save();toast("Луна с аппетитом поела 🍗")});
+ document.getElementById("water-btn").addEventListener("click",()=>{if(state.thirst>=98){toast("Луна пока не хочет пить");return}state.thirst=Math.min(100,state.thirst+30);save();toast("Луна попила свежей воды 💧")});
+ const items=[{id:"bed",icon:"🛏️",name:"Мягкая лежанка",desc:"Луне будет уютнее отдыхать",cost:120,comfort:8},{id:"scratch",icon:"🐾",name:"Когтеточка",desc:"Полезное развлечение для Луны",cost:90,comfort:5},{id:"toy",icon:"🧶",name:"Клубок игрушек",desc:"Поднимает настроение",cost:75,comfort:6},{id:"tree",icon:"🌳",name:"Кошачье дерево",desc:"Место для игр и наблюдений",cost:180,comfort:12}];
+ function renderShop(){document.getElementById("shop-grid").innerHTML=items.map(it=>{const owned=state.owned.includes(it.id);return '<div class="shop-item"><div class="shop-icon">'+it.icon+'</div><b>'+it.name+'</b><small>'+it.desc+'</small><button class="buy" data-buy="'+it.id+'" '+(owned?"disabled":"")+'>'+(owned?"Куплено ✓":it.cost+" 🐾 · Купить")+'</button></div>'}).join("");document.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{const it=items.find(x=>x.id===b.dataset.buy);if(!it||state.owned.includes(it.id))return;if(state.coins<it.cost){toast("Пока не хватает лапок");return}state.coins-=it.cost;state.owned.push(it.id);state.mood=Math.min(100,state.mood+it.comfort);save();renderShop();toast("Покупка для Луны оформлена! 🐾")}))}
+ document.getElementById("shop-open").addEventListener("click",renderShop);
+ document.getElementById("phone-note").addEventListener("click",()=>{document.getElementById("phone-screen").innerHTML="<span>Напоминание:<br>покорми Луну и не забудь её погладить 💗</span>"});
+ const phoneColors=["#19c94b","#b5d9ff","#f4b7d0","#f6d77b"];let phoneColor=0;
+ document.getElementById("phone-color").addEventListener("click",()=>{phoneColor=(phoneColor+1)%phoneColors.length;document.getElementById("phone-screen").style.background=phoneColors[phoneColor];document.getElementById("phone-screen").innerHTML="<span>Экран Луны<br>🐾</span>"});
+ // Offline needs gently affect care meters; cap elapsed time so long absences do not instantly empty them.
+ const elapsed=Math.min(3600000,Math.max(0,Date.now()-(Number(state.last)||Date.now())));
+ const decay=Math.floor(elapsed/60000)*0.35;
+ if(decay>0){state.hunger=Math.max(0,state.hunger-decay);state.thirst=Math.max(0,state.thirst-decay*1.15);state.mood=Math.max(0,state.mood-decay*.55);state.energy=Math.max(0,state.energy-decay*.25)}
+ save();renderShop();setScene("stadium");
+ // Optional 3D Luna model. If WebGL/model loading fails, the friendly cat placeholder remains visible.
+ (async function(){
+  const fallback=document.getElementById("cat-fallback"),canvas=document.getElementById("cat-canvas");
+  try{
+   const THREE=await import("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js");
+   const GLTFLoader=(await import("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js")).GLTFLoader;
+   const renderer=new THREE.WebGLRenderer({canvas:canvas,alpha:true,antialias:true,powerPreference:"low-power"});
+   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setClearColor(0,0);renderer.outputColorSpace=THREE.SRGBColorSpace;
+   const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(32,1,.1,100);camera.position.set(0,0,5.6);
+   scene.add(new THREE.HemisphereLight(0xffffff,0x71806b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.3);light.position.set(-3,5,5);scene.add(light);
+   const holder=new THREE.Group();scene.add(holder);let mixer=null;
+   const file="ОЧЕНЬ ВАЖНЫЙ КОТИК СО СКЕЛЕТОМ.glb";
+   const url="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/"+encodeURIComponent(file);
+   const gltf=await new GLTFLoader().loadAsync(url);const model=gltf.scene;holder.add(model);
+   const box=new THREE.Box3().setFromObject(model);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());model.position.sub(center);
+   const max=Math.max(size.x,size.y,size.z)||1;model.scale.setScalar(2.55/max);holder.position.y=-.08;
+   if(gltf.animations&&gltf.animations.length){mixer=new THREE.AnimationMixer(model);mixer.clipAction(gltf.animations[0]).play()}
+   fallback.style.display="none";
+   const clock=new THREE.Clock();
+   function resize(){const w=canvas.clientWidth||300,h=canvas.clientHeight||400;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+   const ro=new ResizeObserver(resize);ro.observe(canvas);resize();
+   function tick(){requestAnimationFrame(tick);const dt=Math.min(clock.getDelta(),.05);if(mixer)mixer.update(dt);holder.position.y=-.08+Math.sin(performance.now()*.0015)*.025;renderer.render(scene,camera)}
+   tick();
+  }catch(err){console.warn("Luna 3D model unavailable; using fallback",err)}
+ })();
+ renderStats();
+})();
+</script>
+</body>
+</html>
