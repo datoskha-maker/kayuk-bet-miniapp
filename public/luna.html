@@ -14,15 +14,12 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #game{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#263b31}
 #scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;user-select:none;-webkit-user-drag:none}
 #scene-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(7,15,12,.48),transparent 22%,transparent 65%,rgba(7,15,12,.32))}
-#top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
-.brand{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:15px;padding:9px 12px;box-shadow:0 5px 20px #0002}
-.brand b{display:block;font-size:15px;letter-spacing:.5px}.brand small{display:block;font-size:10px;opacity:.72;margin-top:2px}
-.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
+#top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;pointer-events:none}
+.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
 .stat{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:12px;padding:7px 9px;min-width:62px;text-align:center}
 .stat .label{font-size:9px;opacity:.8;display:block}.stat .value{font-size:12px;font-weight:800;display:block;margin-top:2px}
-#location-title{position:absolute;z-index:3;top:calc(var(--safe-top) + 76px);left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:99px;background:rgba(13,24,19,.48);border:1px solid #ffffff30;backdrop-filter:blur(8px);font-size:11px;font-weight:800;letter-spacing:1.2px;white-space:nowrap;text-shadow:0 2px 6px #0008}
-#nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:7px}
-.nav-btn{width:68px;height:68px;min-height:68px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
+#nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:3px}
+.nav-btn{width:75.5px;height:75.5px;min-height:75.5px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
 .nav-btn:active{transform:scale(.92)}
 .nav-btn.active{filter:drop-shadow(0 0 5px rgba(255,218,120,.9))}
 .nav-btn img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
@@ -51,7 +48,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 .phone-close{position:absolute;right:14px;top:calc(var(--safe-top) + 12px);z-index:3}
 #food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
-@media(max-height:650px){.nav-btn{width:60px;height:60px;min-height:60px}.phone-nav-btn{width:66px;height:66px}#location-title{top:calc(var(--safe-top) + 68px)}}
+@media(max-height:650px){.nav-btn{width:66.6px;height:66.6px;min-height:66.6px}.phone-nav-btn{width:66px;height:66px}}
 </style>
 </head>
 <body>
@@ -59,7 +56,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  <img id="scene-bg" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg" alt="">
  <div id="scene-shade"></div>
  <div id="top-ui">
-  <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small></div>
   <div class="stats">
    <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
    <div class="stat"><span class="label">💧 Жажда</span><span class="value" id="thirst-v">80%</span></div>
@@ -68,7 +64,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
    <div class="stat"><span class="label">🏡 Уют</span><span class="value" id="comfort-v">80%</span></div>
   </div>
  </div>
- <div id="location-title">СТАДИОН</div>
  <div id="room-actions">
   <button class="phone-nav-btn" id="phone-open" aria-label="Открыть телефон Луны" title="Телефон Луны">
    <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD%D0%B0.heic" alt="Телефон Луны">
@@ -120,7 +115,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  function save(){state.last=Date.now();try{localStorage.setItem("lunaPetState",JSON.stringify(state))}catch(e){};renderStats()}
  function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2100)}
  function renderStats(){["hunger","thirst","mood","energy","comfort"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
- function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.getElementById("location-title").textContent=scenes[name].title;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
+ function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
  document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.addEventListener("click",()=>setScene(b.dataset.scene)));
  document.getElementById("shop-open").addEventListener("click",()=>openOverlay("shop-overlay"));
  function openOverlay(id){document.getElementById(id).classList.add("open")}
