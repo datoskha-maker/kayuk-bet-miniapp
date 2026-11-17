@@ -102,7 +102,7 @@
   // The overlay markup above replaces the original screen node; always bind to the live node.
   phoneScreen = $('#phone-screen');
   if (phoneScreen) {
-    phoneScreen.style.left='8.8%'; phoneScreen.style.top='10.7%'; phoneScreen.style.width='85.6%'; phoneScreen.style.height='81.7%'; phoneScreen.style.aspectRatio='540 / 1115';
+    phoneScreen.style.left='2.7%'; phoneScreen.style.top='10.4%'; phoneScreen.style.width='94.6%'; phoneScreen.style.height='82.3%'; phoneScreen.style.aspectRatio='auto';
   }
   const foodOverlay = document.createElement('div');
   foodOverlay.id='food-overlay'; foodOverlay.className='overlay';
