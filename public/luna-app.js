@@ -79,6 +79,31 @@
     .luna-shop-product button{border-radius:9px;background:#244f3b;color:white;padding:8px;font-size:10px;font-weight:900;margin-top:auto}
     .luna-shop-product button:disabled{opacity:.5}
   `;
+
+  /* Hard override legacy green phone-button styles from the original Luna UI. */
+  style.textContent += `
+    #phone-screen button.luna-phone-app,
+    #phone-screen button.luna-phone-app:link,
+    #phone-screen button.luna-phone-app:visited,
+    #phone-screen button.luna-phone-app:hover,
+    #phone-screen button.luna-phone-app:focus,
+    #phone-screen button.luna-phone-app:focus-visible,
+    #phone-screen button.luna-phone-app:active {
+      background: rgba(8,20,34,.88) !important;
+      background-color: rgba(8,20,34,.88) !important;
+      background-image: none !important;
+      color: #fff !important;
+      border: 1px solid rgba(255,255,255,.42) !important;
+      box-shadow: 0 4px 14px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08) !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      outline: none;
+    }
+    #phone-screen button.luna-phone-app:active {
+      background: rgba(18,39,61,.96) !important;
+      transform: scale(.985);
+    }
+  `;
   document.head.appendChild(style);
 
   const phoneOpenOld = $('#phone-open');
