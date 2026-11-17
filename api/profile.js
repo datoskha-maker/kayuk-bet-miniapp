@@ -33,8 +33,8 @@ function verifyTelegramInitData(initData, botToken) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET');
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -94,6 +94,93 @@ export default async function handler(req, res) {
     } else {
       balanceRow = insertedBalance.data;
     }
+  }
+
+
+  // Luna uses this existing profile function to stay within the Vercel Hobby function limit.
+  if (req.method === 'POST' || req.query?.scope === 'luna') {
+    if (req.method === 'GET') {
+      const [stateQ, catalogQ, inventoryQ, giftQ, loanQ] = await Promise.all([
+        supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
+        supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,sort_order').eq('active', true).order('sort_order'),
+        supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
+        supabase.from('luna_daily_gifts').select('amount,claimed_at').eq('user_id', profile.id).eq('reward_date', new Date().toISOString().slice(0,10)).maybeSingle(),
+        supabase.from('luna_loans').select('id,principal,total_due,due_at,created_at').eq('user_id', profile.id).is('repaid_at', null).maybeSingle()
+      ]);
+      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,loanQ].find(q => q.error);
+      if (queryError) return res.status(500).json({ error: 'Could not load Luna data' });
+      let state = stateQ.data;
+      if (!state) {
+        const created = await supabase.from('luna_state').insert({ user_id: profile.id }).select('*').single();
+        if (created.error) return res.status(500).json({ error: 'Could not initialize Luna state' });
+        state = created.data;
+      }
+      let loan = loanQ.data;
+      if (loan) {
+        const lateDays = Math.max(0, Math.ceil((Date.now() - new Date(loan.due_at).getTime()) / 86400000));
+        loan = { ...loan, lateDays, currentDue: Math.ceil(Number(loan.total_due) * Math.pow(1.1, lateDays)) };
+      }
+      return res.status(200).json({
+        profile,
+        balance: balanceRow?.balance ?? 0,
+        state,
+        catalog: catalogQ.data || [],
+        inventory: inventoryQ.data || [],
+        dailyGift: giftQ.data || null,
+        loan
+      });
+    }
+
+    const body = req.body || {};
+    let actionResult;
+    if (body.action === 'gift') {
+      actionResult = await supabase.rpc('luna_claim_daily_gift', { p_user_id: profile.id });
+    } else if (body.action === 'purchase' && typeof body.itemId === 'string') {
+      actionResult = await supabase.rpc('luna_purchase_item', { p_user_id: profile.id, p_item_id: body.itemId });
+    } else if (body.action === 'consume' && typeof body.itemId === 'string') {
+      actionResult = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
+    } else if (body.action === 'loan') {
+      actionResult = await supabase.rpc('luna_take_loan', { p_user_id: profile.id, p_amount: Number(body.amount) });
+    } else if (body.action === 'repay') {
+      actionResult = await supabase.rpc('luna_repay_loan', { p_user_id: profile.id });
+    } else if (body.action === 'card' && ['midnight','barcelona','gold'].includes(body.card)) {
+      const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
+      if (current.error) return res.status(500).json({ error: 'Could not load Luna settings' });
+      const equipped = { ...(current.data?.equipped || {}), card: body.card };
+      const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
+      if (saved.error) return res.status(500).json({ error: 'Could not save card design' });
+      return res.status(200).json({ ok: true, equipped: saved.data.equipped });
+    } else if (body.action === 'equip' && typeof body.slot === 'string' && typeof body.itemId === 'string') {
+      const allowed = ['stadium','house','food','bed','scratchers','toys','interior'];
+      if (!allowed.includes(body.slot)) return res.status(400).json({ error: 'Invalid equipment slot' });
+      const owned = await supabase.from('luna_inventory').select('item_id').eq('user_id', profile.id).eq('item_id', body.itemId).maybeSingle();
+      if (owned.error || !owned.data) return res.status(400).json({ error: 'Item is not owned' });
+      const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
+      if (current.error) return res.status(500).json({ error: 'Could not load Luna settings' });
+      const equipped = { ...(current.data?.equipped || {}), [body.slot]: body.itemId };
+      const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
+      if (saved.error) return res.status(500).json({ error: 'Could not save equipped item' });
+      return res.status(200).json({ ok: true, equipped: saved.data.equipped });
+    } else if (body.action === 'care' && body.state && typeof body.state === 'object') {
+      const fields = ['hunger','thirst','mood','energy','comfort'];
+      const update = { user_id: profile.id, updated_at: new Date().toISOString() };
+      for (const field of fields) {
+        const value = Number(body.state[field]);
+        if (!Number.isInteger(value) || value < 0 || value > 100) return res.status(400).json({ error: 'Invalid care value' });
+        update[field] = value;
+      }
+      const saved = await supabase.from('luna_state').upsert(update, { onConflict: 'user_id' }).select('*').single();
+      if (saved.error) return res.status(500).json({ error: 'Could not save Luna state' });
+      return res.status(200).json({ ok: true, state: saved.data });
+    } else {
+      return res.status(400).json({ error: 'Unknown Luna action' });
+    }
+    if (actionResult.error) {
+      const message = String(actionResult.error.message || 'Action failed');
+      const status = /Insufficient balance|already|active loan|No active loan|between 1000/i.test(message) ? 400 : 500;
+      return res.status(status).json({ error: message });
+    }
+    return res.status(200).json(actionResult.data);
   }
 
   const { data: bets, error: betsError } = await supabase
