@@ -189,10 +189,11 @@
     const items=shopCategory==='purchases'?(data.catalog||[]).filter(x=>inventory.has(x.item_id)):(data.catalog||[]).filter(x=>x.category===shopCategory);
     $('#luna-shop-grid').innerHTML=items.length?items.map(x=>{
       const slot=x.category, equipped=data.state?.equipped?.[slot]===x.item_id;
-      return '<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Установлено ✓':'Установить')+'</button>': '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
+      return '<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?(equipped?'<button data-unequip="'+esc(slot)+'" class="secondary">Снять</button>':'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'">Установить</button>'): '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
     }).join(''):'<div class="luna-empty" style="grid-column:1/-1">В этом разделе пока пусто.<br>Наполним его предметами и ценами следующим этапом 🐾</div>';
     $('#luna-shop-grid').querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'purchase',itemId:b.dataset.buy});renderShop();toast2('Покупка сохранена в инвентаре')}catch(e){toast2(e.message)}}));
     $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:b.dataset.slot,itemId:b.dataset.equip});renderShop();toast2('Предмет установлен')}catch(e){toast2(e.message)}}));
+    $('#luna-shop-grid').querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'unequip',slot:b.dataset.unequip});renderShop();toast2('Предмет снят')}catch(e){toast2(e.message)}}));
   }
   function renderFoodChoices() {
     $('#luna-food-content').innerHTML='<div class="luna-food-grid"><button class="luna-food-choice" data-food-type="food">🍗 Еда</button><button class="luna-food-choice" data-food-type="drink">🥛 Напитки</button></div><p style="font-size:10px;color:#7d897b;margin-top:12px">Баланс КАЮК BET: <b id="luna-food-balance">'+fmt(data?.balance)+'</b></p>';
