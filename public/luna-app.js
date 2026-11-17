@@ -15,21 +15,21 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    #phone-screen{background:linear-gradient(145deg,#102a43,#071522);color:#fff;display:block;padding:7px;overflow:auto;text-align:left;font-size:10px}
-    .luna-phone-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:10px;font-weight:900}
-    .luna-phone-back{background:#ffffff20;border:1px solid #ffffff35;border-radius:8px;padding:4px 7px;font-size:9px;color:#fff}
-    .luna-phone-menu{display:flex;flex-direction:column;gap:4px}
-    .luna-phone-app{width:100%;display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:9px;background:#ffffff12;border:1px solid #ffffff20;color:#fff;text-align:left;font-size:10px;font-weight:800}
-    .luna-phone-app span:first-child{font-size:16px;width:20px;text-align:center}
-    .luna-phone-content{font-size:9px;line-height:1.4}
+    #phone-screen{background:linear-gradient(160deg,#102a43,#071522 68%,#0a1b2c);color:#fff;display:block;padding:12px 11px 14px;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;text-align:left;font-size:12px;scrollbar-width:none;border-radius:8.5% / 4.8%;box-shadow:inset 0 0 0 1px #ffffff24}
+    .luna-phone-head{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:13px;font-size:12px;font-weight:900;letter-spacing:.25px;min-height:28px}
+    .luna-phone-back{background:#ffffff18;border:1px solid #ffffff35;border-radius:9px;padding:6px 9px;font-size:10px;color:#fff;white-space:nowrap}
+    .luna-phone-menu{display:flex;flex-direction:column;gap:9px}
+    .luna-phone-app{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:13px;background:linear-gradient(110deg,#ffffff1b,#ffffff0b);border:1px solid #ffffff25;color:#fff;text-align:left;font-size:13px;font-weight:800;box-shadow:0 3px 9px #0002;touch-action:manipulation}
+    .luna-phone-app span:first-child{font-size:23px;width:29px;text-align:center;flex:none}
+    .luna-phone-content{font-size:11px;line-height:1.45;max-height:calc(100% - 42px);overflow:auto;overscroll-behavior:contain}
     .luna-phone-content p{margin:5px 0}
     .luna-phone-content button,.luna-phone-content select,.luna-phone-content input{font:inherit}
-    .luna-mini-btn{border:0;border-radius:8px;padding:6px 8px;background:#e9c36a;color:#1a2630;font-size:9px;font-weight:900;margin:3px 2px 0 0}
+    .luna-mini-btn{border:0;border-radius:9px;padding:8px 10px;background:#e9c36a;color:#1a2630;font-size:10px;font-weight:900;margin:4px 3px 0 0;touch-action:manipulation}
     .luna-mini-btn.secondary{background:#ffffff20;color:#fff;border:1px solid #ffffff30}
-    .luna-mini-card{padding:7px;margin:5px 0;border-radius:9px;background:#ffffff12;border:1px solid #ffffff20}
+    .luna-mini-card{padding:10px;margin:7px 0;border-radius:11px;background:#ffffff12;border:1px solid #ffffff20}
     .luna-phone-scroll{max-height:100%;overflow:auto}
     .luna-phone-muted{opacity:.72}
-    .luna-card-choice{display:inline-block;width:30%;padding:7px 2px;border-radius:8px;margin:2px 1%;color:white;font-size:8px;font-weight:900;border:2px solid transparent}
+    .luna-card-choice{display:inline-block;width:30%;padding:9px 2px;border-radius:9px;margin:2px 1%;color:white;font-size:9px;font-weight:900;border:2px solid transparent}
     .luna-card-choice.selected{border-color:#f4d17d}
     #food-actions{display:none;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);justify-content:flex-end}
     #food-menu-open{background:rgba(13,30,49,.92);border:1px solid #ffffff66;border-radius:14px;padding:13px 20px;font-weight:900;font-size:13px;color:#fff;backdrop-filter:blur(10px)}
@@ -81,7 +81,7 @@
   const phoneTools = $('.phone-tools');
   if (phoneTools) phoneTools.style.display = 'none';
   if (phoneScreen) {
-    phoneScreen.style.left='24%'; phoneScreen.style.top='11%'; phoneScreen.style.width='52%'; phoneScreen.style.height='75%';
+    phoneScreen.style.left='8.8%'; phoneScreen.style.top='10.7%'; phoneScreen.style.width='85.6%'; phoneScreen.style.height='81.7%'; phoneScreen.style.aspectRatio='540 / 1115';
   }
 
   const shopOverlay = $('#shop-overlay');
@@ -188,11 +188,11 @@
     const inventory=new Set((data.inventory||[]).map(x=>x.item_id));
     const items=shopCategory==='purchases'?(data.catalog||[]).filter(x=>inventory.has(x.item_id)):(data.catalog||[]).filter(x=>x.category===shopCategory);
     $('#luna-shop-grid').innerHTML=items.length?items.map(x=>{
-      const owned=inventory.has(x.item_id), equipped=data.state?.equipped?.[shopCategory]===x.item_id;
-      return '<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?'<button data-equip="'+esc(x.item_id)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Установлено ✓':'Установить')+'</button>': '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
+      const slot=x.category, equipped=data.state?.equipped?.[slot]===x.item_id;
+      return '<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Установлено ✓':'Установить')+'</button>': '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
     }).join(''):'<div class="luna-empty" style="grid-column:1/-1">В этом разделе пока пусто.<br>Наполним его предметами и ценами следующим этапом 🐾</div>';
     $('#luna-shop-grid').querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'purchase',itemId:b.dataset.buy});renderShop();toast2('Покупка сохранена в инвентаре')}catch(e){toast2(e.message)}}));
-    $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:shopCategory,itemId:b.dataset.equip});renderShop();toast2('Предмет установлен')}catch(e){toast2(e.message)}}));
+    $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:b.dataset.slot,itemId:b.dataset.equip});renderShop();toast2('Предмет установлен')}catch(e){toast2(e.message)}}));
   }
   function renderFoodChoices() {
     $('#luna-food-content').innerHTML='<div class="luna-food-grid"><button class="luna-food-choice" data-food-type="food">🍗 Еда</button><button class="luna-food-choice" data-food-type="drink">🥛 Напитки</button></div><p style="font-size:10px;color:#7d897b;margin-top:12px">Баланс КАЮК BET: <b id="luna-food-balance">'+fmt(data?.balance)+'</b></p>';
