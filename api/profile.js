@@ -161,6 +161,16 @@ export default async function handler(req, res) {
       const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
       if (saved.error) return res.status(500).json({ error: 'Could not save equipped item' });
       return res.status(200).json({ ok: true, equipped: saved.data.equipped });
+    } else if (body.action === 'unequip' && typeof body.slot === 'string') {
+      const allowed = ['stadium','house','food','bed','scratchers','toys','interior'];
+      if (!allowed.includes(body.slot)) return res.status(400).json({ error: 'Invalid equipment slot' });
+      const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
+      if (current.error) return res.status(500).json({ error: 'Could not load Luna settings' });
+      const equipped = { ...(current.data?.equipped || {}) };
+      delete equipped[body.slot];
+      const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
+      if (saved.error) return res.status(500).json({ error: 'Could not remove equipped item' });
+      return res.status(200).json({ ok: true, equipped: saved.data.equipped });
     } else if (body.action === 'care' && body.state && typeof body.state === 'object') {
       const fields = ['hunger','thirst','mood','energy','comfort'];
       const update = { user_id: profile.id, updated_at: new Date().toISOString() };
