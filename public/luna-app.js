@@ -19,7 +19,7 @@
     .luna-phone-head{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:13px;font-size:12px;font-weight:900;letter-spacing:.25px;min-height:28px;text-shadow:0 1px 5px #000}
     .luna-phone-back{background:#ffffff18;border:1px solid #ffffff35;border-radius:9px;padding:6px 9px;font-size:10px;color:#fff;white-space:nowrap}
     .luna-phone-menu{display:flex;flex-direction:column;gap:9px}
-    .luna-phone-app{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:13px;background:rgba(8,20,34,.56);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);border:1px solid #ffffff65;color:#fff;text-align:left;font-size:13px;font-weight:800;box-shadow:0 3px 9px #0002;touch-action:manipulation}
+    #phone-screen .luna-phone-app,#phone-screen .luna-phone-app:visited,#phone-screen .luna-phone-app:hover,#phone-screen .luna-phone-app:active{width:100%;min-height:58px;display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:13px;background-color:rgba(8,20,34,.82)!important;background-image:none!important;appearance:none;-webkit-appearance:none;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);border:1px solid #ffffff65;color:#fff;text-align:left;font-size:13px;font-weight:800;box-shadow:0 3px 9px #0002;touch-action:manipulation}
     .luna-phone-app span:first-child{font-size:23px;width:29px;text-align:center;flex:none}
     .luna-phone-content{font-size:11px;line-height:1.45;max-height:calc(100% - 42px);overflow:auto;overscroll-behavior:contain}
     .luna-phone-content p{margin:5px 0}
