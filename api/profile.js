@@ -167,6 +167,8 @@ export default async function handler(req, res) {
       actionResult = await supabase.rpc('luna_claim_daily_gift', { p_user_id: profile.id });
     } else if (body.action === 'purchase' && typeof body.itemId === 'string') {
       actionResult = await supabase.rpc('luna_purchase_item', { p_user_id: profile.id, p_item_id: body.itemId });
+    } else if (body.action === 'cafe_buy' && typeof body.itemId === 'string') {
+      actionResult = await supabase.rpc('luna_buy_cafe_item', { p_user_id: profile.id, p_item_id: body.itemId });
     } else if (body.action === 'consume' && typeof body.itemId === 'string') {
       actionResult = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
     } else if (body.action === 'loan_quote') {
@@ -231,7 +233,7 @@ export default async function handler(req, res) {
     }
     if (actionResult.error) {
       const message = String(actionResult.error.message || 'Action failed');
-      const status = /Insufficient balance|already|active loan|No active loan|between 1000|Weekly credit limit|negative balance|Enter a loan amount|gold card/i.test(message) ? 400 : 500;
+      const status = /Insufficient balance|Недостаточно средств|кафе|товара нет в меню|already|active loan|No active loan|between 1000|Weekly credit limit|negative balance|Enter a loan amount|gold card/i.test(message) ? 400 : 500;
       return res.status(status).json({ error: message });
     }
     return res.status(200).json(actionResult.data);
