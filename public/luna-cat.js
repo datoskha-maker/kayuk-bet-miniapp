@@ -155,7 +155,7 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
     const box = new THREE.Box3().setFromObject(model);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
-    const scale = 1.65 / Math.max(size.y, size.x * 0.8, size.z * 0.8);
+    const scale = 1.15 / Math.max(size.y, size.x * 0.8, size.z * 0.8);
     model.scale.setScalar(scale);
     model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
     model.userData.width = size.x * scale;
