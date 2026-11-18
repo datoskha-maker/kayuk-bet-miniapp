@@ -203,7 +203,7 @@
     .luna-lavka-map-note,.luna-lavka-muted{font-size:8px;color:#888;margin:6px 0}
     .luna-lavka-order-items{display:flex;flex-direction:column;gap:6px;margin:10px 0}
     .luna-lavka-order-items>div{display:flex;justify-content:space-between;gap:8px;font-size:9px}
-    .luna-courier-marker{width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0005;display:grid;place-items:center;font-size:18px;border:2px solid #278fc2}
+    .luna-yandex-courier{position:absolute;z-index:500;left:12%;top:78%;width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0006;display:grid;place-items:center;font-size:18px;border:2px solid #278fc2;transform:translate(-50%,-50%);transition:left 1.4s linear,top 1.4s linear;pointer-events:none}
     .luna-shop-product b{font-size:12px}
     .luna-shop-product small{font-size:10px;color:#778274;line-height:1.3}
     .luna-shop-product button{border-radius:9px;background:#244f3b;color:white;padding:8px;font-size:10px;font-weight:900;margin-top:auto}
@@ -444,43 +444,29 @@
       };
       const initLavkaMap=async(currentOrder)=>{
         const mapEl=$('#lavka-map',phoneScreen);if(!mapEl)return;
-        try{
-          if(!window.L){
-            if(!document.querySelector('link[data-lavka-leaflet]')){const link=document.createElement('link');link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';link.dataset.lavkaLeaflet='1';document.head.appendChild(link);}
-            await new Promise((resolve,reject)=>{const script=document.querySelector('script[data-lavka-leaflet]');if(script){script.addEventListener('load',resolve,{once:true});script.addEventListener('error',reject,{once:true});if(window.L)resolve();return;}const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.dataset.lavkaLeaflet='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
-          }
-          if(!$('#lavka-map',phoneScreen))return;
-          const L=window.L,dest=[55.695123,37.617632],origin=[55.70015,37.6141];
-          const map=L.map('lavka-map',{zoomControl:true,scrollWheelZoom:false}).setView(dest,15);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-          const destination=L.circleMarker(dest,{radius:8,color:'#fff',weight:3,fillColor:'#e33b55',fillOpacity:1}).addTo(map).bindPopup('Адрес доставки');
-          const courierIcon=L.divIcon({className:'',html:'<div class="luna-courier-marker">🛵</div>',iconSize:[30,30],iconAnchor:[15,15]});
-          const courier=L.marker(origin,{icon:courierIcon}).addTo(map);
-          let coords=[origin,dest];
+        const destinationUrl='https://yandex.ru/map-widget/v1/?ll=37.617632%2C55.695123&z=16&pt=37.617632%2C55.695123%2Cpm2rdm';
+        mapEl.innerHTML='<iframe title="Яндекс Карты — адрес доставки" src="'+destinationUrl+'" width="100%" height="100%" frameborder="0" allowfullscreen="true" style="border:0;display:block"></iframe><div class="luna-yandex-courier" id="lavka-courier">🛵</div>';
+        const courier=$('#lavka-courier',phoneScreen);
+        const started=new Date(currentOrder.created_at).getTime()+60000;
+        const move=()=>{
+          const status=(data.orders||[]).find(x=>x.id===currentOrder.id)?.status||currentOrder.status;
+          const progress=status==='delivered'?1:Math.max(0,Math.min(1,(Date.now()-started)/120000));
+          courier.style.left=(12+progress*74)+'%';
+          courier.style.top=(78-progress*60)+'%';
+          if(status==='delivered'){courier.style.left='86%';courier.style.top='18%';if(mapTimer){clearInterval(mapTimer);mapTimer=null;}}
+        };
+        move();mapTimer=setInterval(move,1500);
+        statusTimer=setInterval(async()=>{
           try{
-            const route=await fetch('https://router.project-osrm.org/route/v1/driving/'+origin[1]+','+origin[0]+';'+dest[1]+','+dest[0]+'?overview=full&geometries=geojson');
-            const routeData=await route.json();if(routeData.routes?.[0]?.geometry?.coordinates?.length){coords=routeData.routes[0].geometry.coordinates.map(p=>[p[1],p[0]]);}
+            await api('POST',{action:'lavka_order_tick'});
+            const latest=await api();data=latest;
+            const fresh=(data.orders||[]).find(x=>x.id===currentOrder.id);
+            const label=$('#lavka-order-status',phoneScreen);
+            if(fresh&&label)label.textContent=orderStatus[fresh.status]||'Заказ оформлен';
+            move();
+            if(fresh?.status==='delivered'){clearInterval(statusTimer);statusTimer=null;renderStats2();}
           }catch(e){}
-          if(!$('#lavka-map',phoneScreen))return;
-          L.polyline(coords,{color:'#278fc2',weight:5,opacity:.88}).addTo(map);
-          destination.addTo(map);
-          map.fitBounds(L.latLngBounds(coords),{padding:[18,18]});
-          const started=new Date(currentOrder.created_at).getTime()+60000;
-          const move=()=>{
-            const status=(data.orders||[]).find(x=>x.id===currentOrder.id)?.status||currentOrder.status;
-            const progress=status==='delivered'?1:Math.max(0,Math.min(1,(Date.now()-started)/120000));
-            const segment=(coords.length-1)*progress,index=Math.min(coords.length-2,Math.floor(segment)),part=segment-index;
-            const a=coords[index]||dest,b=coords[index+1]||dest;
-            courier.setLatLng([a[0]+(b[0]-a[0])*part,a[1]+(b[1]-a[1])*part]);
-            if(status==='delivered'){courier.setLatLng(dest);if(mapTimer){clearInterval(mapTimer);mapTimer=null;}}
-          };
-          move();mapTimer=setInterval(move,1500);
-          statusTimer=setInterval(async()=>{
-            try{await api('POST',{action:'lavka_order_tick'});const latest=await api();data=latest;const fresh=(data.orders||[]).find(x=>x.id===currentOrder.id);const label=$('#lavka-order-status',phoneScreen);if(fresh&&label)label.textContent=orderStatus[fresh.status]||'Заказ оформлен';move();if(fresh?.status==='delivered'){clearInterval(statusTimer);statusTimer=null;renderStats2();}}
-            catch(e){}
-          },6000);
-          setTimeout(()=>map.invalidateSize(),250);
-        }catch(e){mapEl.innerHTML='<div class="luna-lavka-map-loading">Не удалось загрузить карту. Проверь интернет-соединение.</div>';}
+        },6000);
       };
       renderLavka();
     } else if (name==='bank') {
