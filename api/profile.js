@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
       const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ] = await Promise.all([
         supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
-        supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,sort_order').eq('active', true).order('sort_order'),
+        supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,image_url,sort_order').eq('active', true).order('sort_order'),
         supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
         supabase.from('luna_daily_gifts').select('amount,claimed_at').eq('user_id', profile.id).eq('reward_date', new Date().toISOString().slice(0,10)).maybeSingle(),
         supabase.from('bank_cards').select('account_number,design,gold_purchased').eq('user_id', profile.id).maybeSingle(),
