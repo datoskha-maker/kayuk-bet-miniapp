@@ -215,8 +215,12 @@
     data = await api();
     return data;
   }
+  async function recordActivity(eventType, details={}) {
+    try { await api('POST',{action:'activity',eventType,details}); } catch (e) { console.warn('Luna activity was not saved',e); }
+  }
   async function act(payload) {
     const result = await api('POST',payload);
+    await recordActivity('game_action',{action:payload.action,itemId:payload.itemId||null,slot:payload.slot||null,amount:payload.amount||null});
     await refresh();
     renderStats2();
     return result;
@@ -243,6 +247,7 @@
   function bindBack() { phoneScreen.querySelectorAll('[data-phone-back]').forEach(b=>b.addEventListener('click',renderPhoneHome)); }
   function renderPhoneApp(name) {
     if (!data) return;
+    recordActivity('phone_open',{screen:String(name).slice(0,60)});
     if (name==='photos') {
       phoneScreen.innerHTML=phoneHeader('Фото Луны')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">📷<br>Альбом пока пуст.<br>Сюда добавим фотографии и видео Луны.</div></div>';
     } else if (name==='music') {
@@ -256,7 +261,7 @@
       const audio=$('#luna-audio',phoneScreen),play=$('#luna-play',phoneScreen),progress=$('#luna-progress',phoneScreen);
       const clock=v=>Number.isFinite(v)?Math.floor(v/60)+':'+String(Math.floor(v%60)).padStart(2,'0'):'0:00';
       const sync=()=>{progress.value=audio.duration?audio.currentTime/audio.duration*100:0;$('#luna-current-time',phoneScreen).textContent=clock(audio.currentTime);$('#luna-duration',phoneScreen).textContent=clock(audio.duration);};
-      play.addEventListener('click',async()=>{try{if(audio.paused){await audio.play();play.textContent='Ⅱ';}else{audio.pause();play.textContent='▶';}}catch(e){toast2('Не удалось запустить музыку. Попробуй ещё раз.');}});
+      play.addEventListener('click',async()=>{try{if(audio.paused){await audio.play();play.textContent='Ⅱ';recordActivity('music_play',{track:name.split(':')[1]||null});}else{audio.pause();play.textContent='▶';recordActivity('music_pause',{track:name.split(':')[1]||null});}}catch(e){toast2('Не удалось запустить музыку. Попробуй ещё раз.');}});
       audio.addEventListener('play',()=>play.textContent='Ⅱ');audio.addEventListener('pause',()=>play.textContent='▶');audio.addEventListener('timeupdate',sync);audio.addEventListener('loadedmetadata',sync);audio.addEventListener('ended',()=>{play.textContent='▶';progress.value=0;});
       progress.addEventListener('input',()=>{if(audio.duration)audio.currentTime=Number(progress.value)/100*audio.duration;});
       $('#luna-restart',phoneScreen).addEventListener('click',()=>{audio.currentTime=0;audio.play().catch(()=>{});});
@@ -303,7 +308,7 @@
       $('#claim-gift',phoneScreen)?.addEventListener('click',async()=>{try{const result=await act({action:'gift'});renderPhoneApp('gift');toast2(result.alreadyClaimed?'Подарок уже получен':'Тебе выпало '+fmt(result.amount)+'!')}catch(e){toast2(e.message)}});
     } else if (name==='camera') {
       phoneScreen.innerHTML=phoneHeader('Фронтальная камера')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">🤳<br>Луна смотрит прямо на тебя!<br>Фото-заставку добавим, когда ты пришлёшь картинку.</div><button class="luna-mini-btn secondary" id="camera-snap">📸 Сделать вид, что сфоткал</button></div>';
-      $('#camera-snap',phoneScreen)?.addEventListener('click',()=>toast2('Мяу! Снимок получился 😹'));
+      $('#camera-snap',phoneScreen)?.addEventListener('click',()=>{recordActivity('camera_snap');toast2('Мяу! Снимок получился 😹')});
     }
     bindBack();
   }
