@@ -90,8 +90,8 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
 
   function scheduledMode() {
     const t = moscowTime();
-    if (t.hour === 23 && t.minute === 59 && t.second >= 57) return 'prepare';
-    if (t.hour < 11 || (t.hour === 11 && t.minute < 34)) return 'sleep';
+    if (t.hour === 0 && t.minute === 59 && t.second >= 57) return 'prepare';
+    if (t.hour >= 1 && (t.hour < 11 || (t.hour === 11 && t.minute < 34))) return 'sleep';
     return 'awake';
   }
 
