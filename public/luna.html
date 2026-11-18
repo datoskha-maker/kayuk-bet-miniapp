@@ -49,12 +49,22 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
 @media(max-height:650px){.nav-btn{width:66.6px;height:66.6px;min-height:66.6px}.phone-nav-btn{width:66px;height:66px}}
+
+#luna-cat-stage{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+#luna-cat-stage canvas{display:block;width:100%;height:100%;pointer-events:none}
+#luna-cat-hit{position:absolute;z-index:4;left:31%;width:38%;height:42%;bottom:9%;display:none;padding:0;border:0;background:transparent;pointer-events:auto;touch-action:manipulation}
+#luna-cat-loading{position:absolute;z-index:4;left:50%;top:56%;transform:translate(-50%,-50%);padding:7px 11px;border-radius:10px;background:#14231dbb;color:#fff;font-size:10px;pointer-events:none}
+@media(max-width:600px){#luna-cat-hit{left:25%;width:50%;height:40%;bottom:10%}}
+
 </style>
 </head>
 <body>
 <div id="game">
  <img id="scene-bg" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg" alt="">
  <div id="scene-shade"></div>
+ <div id="luna-cat-stage" aria-label="Луна — трёхмерная модель кошки"></div>
+ <button id="luna-cat-hit" type="button" aria-label="Погладить Луну или попросить её подвигаться"></button>
+ <div id="luna-cat-loading">Луна загружается… 🐾</div>
  <div id="top-ui">
   <div class="stats">
    <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
@@ -141,6 +151,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  renderStats();
 })();
 </script>
+ <script type="module" src="/luna-cat.js"></script>
  <script src="/luna-app.js"></script>
 </body>
 </html>
