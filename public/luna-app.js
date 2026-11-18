@@ -241,7 +241,7 @@
   let bankQuote = null;
   let bankAmount = '';
   const categories = [
-    ['stadium','Стадион','🏟️'],['house','Дом','🏡'],['food','Еда','🍱'],
+    ['stadium','Стадион','🏟️'],['house','Дом','🏡'],['food','Кафе','🍱'],
     ['bed','Лежанки','🛏️'],['scratchers','Когтеточки','🐾'],['toys','Игрушки','🧶'],
     ['interior','Интерьер','🪑'],['purchases','Покупки','🎁']
   ];
@@ -317,7 +317,7 @@
             '<div class="luna-lavka-hero"><div class="luna-lavka-brand"><span class="luna-lavka-mark">Я</span><span>Лавка Луны</span></div><div class="luna-lavka-headline">Мур-мур.<br>Всё нужное — рядом.</div><div class="luna-lavka-delivery"><span>🐾</span><span><b>Доставим прямо домой</b><small>Закажи вкусняшки для Луны</small></span><span class="luna-lavka-arrow">›</span></div></div>'+
             '<div class="luna-lavka-wallet"><span><small>ТВОЙ БАЛАНС</small><b>'+fmt(balance)+'</b></span><span class="luna-lavka-wallet-icon">₽</span></div>'+
             '<div class="luna-lavka-section-head"><b>Что будем заказывать?</b><small>'+shown.length+' товаров</small></div>'+
-            '<div class="luna-lavka-tabs"><button data-lavka-filter="all" class="'+(filter==='all'?'active':'')+'">Всё</button><button data-lavka-filter="food" class="'+(filter==='food'?'active':'')+'">🍗 Еда</button><button data-lavka-filter="drink" class="'+(filter==='drink'?'active':'')+'">🥛 Напитки</button></div>'+
+            '<div class="luna-lavka-tabs"><button data-lavka-filter="all" class="'+(filter==='all'?'active':'')+'">Всё</button><button data-lavka-filter="food" class="'+(filter==='food'?'active':'')+'">🍗 Кафе</button><button data-lavka-filter="drink" class="'+(filter==='drink'?'active':'')+'">🥛 Напитки</button></div>'+
             (shown.length?'<div class="luna-lavka-grid">'+shown.map(x=>'<article class="luna-lavka-product">'+
               '<div class="luna-lavka-product-art">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">':'<span>'+esc(x.icon||'🐾')+'</span>')+'</div>'+
               '<div class="luna-lavka-product-info"><b>'+esc(x.title)+'</b><small>'+(Number(x.effect?.hunger)>0?'Для сытости Луны':Number(x.effect?.thirst)>0?'Чтобы утолить жажду':'Вкусное для Луны')+'</small></div>'+
