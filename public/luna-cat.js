@@ -98,7 +98,7 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
   function syncSchedule(force = false) {
     if (!mixer || !model) return;
     const nextMode = scheduledMode();
-    if (!force && nextMode === currentMode) return;
+    if (nextMode === currentMode && (nextMode !== 'prepare' || !force)) return;
 
     currentMode = nextMode;
     if (nextMode === 'prepare') {
