@@ -545,6 +545,14 @@
     }));
   }
 
+  // Бесплатное открытие меню прямо поверх уже установленного оформления кафе.
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#cafe-menu-open')) {
+      renderFoodChoices();
+      $('#food-overlay')?.classList.add('open');
+    }
+  });
+
   document.addEventListener('click',e=>{
     const close=e.target.closest('[data-close]');
     if(close) $('#'+close.dataset.close)?.classList.remove('open');
