@@ -103,6 +103,8 @@
     .luna-empty{padding:20px 10px;text-align:center;color:#778274;font-size:12px;line-height:1.5}
     .luna-shop-product{background:#fffaf0;border:1px solid #e5dac6;border-radius:13px;padding:10px;display:flex;flex-direction:column;gap:6px;min-height:116px}
     .luna-shop-product .emoji{font-size:25px}
+    .luna-shop-product .item-image{width:100%;height:112px;object-fit:contain;border-radius:9px;background:#fff}
+    .luna-mini-card .lavka-item-image{display:block;width:100%;max-height:105px;object-fit:contain;border-radius:9px;background:#fff;margin:0 auto 7px}
     .luna-shop-product b{font-size:12px}
     .luna-shop-product small{font-size:10px;color:#778274;line-height:1.3}
     .luna-shop-product button{border-radius:9px;background:#244f3b;color:white;padding:8px;font-size:10px;font-weight:900;margin-top:auto}
@@ -268,7 +270,7 @@
       $('#luna-forward',phoneScreen).addEventListener('click',()=>{if(Number.isFinite(audio.duration))audio.currentTime=Math.min(audio.duration,audio.currentTime+15);});
     } else if (name==='lavka') {
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
-      phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card"><b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
+      phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card">'+(x.image_url?'<img class="lavka-item-image" src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">' : '')+'<b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
       phoneScreen.querySelectorAll('[data-consume]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'consume',itemId:b.dataset.consume});toast2('Покупка оформлена!');renderPhoneApp('lavka')}catch(e){toast2(e.message)}}));
 
     } else if (name==='bank') {
@@ -321,7 +323,7 @@
     const items=shopCategory==='purchases'?(data.catalog||[]).filter(x=>inventory.has(x.item_id)):(data.catalog||[]).filter(x=>x.category===shopCategory);
     $('#luna-shop-grid').innerHTML=items.length?items.map(x=>{
       const slot=x.category, equipped=data.state?.equipped?.[slot]===x.item_id, owned=inventory.has(x.item_id);
-      return '<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?(equipped?'<button data-unequip="'+esc(slot)+'" class="secondary">Снять</button>':'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'">Установить</button>'): '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
+      return '<div class="luna-shop-product">'+(x.image_url?'<img class="item-image" src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">' : '<div class="emoji">'+esc(x.icon)+'</div>')+'<b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?(equipped?'<button data-unequip="'+esc(slot)+'" class="secondary">Снять</button>':'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'">Установить</button>'): '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
     }).join(''):'<div class="luna-empty" style="grid-column:1/-1">В этом разделе пока пусто.<br>Наполним его предметами и ценами следующим этапом 🐾</div>';
     $('#luna-shop-grid').querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'purchase',itemId:b.dataset.buy});renderShop();toast2('Покупка сохранена в инвентаре')}catch(e){toast2(e.message)}}));
     $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:b.dataset.slot,itemId:b.dataset.equip});renderShop();toast2('Предмет установлен')}catch(e){toast2(e.message)}}));
