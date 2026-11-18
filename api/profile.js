@@ -102,8 +102,10 @@ export default async function handler(req, res) {
     const lunaTick = await supabase.rpc('luna_tick_user', { p_user_id: profile.id });
     if (lunaTick.error) return res.status(500).json({ error: 'Could not update Luna status' });
     if (req.method === 'GET') {
+      const orderTick = await supabase.rpc('luna_lavka_tick_orders', { p_user_id: profile.id });
+      if (orderTick.error) return res.status(500).json({ error: 'Could not update delivery status' });
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ, placementsQ] = await Promise.all([
+      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ, placementsQ, cartQ, ordersQ] = await Promise.all([
         supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
         supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,image_url,sort_order').eq('active', true).order('sort_order'),
         supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
@@ -112,9 +114,11 @@ export default async function handler(req, res) {
         supabase.from('bank_loans').select('id,principal,total_due,due_at,created_at,late_days_applied').eq('user_id', profile.id).eq('status','active').maybeSingle(),
         supabase.from('bank_loans').select('principal,created_at').eq('user_id', profile.id).gte('created_at', weekAgo),
         supabase.from('luna_activity').select('event_type,details,created_at').eq('user_id', profile.id).order('created_at',{ascending:false}).limit(50),
-        supabase.from('luna_placements').select('id,item_id,x,y,scale,updated_at').eq('user_id', profile.id)
+        supabase.from('luna_placements').select('id,item_id,x,y,scale,updated_at').eq('user_id', profile.id),
+        supabase.from('luna_lavka_cart').select('item_id,quantity,updated_at').eq('user_id', profile.id),
+        supabase.from('luna_lavka_orders').select('id,status,address,latitude,longitude,total,created_at,delivered_at,luna_lavka_order_items(item_id,title,unit_price,quantity,effect)').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(15)
       ]);
-      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ,activityQ,placementsQ].find(q => q.error);
+      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ,activityQ,placementsQ,cartQ,ordersQ].find(q => q.error);
       if (queryError) return res.status(500).json({ error: 'Could not load Luna data' });
       let state = stateQ.data;
       if (!state) {
@@ -140,6 +144,8 @@ export default async function handler(req, res) {
         dailyGift: giftQ.data || null,
         activity: activityQ.data || [],
         placements: placementsQ.data || [],
+        cart: cartQ.data || [],
+        orders: ordersQ.data || [],
         loan,
         bank: {
           card: cardQ.data || null,
@@ -173,6 +179,15 @@ export default async function handler(req, res) {
       actionResult = await supabase.rpc('luna_buy_cafe_item', { p_user_id: profile.id, p_item_id: body.itemId });
     } else if (body.action === 'consume' && typeof body.itemId === 'string') {
       actionResult = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
+    } else if (body.action === 'lavka_cart_set' && typeof body.itemId === 'string') {
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 0 || quantity > 20) return res.status(400).json({ error: 'Количество должно быть от 0 до 20' });
+      actionResult = await supabase.rpc('luna_lavka_set_cart_item', { p_user_id: profile.id, p_item_id: body.itemId, p_quantity: quantity });
+    } else if (body.action === 'lavka_checkout') {
+      if (typeof body.orderKey !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.orderKey)) return res.status(400).json({ error: 'Некорректный номер заказа' });
+      actionResult = await supabase.rpc('luna_lavka_checkout', { p_user_id: profile.id, p_idempotency_key: body.orderKey });
+    } else if (body.action === 'lavka_order_tick') {
+      actionResult = await supabase.rpc('luna_lavka_tick_orders', { p_user_id: profile.id });
     } else if (body.action === 'loan_quote') {
       actionResult = await supabase.rpc('bank_loan_quote', { p_user_id: profile.id, p_amount: Number(body.amount) });
     } else if (body.action === 'loan') {
