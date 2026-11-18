@@ -109,9 +109,9 @@
     .luna-lavka-screen{color:#171717!important;background:#f6f5f2;border-radius:15px;padding:0 0 12px;overflow-x:hidden}
     .luna-lavka-screen .luna-phone-head{margin:0;padding:9px 10px;background:#fff;color:#171717;text-shadow:none}
     .luna-lavka-screen .luna-phone-back{background:#f1f0ed;color:#171717;border:0}
-    .luna-lavka-hero{background:#ffe500;padding:13px 12px 14px;color:#171717;border-radius:0 0 17px 17px}
+    .luna-lavka-hero{background:#8bd5f5;padding:13px 12px 14px;color:#171717;border-radius:0 0 17px 17px}
     .luna-lavka-brand{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:950}
-    .luna-lavka-mark{width:22px;height:22px;border-radius:7px;background:#171717;color:#ffe500;display:grid;place-items:center;font-size:15px;font-weight:950}
+    .luna-lavka-mark{width:22px;height:22px;border-radius:7px;background:#17394b;color:#a9e5ff;display:grid;place-items:center;font-size:15px;font-weight:950}
     .luna-lavka-headline{font-size:22px;line-height:1.02;font-weight:950;letter-spacing:-.7px;margin:12px 0}
     .luna-lavka-delivery{display:flex;align-items:center;gap:9px;background:#fff;border-radius:12px;padding:9px 10px}
     .luna-lavka-delivery>span:first-child{font-size:21px}
@@ -129,7 +129,7 @@
     .luna-lavka-section-head small{font-size:9px;color:#8a8985}
     .luna-lavka-tabs{display:flex;gap:6px;padding:0 10px 10px;overflow:auto}
     .luna-lavka-tabs button{border:1px solid #e4e2dc;border-radius:20px;background:#fff;color:#333;padding:7px 12px;font-size:9px;font-weight:850;white-space:nowrap}
-    .luna-lavka-tabs button.active{background:#171717;color:#ffe500;border-color:#171717}
+    .luna-lavka-tabs button.active{background:#17394b;color:#a9e5ff;border-color:#17394b}
     .luna-lavka-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 9px}
     .luna-lavka-product{min-width:0;background:#fff;border:1px solid #eeece6;border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px #00000006}
     .luna-lavka-product-art{height:91px;border-radius:9px;background:#f7f6f2;display:grid;place-items:center;overflow:hidden}
@@ -140,7 +140,7 @@
     .luna-lavka-product-info small{display:block;font-size:8px;color:#92908a;margin-top:3px}
     .luna-lavka-product-buy{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:auto}
     .luna-lavka-product-buy strong{font-size:10px;white-space:nowrap;color:#171717}
-    .luna-lavka-product-buy button{border:0;border-radius:8px;background:#ffe500;color:#171717;padding:7px 9px;font-size:9px;font-weight:950}
+    .luna-lavka-product-buy button{border:0;border-radius:8px;background:#8bd5f5;color:#171717;padding:7px 9px;font-size:9px;font-weight:950}
     .luna-lavka-product-buy button:disabled{opacity:.4}
     .luna-lavka-empty{margin:0 10px;padding:23px 8px;background:#fff;border-radius:12px;text-align:center;color:#888;font-size:10px}
     .luna-lavka-footnote{text-align:center;padding:11px 8px 2px;color:#999;font-size:8px}
