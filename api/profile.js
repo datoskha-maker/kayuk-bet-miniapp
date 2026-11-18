@@ -101,16 +101,17 @@ export default async function handler(req, res) {
   if (req.method === 'POST' || req.query?.scope === 'luna') {
     if (req.method === 'GET') {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ] = await Promise.all([
+      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ] = await Promise.all([
         supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
         supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,sort_order').eq('active', true).order('sort_order'),
         supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
         supabase.from('luna_daily_gifts').select('amount,claimed_at').eq('user_id', profile.id).eq('reward_date', new Date().toISOString().slice(0,10)).maybeSingle(),
         supabase.from('bank_cards').select('account_number,design,gold_purchased').eq('user_id', profile.id).maybeSingle(),
         supabase.from('bank_loans').select('id,principal,total_due,due_at,created_at,late_days_applied').eq('user_id', profile.id).eq('status','active').maybeSingle(),
-        supabase.from('bank_loans').select('principal,created_at').eq('user_id', profile.id).gte('created_at', weekAgo)
+        supabase.from('bank_loans').select('principal,created_at').eq('user_id', profile.id).gte('created_at', weekAgo),
+        supabase.from('luna_activity').select('event_type,details,created_at').eq('user_id', profile.id).order('created_at',{ascending:false}).limit(50)
       ]);
-      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ].find(q => q.error);
+      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ,activityQ].find(q => q.error);
       if (queryError) return res.status(500).json({ error: 'Could not load Luna data' });
       let state = stateQ.data;
       if (!state) {
@@ -134,6 +135,7 @@ export default async function handler(req, res) {
         catalog: catalogQ.data || [],
         inventory: inventoryQ.data || [],
         dailyGift: giftQ.data || null,
+        activity: activityQ.data || [],
         loan,
         bank: {
           card: cardQ.data || null,
@@ -148,7 +150,18 @@ export default async function handler(req, res) {
 
     const body = req.body || {};
     let actionResult;
-    if (body.action === 'gift') {
+    if (body.action === 'activity') {
+      const allowedEvents = ['phone_open','music_play','music_pause','camera_snap','game_action'];
+      if (!allowedEvents.includes(body.eventType)) return res.status(400).json({error:'Invalid activity event'});
+      const details = body.details && typeof body.details === 'object' && !Array.isArray(body.details) ? body.details : {};
+      const saved = await supabase.from('luna_activity').insert({
+        user_id: profile.id,
+        event_type: body.eventType,
+        details
+      }).select('event_type,details,created_at').single();
+      if (saved.error) return res.status(500).json({error:'Could not save Luna activity'});
+      return res.status(200).json({ok:true,activity:saved.data});
+    } else if (body.action === 'gift') {
       actionResult = await supabase.rpc('luna_claim_daily_gift', { p_user_id: profile.id });
     } else if (body.action === 'purchase' && typeof body.itemId === 'string') {
       actionResult = await supabase.rpc('luna_purchase_item', { p_user_id: profile.id, p_item_id: body.itemId });
