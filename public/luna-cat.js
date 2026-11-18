@@ -2,15 +2,13 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.m
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 (() => {
-  const game = document.querySelector('#game');
   const stage = document.querySelector('#luna-cat-stage');
-  const hit = document.querySelector('#luna-cat-hit');
-  if (!game || !stage || !hit) return;
+  const loading = document.querySelector('#luna-cat-loading');
+  if (!stage) return;
 
   const MODEL_URL = 'https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%9B%D1%83%D0%BD%D0%B0%20%D0%93%D0%BE%D1%82%D0%BE%D0%B2%D0%B0%D1%8F.glb';
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   stage.appendChild(renderer.domElement);
@@ -29,31 +27,22 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
 
   const clock = new THREE.Clock();
   const loader = new GLTFLoader();
+  const character = new THREE.Group();
+  scene.add(character);
+
   let mixer = null;
   let activeAction = null;
   let clips = [];
-  let idleTimer = null;
-  let sequenceIndex = 0;
-  let tapIndex = 0;
   let model = null;
+  let currentMode = null;
+  let direction = 1;
+  let sceneVisible = document.querySelector('.nav-btn.active[data-scene]')?.dataset.scene === 'room';
+  let minX = -0.5;
+  let maxX = 0.5;
+  let approachStartX = 0;
+  let approachStartedAt = 0;
+  let approachDuration = 3000;
   let disposed = false;
-
-  const idleSequence = [
-    ['Sit_Down_Cat', false, 1.8],
-    ['Tail_Wag_Cat', true, 7],
-    ['Lie_Down_Cat', false, 2.2],
-    ['Curl_Up_Cat', false, 6],
-    ['Stand_On_Hind_Legs_Cat', false, 2.4],
-    ['Sit_Down_Cat', false, 2.2],
-    ['Tail_Wag_Cat', true, 7]
-  ];
-  const tapSequence = [
-    'Walk_Calm_Cat_v3',
-    'Light_Run_Cat_v1',
-    'Light_Run_Cat_v2',
-    'Light_Run_Cat_v3_Head_Tail',
-    'Stand_On_Hind_Legs_Cat'
-  ];
 
   function findClip(name) {
     const wanted = name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -61,7 +50,7 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
       || clips.find(c => c.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(wanted));
   }
 
-  function play(name, loop, seconds) {
+  function play(name, loop) {
     if (!mixer) return;
     const clip = findClip(name);
     if (!clip) {
@@ -69,51 +58,95 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
       return;
     }
     const next = mixer.clipAction(clip);
+    if (activeAction === next && next.isRunning()) return;
     next.reset();
     next.enabled = true;
     next.setEffectiveWeight(1);
     next.setEffectiveTimeScale(1);
     next.clampWhenFinished = !loop;
     next.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
-    if (activeAction && activeAction !== next) next.crossFadeFrom(activeAction, 0.28, true);
-    next.fadeIn(0.28).play();
+    if (activeAction && activeAction !== next) next.crossFadeFrom(activeAction, 0.3, true);
+    next.fadeIn(0.3).play();
     activeAction = next;
-    if (seconds) {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        if (!disposed) runIdleSequence();
-      }, seconds * 1000);
+  }
+
+  function moscowTime() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Moscow',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(now);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return {
+      hour: Number(values.hour),
+      minute: Number(values.minute),
+      second: Number(values.second),
+      milliseconds: now.getMilliseconds()
+    };
+  }
+
+  function scheduledMode() {
+    const t = moscowTime();
+    if (t.hour === 23 && t.minute === 59 && t.second >= 57) return 'prepare';
+    if (t.hour < 11 || (t.hour === 11 && t.minute < 34)) return 'sleep';
+    return 'awake';
+  }
+
+  function syncSchedule(force = false) {
+    if (!mixer || !model) return;
+    const nextMode = scheduledMode();
+    if (!force && nextMode === currentMode) return;
+
+    currentMode = nextMode;
+    if (nextMode === 'prepare') {
+      const t = moscowTime();
+      approachStartX = character.position.x;
+      approachStartedAt = performance.now();
+      approachDuration = Math.max(80, (60 - t.second) * 1000 - t.milliseconds);
+      play('Walk_Calm_Cat_v3', true);
+    } else if (nextMode === 'sleep') {
+      character.position.x = 0;
+      character.rotation.y = Math.PI / 2;
+      play('Curl_Up_Cat', false);
+    } else {
+      direction = 1;
+      character.rotation.y = Math.PI / 2;
+      play('Walk_Calm_Cat_v3', true);
     }
   }
 
-  function runIdleSequence() {
-    clearTimeout(idleTimer);
-    if (!clips.length || disposed) return;
-    const step = idleSequence[sequenceIndex % idleSequence.length];
-    sequenceIndex++;
-    play(step[0], step[1], null);
-    idleTimer = setTimeout(runIdleSequence, step[2] * 1000);
-  }
-
-  hit.addEventListener('click', () => {
-    if (!mixer || !clips.length) return;
-    const name = tapSequence[tapIndex % tapSequence.length];
-    tapIndex++;
-    play(name, true, name.includes('Run') ? 2.7 : 3.2);
-  });
-
   function resize() {
-    const w = window.innerWidth, h = window.innerHeight;
-    const aspect = w / h;
+    const width = Math.max(1, stage.clientWidth || window.innerWidth);
+    const height = Math.max(1, stage.clientHeight || window.innerHeight);
+    const aspect = width / height;
     const view = 2.7;
     camera.left = -view * aspect;
     camera.right = view * aspect;
     camera.top = view;
     camera.bottom = -view;
     camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
+    renderer.setSize(width, height);
+    const halfWidth = view * aspect;
+    const halfCat = model ? Math.max(0.38, model.userData.width * 0.42) : 0.45;
+    const travel = Math.max(0.12, halfWidth - halfCat - 0.12);
+    minX = -travel;
+    maxX = travel;
+    character.position.y = -1.27;
   }
+
   window.addEventListener('resize', resize);
+  window.addEventListener('luna-scene-change', event => {
+    sceneVisible = event.detail?.scene === 'room';
+    stage.style.visibility = sceneVisible ? 'visible' : 'hidden';
+    if (loading) loading.style.visibility = sceneVisible && !model ? 'visible' : 'hidden';
+    if (sceneVisible) syncSchedule(true);
+  });
+
+  stage.style.visibility = sceneVisible ? 'visible' : 'hidden';
+  if (loading) loading.style.visibility = sceneVisible ? 'visible' : 'hidden';
   resize();
 
   loader.load(MODEL_URL, gltf => {
@@ -125,36 +158,59 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
     const scale = 1.65 / Math.max(size.y, size.x * 0.8, size.z * 0.8);
     model.scale.setScalar(scale);
     model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-    model.rotation.y = 0;
-    scene.add(model);
+    model.userData.width = size.x * scale;
+    character.add(model);
+    character.position.set(-0.35, -1.27, 0);
+    character.rotation.y = Math.PI / 2;
     clips = gltf.animations || [];
     mixer = new THREE.AnimationMixer(model);
-    if (!clips.length) {
-      console.warn('[Luna 3D] GLB loaded without animation clips');
-    } else {
-      runIdleSequence();
-    }
-    hit.setAttribute('aria-label', 'Погладить Луну или попросить её подвигаться');
-    hit.style.display = 'block';
-    const loading = document.querySelector('#luna-cat-loading');
-    if (loading) loading.remove();
+    resize();
+    syncSchedule(true);
+    if (loading) loading.style.visibility = 'hidden';
+    console.info('[Luna 3D] Loaded animations:', clips.map(c => c.name));
   }, undefined, error => {
     console.error('[Luna 3D] Model loading failed', error);
-    const loading = document.querySelector('#luna-cat-loading');
     if (loading) loading.textContent = 'Не удалось загрузить Луну';
   });
 
+  let scheduleCheck = 0;
   function animate() {
     if (disposed) return;
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
     if (mixer) mixer.update(delta);
+
+    if (model && currentMode === 'awake') {
+      character.position.x += direction * delta * 0.42;
+      if (character.position.x >= maxX) {
+        character.position.x = maxX;
+        direction = -1;
+        character.rotation.y = -Math.PI / 2;
+      } else if (character.position.x <= minX) {
+        character.position.x = minX;
+        direction = 1;
+        character.rotation.y = Math.PI / 2;
+      }
+    } else if (model && currentMode === 'prepare') {
+      const progress = Math.min(1, (performance.now() - approachStartedAt) / approachDuration);
+      character.position.x = approachStartX * (1 - progress);
+    }
+
+    scheduleCheck += delta;
+    if (scheduleCheck >= 0.15) {
+      scheduleCheck = 0;
+      syncSchedule();
+    }
     renderer.render(scene, camera);
   }
+
   animate();
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) clock.stop();
-    else clock.start();
+    else {
+      clock.start();
+      syncSchedule(true);
+    }
   });
 })();
