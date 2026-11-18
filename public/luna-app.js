@@ -552,6 +552,9 @@
 
   refresh().then(() => {
     renderStats2();
+    setInterval(async () => {
+      try { await refresh(); renderStats2(); } catch (error) { console.warn('Luna status refresh failed', error); }
+    }, 60_000);
     renderPhoneHome();
     renderShop();
     applySceneBackground('stadium');
