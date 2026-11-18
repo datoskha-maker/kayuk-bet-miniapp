@@ -63,6 +63,8 @@
     .luna-player-note{padding:10px 12px;border-radius:12px;background:#ffffff10;border:1px solid #ffffff18;font-size:10px;color:#ffffffb8}
     .luna-card-choice{display:inline-block;width:30%;padding:9px 2px;border-radius:9px;margin:2px 1%;color:white;font-size:9px;font-weight:900;border:2px solid transparent}
     .luna-card-choice.selected{border-color:#f4d17d}
+    #phone-screen:has(.luna-bank-screen) .luna-phone-head{color:#111;text-shadow:none}
+    #phone-screen:has(.luna-bank-screen) .luna-phone-back{color:#111;background:#fff;border-color:#d7dbe0}
     .luna-bank-screen{color:#111!important;background:#f4f5f7;border-radius:14px;padding:10px 9px 14px;font-size:11px;line-height:1.4}
     .luna-bank-screen *{color:#111}
     .luna-bank-screen .luna-phone-head{color:#111;text-shadow:none}
@@ -285,13 +287,13 @@
           '<div class="luna-bank-muted">До 50 000 ₽ — срок 7 дней. Свыше 50 000 ₽ — срок 14 дней. Первоначальная переплата 50%; после просрочки +10% ежедневно.</div>'+
           '<input class="luna-bank-input" id="bank-loan-amount" type="number" min="1" max="'+weeklyRemaining+'" step="1" inputmode="numeric" placeholder="Введите сумму кредита" value="'+esc(bankAmount)+'" '+(weeklyRemaining<=0||balance<0?'disabled':'')+'>'+
           '<button class="luna-bank-btn" id="bank-calculate" '+(weeklyRemaining<=0||balance<0?'disabled':'')+'>Рассчитать кредит</button>'+
-          (quote?'<div class="luna-bank-quote"><b>Условия кредита</b><div class="luna-bank-row"><span>Сумма к зачислению</span><b>'+money(quote.amount)+'</b></div><div class="luna-bank-row"><span>Переплата 50%</span><b>'+money(quote.initialInterest)+'</b></div><div class="luna-bank-row"><span>Всего к возврату</span><b>'+money(quote.totalDue)+'</b></div><div class="luna-bank-row"><span>Срок возврата</span><b>'+quote.termDays+' дней</b></div><div class="luna-bank-row"><span>Дата возврата</span><b>'+new Date(quote.dueAt).toLocaleDateString('ru-RU')+'</b></div><div class="luna-bank-muted">При просрочке начисляется ещё 10% в день. Через 30 дней просрочки включается принудительное взыскание.</div><button class="luna-bank-btn gold" id="bank-confirm">Подтвердить и получить '+money(quote.amount)+'</button></div>':'')
+          (quote?'<div class="luna-bank-quote" id="bank-quote-panel"><b>Условия кредита</b><div class="luna-bank-row"><span>Сумма к зачислению</span><b>'+money(quote.amount)+'</b></div><div class="luna-bank-row"><span>Переплата 50%</span><b>'+money(quote.initialInterest)+'</b></div><div class="luna-bank-row"><span>Всего к возврату</span><b>'+money(quote.totalDue)+'</b></div><div class="luna-bank-row"><span>Срок возврата</span><b>'+quote.termDays+' дней</b></div><div class="luna-bank-row"><span>Дата возврата</span><b>'+new Date(quote.dueAt).toLocaleDateString('ru-RU')+'</b></div><div class="luna-bank-muted">При просрочке начисляется ещё 10% в день. Через 30 дней просрочки включается принудительное взыскание.</div><button class="luna-bank-btn gold" id="bank-confirm">Подтвердить и получить '+money(quote.amount)+'</button></div>':'')
           )+
         '</div>'+
         (balance<0?'<div class="luna-bank-warning">Счёт заблокирован: отрицательный баланс. Новые кредиты и траты недоступны до погашения задолженности.</div>':'')+
         '</div>';
       $('#bank-buy-gold',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'card_gold'});renderPhoneApp('bank');toast2('Золотая карта куплена и применена!')}catch(e){toast2(e.message)}});
-      $('#bank-loan-amount',phoneScreen)?.addEventListener('input',e=>{bankAmount=e.target.value;bankQuote=null;});
+      $('#bank-loan-amount',phoneScreen)?.addEventListener('input',e=>{bankAmount=e.target.value;bankQuote=null;$('#bank-quote-panel',phoneScreen)?.setAttribute('hidden','hidden');});
       $('#bank-calculate',phoneScreen)?.addEventListener('click',async()=>{try{bankAmount=$('#bank-loan-amount',phoneScreen).value;bankQuote=await api('POST',{action:'loan_quote',amount:Number(bankAmount)});renderPhoneApp('bank');}catch(e){bankQuote=null;toast2(e.message)}});
       $('#bank-confirm',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'loan',amount:Number(bankQuote?.amount||bankAmount)});bankQuote=null;bankAmount='';renderPhoneApp('bank');toast2('Кредит зачислен на общий баланс!')}catch(e){toast2(e.message)}});
       $('#bank-repay',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'repay'});renderPhoneApp('bank');toast2('Кредит полностью погашен')}catch(e){toast2(e.message)}});
