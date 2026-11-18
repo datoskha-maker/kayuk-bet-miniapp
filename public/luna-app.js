@@ -472,7 +472,7 @@
             const segment=(coords.length-1)*progress,index=Math.min(coords.length-2,Math.floor(segment)),part=segment-index;
             const a=coords[index]||dest,b=coords[index+1]||dest;
             courier.setLatLng([a[0]+(b[0]-a[0])*part,a[1]+(b[1]-a[1])*part]);
-            if(status==='delivered')courier.setLatLng(dest);
+            if(status==='delivered'){courier.setLatLng(dest);if(mapTimer){clearInterval(mapTimer);mapTimer=null;}}
           };
           move();mapTimer=setInterval(move,1500);
           statusTimer=setInterval(async()=>{
