@@ -50,11 +50,9 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
 @media(max-height:650px){.nav-btn{width:66.6px;height:66.6px;min-height:66.6px}.phone-nav-btn{width:66px;height:66px}}
 
-#luna-cat-stage{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+#luna-cat-stage{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;visibility:hidden}
 #luna-cat-stage canvas{display:block;width:100%;height:100%;pointer-events:none}
-#luna-cat-hit{position:absolute;z-index:4;left:31%;width:38%;height:42%;bottom:9%;display:none;padding:0;border:0;background:transparent;pointer-events:auto;touch-action:manipulation}
-#luna-cat-loading{position:absolute;z-index:4;left:50%;top:56%;transform:translate(-50%,-50%);padding:7px 11px;border-radius:10px;background:#14231dbb;color:#fff;font-size:10px;pointer-events:none}
-@media(max-width:600px){#luna-cat-hit{left:25%;width:50%;height:40%;bottom:10%}}
+#luna-cat-loading{position:absolute;z-index:4;left:50%;top:70%;transform:translate(-50%,-50%);padding:7px 11px;border-radius:10px;background:#14231dbb;color:#fff;font-size:10px;pointer-events:none;visibility:hidden}
 
 </style>
 </head>
@@ -63,7 +61,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  <img id="scene-bg" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg" alt="">
  <div id="scene-shade"></div>
  <div id="luna-cat-stage" aria-label="Луна — трёхмерная модель кошки"></div>
- <button id="luna-cat-hit" type="button" aria-label="Погладить Луну или попросить её подвигаться"></button>
  <div id="luna-cat-loading">Луна загружается… 🐾</div>
  <div id="top-ui">
   <div class="stats">
@@ -126,7 +123,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  function save(){state.last=Date.now();try{localStorage.setItem("lunaPetState",JSON.stringify(state))}catch(e){};renderStats()}
  function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2100)}
  function renderStats(){["hunger","thirst","mood","energy","comfort"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
- function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
+ function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"};window.dispatchEvent(new CustomEvent("luna-scene-change",{detail:{scene:name}}))}
  document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.addEventListener("click",()=>setScene(b.dataset.scene)));
  document.getElementById("shop-open").addEventListener("click",()=>openOverlay("shop-overlay"));
  function openOverlay(id){document.getElementById(id).classList.add("open")}
@@ -147,7 +144,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  const decay=Math.floor(elapsed/60000)*0.35;
  if(decay>0){state.hunger=Math.max(0,state.hunger-decay);state.thirst=Math.max(0,state.thirst-decay*1.15);state.mood=Math.max(0,state.mood-decay*.55);state.energy=Math.max(0,state.energy-decay*.25);state.comfort=Math.max(0,state.comfort-decay*.12)}
  save();renderShop();setScene("stadium");
- // Luna character intentionally omitted for this development phase.
  renderStats();
 })();
 </script>
