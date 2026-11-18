@@ -63,6 +63,33 @@
     .luna-player-note{padding:10px 12px;border-radius:12px;background:#ffffff10;border:1px solid #ffffff18;font-size:10px;color:#ffffffb8}
     .luna-card-choice{display:inline-block;width:30%;padding:9px 2px;border-radius:9px;margin:2px 1%;color:white;font-size:9px;font-weight:900;border:2px solid transparent}
     .luna-card-choice.selected{border-color:#f4d17d}
+    .luna-bank-screen{color:#111!important;background:#f4f5f7;border-radius:14px;padding:10px 9px 14px;font-size:11px;line-height:1.4}
+    .luna-bank-screen *{color:#111}
+    .luna-bank-screen .luna-phone-head{color:#111;text-shadow:none}
+    .luna-bank-screen .luna-phone-back{color:#111;background:#fff;border-color:#d7dbe0}
+    .luna-bank-card{position:relative;min-height:145px;border-radius:17px;padding:13px 15px;margin:7px 0 13px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 10px 22px #0002;color:#fff!important}
+    .luna-bank-card *{color:inherit!important}
+    .luna-bank-card.black{background:radial-gradient(ellipse at 85% 5%,#42464c 0,transparent 38%),linear-gradient(135deg,#080a0e,#20242a 58%,#08090b)}
+    .luna-bank-card.gold{background:radial-gradient(ellipse at 85% 5%,#fff0a6 0,transparent 38%),linear-gradient(135deg,#765018,#d9b45b 48%,#8a6427);color:#211707!important}
+    .luna-bank-card:after{content:"";position:absolute;width:180px;height:180px;border:1px solid #ffffff22;border-radius:50%;right:-70px;bottom:-115px;box-shadow:0 0 0 18px #ffffff09,0 0 0 38px #ffffff06}
+    .luna-bank-card-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;font-size:9px;letter-spacing:1.2px;font-weight:900}
+    .luna-bank-account{font-size:15px;letter-spacing:3px;font-variant-numeric:tabular-nums}
+    .luna-bank-chip{width:27px;height:20px;border-radius:5px;border:1px solid currentColor;opacity:.8}
+    .luna-bank-card-balance{position:relative;z-index:1;text-align:center;font-size:23px;font-weight:950;letter-spacing:-.7px;font-variant-numeric:tabular-nums}
+    .luna-bank-card-balance small{display:block;font-size:8px;letter-spacing:2px;font-weight:800;margin-bottom:3px;opacity:.72}
+    .luna-bank-card-bottom{position:relative;z-index:1;display:flex;justify-content:space-between;font-size:8px;letter-spacing:1.3px;font-weight:900}
+    .luna-bank-section{background:#fff;border:1px solid #e0e3e7;border-radius:13px;padding:11px;margin:9px 0}
+    .luna-bank-section h3{font-size:13px;margin:0 0 8px;color:#101317}
+    .luna-bank-muted{font-size:10px;color:#69717b!important;line-height:1.45}
+    .luna-bank-screen .luna-bank-btn{border:0;border-radius:9px;background:#15191f;color:#fff!important;padding:9px 12px;font-size:10px;font-weight:900;margin-top:7px}
+    .luna-bank-screen .luna-bank-btn.gold{background:linear-gradient(135deg,#b68a36,#e3c46e);color:#211707!important}
+    .luna-bank-screen .luna-bank-btn:disabled{opacity:.4}
+    .luna-bank-input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd0d7;border-radius:9px;background:#fff;color:#111!important;font-size:13px;margin:6px 0}
+    .luna-bank-quote{background:#f4f0e6;border:1px solid #e4d6b5;border-radius:10px;padding:10px;margin-top:9px}
+    .luna-bank-row{display:flex;justify-content:space-between;gap:8px;margin:5px 0;font-size:10px}
+    .luna-bank-row b{font-variant-numeric:tabular-nums}
+    .luna-bank-warning{color:#a13b27!important;font-size:10px;font-weight:800;margin-top:7px}
+
     #food-actions{display:none;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);justify-content:flex-end}
     #food-menu-open{background:rgba(13,30,49,.92);border:1px solid #ffffff66;border-radius:14px;padding:13px 20px;font-weight:900;font-size:13px;color:#fff;backdrop-filter:blur(10px)}
     #food-overlay .panel{background:#f8f1e3;color:#26342b}
@@ -168,6 +195,8 @@
 
   let data = null;
   let shopCategory = 'stadium';
+  let bankQuote = null;
+  let bankAmount = '';
   const categories = [
     ['stadium','Стадион','🏟️'],['house','Дом','🏡'],['food','Еда','🍱'],
     ['bed','Лежанки','🛏️'],['scratchers','Когтеточки','🐾'],['toys','Игрушки','🧶'],
@@ -234,15 +263,38 @@
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
       phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card"><b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
       phoneScreen.querySelectorAll('[data-consume]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'consume',itemId:b.dataset.consume});toast2('Покупка оформлена!');renderPhoneApp('lavka')}catch(e){toast2(e.message)}}));
+
     } else if (name==='bank') {
-      const loan=data.loan;
-      const card=data.state?.equipped?.card||'midnight';
-      phoneScreen.innerHTML=phoneHeader('Кошка Банк')+'<div class="luna-phone-content"><div class="luna-mini-card"><small>ОБЩИЙ БАЛАНС</small><h2 style="margin:3px 0">'+fmt(data.balance)+'</h2></div><p>Выбери дизайн карты:</p><div>'+[
-        ['midnight','Тёмная'],['barcelona','Барса'],['gold','Золотая']
-      ].map(([id,label])=>'<button class="luna-card-choice '+(card===id?'selected':'')+'" data-card="'+id+'" style="background:'+(id==='midnight'?'#142b46':id==='barcelona'?'linear-gradient(135deg,#173c82 50%,#a51f36 50%)':'#9a7028')+'">'+label+'</button>').join('')+'</div>'+(loan?'<div class="luna-mini-card"><b>Кредит активен</b><p>Долг сейчас: '+fmt(loan.currentDue)+'</p><p>Срок: '+new Date(loan.due_at).toLocaleDateString('ru-RU')+' · Просрочка: '+loan.lateDays+' дн.</p><button class="luna-mini-btn" data-repay>Погасить</button></div>':'<div class="luna-mini-card"><b>Кредит</b><p>+50% к сумме · 7 дней · после срока +10% в день</p><button class="luna-mini-btn" data-loan="5000">5 000</button><button class="luna-mini-btn" data-loan="10000">10 000</button><button class="luna-mini-btn" data-loan="25000">25 000</button></div>')+'</div>';
-      phoneScreen.querySelectorAll('[data-card]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'card',card:b.dataset.card});renderPhoneApp('bank');toast2('Дизайн карты сохранён')}catch(e){toast2(e.message)}}));
-      phoneScreen.querySelectorAll('[data-loan]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'loan',amount:Number(b.dataset.loan)});renderPhoneApp('bank');toast2('Кредит зачислен')}catch(e){toast2(e.message)}}));
-      phoneScreen.querySelector('[data-repay]')?.addEventListener('click',async()=>{try{await act({action:'repay'});renderPhoneApp('bank');toast2('Кредит погашен')}catch(e){toast2(e.message)}});
+      const bank=data.bank||{}, card=bank.card||{}, loan=bank.loan;
+      const balance=Number(data.balance||0), account=card.account_number||'----';
+      const money=n=>Number(n||0).toLocaleString('ru-RU')+' ₽';
+      const weeklyLimit=Number(bank.weeklyLimit|| (balance<1000000?100000:200000));
+      const weeklyRemaining=Number(bank.weeklyRemaining??weeklyLimit);
+      const quote=bankQuote;
+      phoneScreen.innerHTML=phoneHeader('Кошка Банк')+'<div class="luna-phone-content luna-bank-screen">'+
+        '<div class="luna-bank-card '+(card.design==='gold'?'gold':'black')+'">'+
+          '<div class="luna-bank-card-top"><div><div style="font-size:7px;opacity:.72;margin-bottom:4px">НОМЕР СЧЁТА</div><div class="luna-bank-account">'+esc(account)+'</div></div><div class="luna-bank-chip"></div></div>'+
+          '<div class="luna-bank-card-balance"><small>ОБЩИЙ БАЛАНС КАЮК BET</small>'+money(balance)+'</div>'+
+          '<div class="luna-bank-card-bottom"><span>КОШКА БАНК</span><span>DEBIT</span></div></div>'+
+        (card.design==='gold'?'<div class="luna-bank-muted">Золотой дизайн карты активен.</div>':(card.gold_purchased?'<div class="luna-bank-muted">Золотой дизайн уже приобретён.</div>':'<div class="luna-bank-section"><h3>Дизайн карты</h3><div class="luna-bank-muted">Чёрная карта установлена по умолчанию. Золотой дизайн приобретается один раз и сразу применяется.</div><button class="luna-bank-btn gold" id="bank-buy-gold" '+(balance<10000?'disabled':'')+'>Купить золотую карту · 10 000 ₽</button></div>'))+
+        '<div class="luna-bank-section"><h3>Кредитная линия</h3>'+
+          '<div class="luna-bank-row"><span>Лимит на 7 дней</span><b>'+money(weeklyLimit)+'</b></div>'+
+          '<div class="luna-bank-row"><span>Уже использовано</span><b>'+money(bank.weeklyUsed||0)+'</b></div>'+
+          '<div class="luna-bank-row"><span>Доступно сейчас</span><b>'+money(weeklyRemaining)+'</b></div>'+
+          (loan?'<div class="luna-bank-quote"><b>У вас активный кредит</b><div class="luna-bank-row"><span>Получено</span><b>'+money(loan.principal)+'</b></div><div class="luna-bank-row"><span>К возврату сейчас</span><b>'+money(loan.currentDue)+'</b></div><div class="luna-bank-row"><span>Вернуть до</span><b>'+new Date(loan.due_at).toLocaleDateString('ru-RU')+'</b></div><div class="luna-bank-row"><span>Просрочка</span><b>'+loan.lateDays+' дн. из 30</b></div><div class="luna-bank-muted">После срока долг растёт на 10% ежедневно. Через 30 дней просрочки банк спишет весь доступный баланс; остаток долга уйдёт в минус, счёт будет заблокирован.</div><button class="luna-bank-btn" id="bank-repay" '+(balance<Number(loan.currentDue)?'disabled':'')+'>Погасить кредит · '+money(loan.currentDue)+'</button>'+(balance<Number(loan.currentDue)?'<div class="luna-bank-warning">Недостаточно средств для полного погашения.</div>':'')+'</div>':
+          '<div class="luna-bank-muted">До 50 000 ₽ — срок 7 дней. Свыше 50 000 ₽ — срок 14 дней. Первоначальная переплата 50%; после просрочки +10% ежедневно.</div>'+
+          '<input class="luna-bank-input" id="bank-loan-amount" type="number" min="1" max="'+weeklyRemaining+'" step="1" inputmode="numeric" placeholder="Введите сумму кредита" value="'+esc(bankAmount)+'" '+(weeklyRemaining<=0||balance<0?'disabled':'')+'>'+
+          '<button class="luna-bank-btn" id="bank-calculate" '+(weeklyRemaining<=0||balance<0?'disabled':'')+'>Рассчитать кредит</button>'+
+          (quote?'<div class="luna-bank-quote"><b>Условия кредита</b><div class="luna-bank-row"><span>Сумма к зачислению</span><b>'+money(quote.amount)+'</b></div><div class="luna-bank-row"><span>Переплата 50%</span><b>'+money(quote.initialInterest)+'</b></div><div class="luna-bank-row"><span>Всего к возврату</span><b>'+money(quote.totalDue)+'</b></div><div class="luna-bank-row"><span>Срок возврата</span><b>'+quote.termDays+' дней</b></div><div class="luna-bank-row"><span>Дата возврата</span><b>'+new Date(quote.dueAt).toLocaleDateString('ru-RU')+'</b></div><div class="luna-bank-muted">При просрочке начисляется ещё 10% в день. Через 30 дней просрочки включается принудительное взыскание.</div><button class="luna-bank-btn gold" id="bank-confirm">Подтвердить и получить '+money(quote.amount)+'</button></div>':'')
+          )+
+        '</div>'+
+        (balance<0?'<div class="luna-bank-warning">Счёт заблокирован: отрицательный баланс. Новые кредиты и траты недоступны до погашения задолженности.</div>':'')+
+        '</div>';
+      $('#bank-buy-gold',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'card_gold'});renderPhoneApp('bank');toast2('Золотая карта куплена и применена!')}catch(e){toast2(e.message)}});
+      $('#bank-loan-amount',phoneScreen)?.addEventListener('input',e=>{bankAmount=e.target.value;bankQuote=null;});
+      $('#bank-calculate',phoneScreen)?.addEventListener('click',async()=>{try{bankAmount=$('#bank-loan-amount',phoneScreen).value;bankQuote=await api('POST',{action:'loan_quote',amount:Number(bankAmount)});renderPhoneApp('bank');}catch(e){bankQuote=null;toast2(e.message)}});
+      $('#bank-confirm',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'loan',amount:Number(bankQuote?.amount||bankAmount)});bankQuote=null;bankAmount='';renderPhoneApp('bank');toast2('Кредит зачислен на общий баланс!')}catch(e){toast2(e.message)}});
+      $('#bank-repay',phoneScreen)?.addEventListener('click',async()=>{try{await act({action:'repay'});renderPhoneApp('bank');toast2('Кредит полностью погашен')}catch(e){toast2(e.message)}});
     } else if (name==='gift') {
       const claimed=Boolean(data.dailyGift);
       phoneScreen.innerHTML=phoneHeader('Ежедневный подарок')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">🎁<br>'+(claimed?'Сегодня подарок уже получен: '+fmt(data.dailyGift.amount):'Луна приготовила сюрприз!')+'</div><button class="luna-mini-btn" id="claim-gift" '+(claimed?'disabled':'')+'>'+(claimed?'До завтра 🐾':'Открыть подарок')+'</button></div>';
