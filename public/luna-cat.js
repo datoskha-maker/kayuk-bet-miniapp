@@ -86,7 +86,6 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
     const finish = event => {
       if (event.action !== action) return;
       mixer.removeEventListener('finished', finish);
-      if (activeAction === action) activeAction = null;
       onFinished?.();
     };
     mixer.addEventListener('finished', finish);
