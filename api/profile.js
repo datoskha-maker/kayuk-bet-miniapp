@@ -99,6 +99,8 @@ export default async function handler(req, res) {
 
   // Luna uses this existing profile function to stay within the Vercel Hobby function limit.
   if (req.method === 'POST' || req.query?.scope === 'luna') {
+    const lunaTick = await supabase.rpc('luna_tick_user', { p_user_id: profile.id });
+    if (lunaTick.error) return res.status(500).json({ error: 'Could not update Luna status' });
     if (req.method === 'GET') {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
       const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ, placementsQ] = await Promise.all([
