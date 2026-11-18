@@ -87,6 +87,7 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
   }
 
   function runIdleSequence() {
+    clearTimeout(idleTimer);
     if (!clips.length || disposed) return;
     const step = idleSequence[sequenceIndex % idleSequence.length];
     sequenceIndex++;
