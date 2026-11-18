@@ -97,6 +97,15 @@
     #food-overlay .panel{background:#f8f1e3;color:#26342b}
     .luna-food-choice{width:48%;padding:18px 8px;border-radius:16px;background:#fffaf0;border:1px solid #e5dac6;color:#26342b;font-weight:900;font-size:15px}
     .luna-food-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .luna-cafe-menu-art{display:block;width:100%;max-height:170px;object-fit:contain;border-radius:12px;background:#fff;margin:0 0 12px}
+    .luna-cafe-tabs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}
+    .luna-cafe-tabs button{padding:15px 8px;border:1px solid #d9cdbb;border-radius:13px;background:#fff;color:#26342b;font-size:14px;font-weight:900}
+    .luna-cafe-tabs button:first-child{background:#173653;color:#fff}
+    .luna-cafe-product{background:#fff;border:1px solid #e6dece;border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+    .luna-cafe-product img{width:100%;height:105px;object-fit:contain;border-radius:8px;background:#fafafa}
+    .luna-cafe-product b{font-size:11px;line-height:1.25;min-height:27px}
+    .luna-cafe-product small{font-size:10px;color:#6d746c}
+    .luna-cafe-product button{border:0;border-radius:9px;padding:9px 5px;background:#173653;color:#fff;font-size:10px;font-weight:900}
     #luna-placement-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
     #luna-placement-layer .luna-placed-item{position:absolute;left:0;top:0;width:100px;max-width:38vw;max-height:34vh;object-fit:contain;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 3px 5px #0005)}
     #luna-placement-layer .luna-placed-item.editing{outline:2px dashed #8bd5f5;outline-offset:5px;cursor:move}
@@ -239,7 +248,7 @@
   }
   const foodOverlay = document.createElement('div');
   foodOverlay.id='food-overlay'; foodOverlay.className='overlay';
-  foodOverlay.innerHTML = `<div class="panel"><div class="panel-head"><h2>Меню Луны 🍽️</h2><button class="close" data-close="food-overlay">×</button></div><div id="luna-food-content"></div></div>`;
+  foodOverlay.innerHTML = `<div class="panel"><div class="panel-head"><h2 id="luna-cafe-menu-title">Меню кафе 🍽️</h2><button class="close" data-close="food-overlay">×</button></div><div id="luna-food-content"></div></div>`;
   $('#game').appendChild(foodOverlay);
 
   let data = null;
@@ -504,15 +513,36 @@
     $('#luna-shop-grid').querySelectorAll('[data-place]').forEach(b=>b.addEventListener('click',()=>beginPlacement(b.dataset.place)));
     $('#luna-shop-grid').querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'unequip',slot:b.dataset.unequip});renderShop();toast2('Предмет снят')}catch(e){toast2(e.message)}}));
   }
+  const cafeMenus = {
+    luna_cafe_barcelona:{title:'Кафе Барселона',image:'меню барселона.jpeg',food:['cafe_hot_dog','cafe_protein_bowl','cafe_fresh_salad','cafe_ice_cream'],drink:['cafe_canada_dry','cafe_dr_pepper','cafe_water']},
+    luna_cafe_zenit:{title:'Кафе Зенит',image:'меню зенит.jpeg',food:['cafe_fried_smelt','cafe_pyshki','cafe_shawarma'],drink:['cafe_craft_beer','cafe_mulled_wine','cafe_water']},
+    luna_cafe_cska:{title:'Кафе ЦСКА',image:'меню цска.jpeg',food:['cafe_burger','cafe_hot_dog','cafe_pies','cafe_sandwich'],drink:['cafe_tea','cafe_juice','cafe_water','cafe_soda','cafe_iced_tea','cafe_blanche_beer']},
+    luna_cafe_spartak:{title:'Кафе Спартак',image:'меню спартак.jpeg',food:['cafe_pasta','cafe_snacks','cafe_meat_assortment'],drink:['cafe_coffee','cafe_juice','cafe_lemonade','cafe_budweiser']},
+    luna_cafe_krasnodar:{title:'Кафе Краснодар',image:'меню краснодар.jpeg',food:['cafe_shashlik','cafe_ossetian_pie','cafe_vareniki'],drink:['cafe_wine','cafe_kvass','cafe_tea','cafe_mors']},
+    luna_cafe_modern:{title:'Современное кафе',image:'меню современное.jpeg',food:['cafe_burger','cafe_hot_dog'],drink:['cafe_water','cafe_juice']}
+  };
+  function cafeImage(file){return 'https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/'+encodeURIComponent(file).replace(/%2F/g,'/');}
   function renderFoodChoices() {
-    $('#luna-food-content').innerHTML='<div class="luna-food-grid"><button class="luna-food-choice" data-food-type="food">🍗 Еда</button><button class="luna-food-choice" data-food-type="drink">🥛 Напитки</button></div><p style="font-size:10px;color:#7d897b;margin-top:12px">Баланс КАЮК BET: <b id="luna-food-balance">'+fmt(data?.balance)+'</b></p>';
-    $('#luna-food-content').querySelectorAll('[data-food-type]').forEach(b=>b.addEventListener('click',()=>renderFoodItems(b.dataset.foodType)));
+    const cafeId=data?.state?.equipped?.food, cafe=cafeMenus[cafeId];
+    $('#luna-cafe-menu-title').textContent=cafe?.title||'Меню кафе';
+    if(!cafe){
+      $('#luna-food-content').innerHTML='<div class="luna-empty">Сначала купи и установи один из вариантов кафе в магазине Луны — тогда появится его индивидуальное меню.</div>';
+      return;
+    }
+    $('#luna-food-content').innerHTML='<img class="luna-cafe-menu-art" src="'+cafeImage(cafe.image)+'" alt="'+esc(cafe.title)+'"><div class="luna-cafe-tabs"><button data-cafe-type="food">🍽️ Еда</button><button data-cafe-type="drink">🥤 Напитки</button></div><p style="font-size:10px;color:#7d897b;margin:0">Баланс КАЮК BET: <b>'+fmt(data?.balance)+'</b></p>';
+    $('#luna-food-content').querySelectorAll('[data-cafe-type]').forEach(b=>b.addEventListener('click',()=>renderCafeItems(b.dataset.cafeType)));
   }
-  function renderFoodItems(type) {
-    const items=(data?.catalog||[]).filter(x=>x.category==='lavka' && Number(x.effect?.[type==='food'?'hunger':'thirst'])>0);
-    $('#luna-food-content').innerHTML='<button class="luna-mini-btn secondary" id="food-back">← Назад</button><h3>'+(type==='food'?'🍗 Еда':'🥛 Напитки')+'</h3>'+(items.length?'<div class="luna-food-grid">'+items.map(x=>'<div class="luna-shop-product"><div class="emoji">'+esc(x.icon)+'</div><b>'+esc(x.title)+'</b><small>'+fmt(x.price)+'</small><button data-eat="'+esc(x.item_id)+'">Купить и '+(type==='food'?'покормить':'напоить')+'</button></div>').join('')+'</div>':'<div class="luna-empty">Пока здесь нет товаров.<br>Добавим еду и напитки в каталог.</div>');
-    $('#food-back')?.addEventListener('click',renderFoodChoices);
-    $('#luna-food-content').querySelectorAll('[data-eat]').forEach(b=>b.addEventListener('click',async()=>{try{const result=await act({action:'consume',itemId:b.dataset.eat});renderFoodItems(type);toast2(type==='food'?'Луна покушала 🍗':'Луна попила 🥛')}catch(e){toast2(e.message)}}));
+  function renderCafeItems(type) {
+    const cafe=cafeMenus[data?.state?.equipped?.food];
+    if(!cafe){renderFoodChoices();return;}
+    const ids=cafe[type]||[], items=ids.map(id=>(data?.catalog||[]).find(x=>x.item_id===id)).filter(Boolean);
+    $('#luna-food-content').innerHTML='<button class="luna-mini-btn secondary" id="cafe-menu-back">← Назад</button><h3>'+(type==='food'?'🍽️ Еда':'🥤 Напитки')+'</h3><div class="luna-food-grid">'+items.map(x=>'<div class="luna-cafe-product"><img src="'+esc(x.image_url||'')+'" alt="'+esc(x.title)+'"><b>'+esc(x.title)+'</b><small>'+fmt(x.price)+'</small><button data-cafe-buy="'+esc(x.item_id)+'">Купить</button></div>').join('')+'</div>';
+    $('#cafe-menu-back')?.addEventListener('click',renderFoodChoices);
+    $('#luna-food-content').querySelectorAll('[data-cafe-buy]').forEach(b=>b.addEventListener('click',async()=>{
+      b.disabled=true;
+      try{await act({action:'cafe_buy',itemId:b.dataset.cafeBuy});renderCafeItems(type);toast2('Покупка оплачена с твоего баланса');}
+      catch(e){b.disabled=false;toast2(e.message);}
+    }));
   }
 
   document.addEventListener('click',e=>{
