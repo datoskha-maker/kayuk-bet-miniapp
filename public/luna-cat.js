@@ -185,7 +185,7 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
       introMoving = false;
       interactionBusy = true;
       character.position.x = 0;
-      character.rotation.y = Math.PI / 2;
+      character.rotation.y = 0;
       play('Curl_Up_Cat', false);
     } else {
       startWalking();
@@ -252,12 +252,23 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
     if (loading) loading.textContent = 'Не удалось загрузить Луну';
   });
 
-  stage.addEventListener('click', () => {
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  stage.style.pointerEvents = 'auto';
+  renderer.domElement.style.pointerEvents = 'auto';
+  renderer.domElement.addEventListener('pointerup', event => {
     if (!model || currentMode !== 'awake' || introMoving || interactionBusy || tapLocked) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    if (!raycaster.intersectObject(model, true).length) return;
+    event.preventDefault();
     tapLocked = true;
     interactionBusy = true;
+    character.rotation.y = 0;
     playOnce('Stand_On_Hind_Legs_Cat', () => startWalking());
-  });
+  }, { passive: false });
 
   let scheduleCheck = 0;
   function animate() {
@@ -271,7 +282,7 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
       if (Math.abs(character.position.x - introTargetX) <= step) {
         character.position.x = introTargetX;
         introMoving = false;
-        character.rotation.y = Math.PI / 2;
+        character.rotation.y = 0;
         playOnce('Tail_Wag_Cat', () => {
           playOnce('Sit_Down_Cat', () => {
             playSitReverse(() => startWalking());
