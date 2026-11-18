@@ -100,14 +100,17 @@ export default async function handler(req, res) {
   // Luna uses this existing profile function to stay within the Vercel Hobby function limit.
   if (req.method === 'POST' || req.query?.scope === 'luna') {
     if (req.method === 'GET') {
-      const [stateQ, catalogQ, inventoryQ, giftQ, loanQ] = await Promise.all([
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ] = await Promise.all([
         supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
         supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,sort_order').eq('active', true).order('sort_order'),
         supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
         supabase.from('luna_daily_gifts').select('amount,claimed_at').eq('user_id', profile.id).eq('reward_date', new Date().toISOString().slice(0,10)).maybeSingle(),
-        supabase.from('luna_loans').select('id,principal,total_due,due_at,created_at').eq('user_id', profile.id).is('repaid_at', null).maybeSingle()
+        supabase.from('bank_cards').select('account_number,design,gold_purchased').eq('user_id', profile.id).maybeSingle(),
+        supabase.from('bank_loans').select('id,principal,total_due,due_at,created_at,late_days_applied').eq('user_id', profile.id).eq('status','active').maybeSingle(),
+        supabase.from('bank_loans').select('principal,created_at').eq('user_id', profile.id).gte('created_at', weekAgo)
       ]);
-      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,loanQ].find(q => q.error);
+      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ].find(q => q.error);
       if (queryError) return res.status(500).json({ error: 'Could not load Luna data' });
       let state = stateQ.data;
       if (!state) {
@@ -117,17 +120,29 @@ export default async function handler(req, res) {
       }
       let loan = loanQ.data;
       if (loan) {
-        const lateDays = Math.max(0, Math.ceil((Date.now() - new Date(loan.due_at).getTime()) / 86400000));
-        loan = { ...loan, lateDays, currentDue: Math.ceil(Number(loan.total_due) * Math.pow(1.1, lateDays)) };
+        const lateDays = Math.max(0, Math.floor((Date.now() - new Date(loan.due_at).getTime()) / 86400000));
+        const unappliedLateDays = Math.max(0, lateDays - Number(loan.late_days_applied || 0));
+        loan = { ...loan, lateDays, currentDue: Math.ceil(Number(loan.total_due) * Math.pow(1.1, unappliedLateDays)) };
       }
+      const balance = Number(balanceRow?.balance ?? 0);
+      const weeklyLimit = balance < 1000000 ? 100000 : 200000;
+      const weeklyUsed = (weeklyLoansQ.data || []).reduce((sum, item) => sum + Number(item.principal || 0), 0);
       return res.status(200).json({
         profile,
-        balance: balanceRow?.balance ?? 0,
+        balance,
         state,
         catalog: catalogQ.data || [],
         inventory: inventoryQ.data || [],
         dailyGift: giftQ.data || null,
-        loan
+        loan,
+        bank: {
+          card: cardQ.data || null,
+          loan,
+          weeklyLimit,
+          weeklyUsed,
+          weeklyRemaining: Math.max(0, weeklyLimit - weeklyUsed),
+          blocked: balance < 0
+        }
       });
     }
 
@@ -139,10 +154,14 @@ export default async function handler(req, res) {
       actionResult = await supabase.rpc('luna_purchase_item', { p_user_id: profile.id, p_item_id: body.itemId });
     } else if (body.action === 'consume' && typeof body.itemId === 'string') {
       actionResult = await supabase.rpc('luna_buy_consumable', { p_user_id: profile.id, p_item_id: body.itemId });
+    } else if (body.action === 'loan_quote') {
+      actionResult = await supabase.rpc('bank_loan_quote', { p_user_id: profile.id, p_amount: Number(body.amount) });
     } else if (body.action === 'loan') {
-      actionResult = await supabase.rpc('luna_take_loan', { p_user_id: profile.id, p_amount: Number(body.amount) });
+      actionResult = await supabase.rpc('bank_take_loan', { p_user_id: profile.id, p_amount: Number(body.amount) });
     } else if (body.action === 'repay') {
-      actionResult = await supabase.rpc('luna_repay_loan', { p_user_id: profile.id });
+      actionResult = await supabase.rpc('bank_repay_loan', { p_user_id: profile.id });
+    } else if (body.action === 'card_gold') {
+      actionResult = await supabase.rpc('bank_buy_gold_card', { p_user_id: profile.id });
     } else if (body.action === 'card' && ['midnight','barcelona','gold'].includes(body.card)) {
       const current = await supabase.from('luna_state').select('equipped').eq('user_id', profile.id).maybeSingle();
       if (current.error) return res.status(500).json({ error: 'Could not load Luna settings' });
@@ -187,7 +206,7 @@ export default async function handler(req, res) {
     }
     if (actionResult.error) {
       const message = String(actionResult.error.message || 'Action failed');
-      const status = /Insufficient balance|already|active loan|No active loan|between 1000/i.test(message) ? 400 : 500;
+      const status = /Insufficient balance|already|active loan|No active loan|between 1000|Weekly credit limit|negative balance|Enter a loan amount|gold card/i.test(message) ? 400 : 500;
       return res.status(status).json({ error: message });
     }
     return res.status(200).json(actionResult.data);
