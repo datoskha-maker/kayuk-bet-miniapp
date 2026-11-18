@@ -105,6 +105,45 @@
     .luna-shop-product .emoji{font-size:25px}
     .luna-shop-product .item-image{width:100%;height:112px;object-fit:contain;border-radius:9px;background:#fff}
     .luna-mini-card .lavka-item-image{display:block;width:100%;max-height:105px;object-fit:contain;border-radius:9px;background:#fff;margin:0 auto 7px}
+
+    .luna-lavka-screen{color:#171717!important;background:#f6f5f2;border-radius:15px;padding:0 0 12px;overflow-x:hidden}
+    .luna-lavka-screen .luna-phone-head{margin:0;padding:9px 10px;background:#fff;color:#171717;text-shadow:none}
+    .luna-lavka-screen .luna-phone-back{background:#f1f0ed;color:#171717;border:0}
+    .luna-lavka-hero{background:#ffe500;padding:13px 12px 14px;color:#171717;border-radius:0 0 17px 17px}
+    .luna-lavka-brand{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:950}
+    .luna-lavka-mark{width:22px;height:22px;border-radius:7px;background:#171717;color:#ffe500;display:grid;place-items:center;font-size:15px;font-weight:950}
+    .luna-lavka-headline{font-size:22px;line-height:1.02;font-weight:950;letter-spacing:-.7px;margin:12px 0}
+    .luna-lavka-delivery{display:flex;align-items:center;gap:9px;background:#fff;border-radius:12px;padding:9px 10px}
+    .luna-lavka-delivery>span:first-child{font-size:21px}
+    .luna-lavka-delivery b,.luna-lavka-delivery small{display:block}
+    .luna-lavka-delivery b{font-size:10px}
+    .luna-lavka-delivery small{font-size:8px;color:#777;margin-top:2px}
+    .luna-lavka-arrow{margin-left:auto;font-size:22px;color:#777}
+    .luna-lavka-wallet{margin:10px 10px 13px;padding:9px 11px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px #00000008}
+    .luna-lavka-wallet small,.luna-lavka-wallet b{display:block}
+    .luna-lavka-wallet small{font-size:8px;letter-spacing:1px;color:#888;margin-bottom:3px}
+    .luna-lavka-wallet b{font-size:15px}
+    .luna-lavka-wallet-icon{width:29px;height:29px;border-radius:50%;background:#f4f2ec;display:grid;place-items:center;font-size:15px;font-weight:900}
+    .luna-lavka-section-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 10px;margin-bottom:8px}
+    .luna-lavka-section-head b{font-size:13px}
+    .luna-lavka-section-head small{font-size:9px;color:#8a8985}
+    .luna-lavka-tabs{display:flex;gap:6px;padding:0 10px 10px;overflow:auto}
+    .luna-lavka-tabs button{border:1px solid #e4e2dc;border-radius:20px;background:#fff;color:#333;padding:7px 12px;font-size:9px;font-weight:850;white-space:nowrap}
+    .luna-lavka-tabs button.active{background:#171717;color:#ffe500;border-color:#171717}
+    .luna-lavka-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 9px}
+    .luna-lavka-product{min-width:0;background:#fff;border:1px solid #eeece6;border-radius:12px;padding:7px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px #00000006}
+    .luna-lavka-product-art{height:91px;border-radius:9px;background:#f7f6f2;display:grid;place-items:center;overflow:hidden}
+    .luna-lavka-product-art img{width:100%;height:100%;object-fit:contain}
+    .luna-lavka-product-art span{font-size:31px}
+    .luna-lavka-product-info{min-height:34px}
+    .luna-lavka-product-info b{display:block;font-size:10px;line-height:1.25;color:#171717}
+    .luna-lavka-product-info small{display:block;font-size:8px;color:#92908a;margin-top:3px}
+    .luna-lavka-product-buy{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:auto}
+    .luna-lavka-product-buy strong{font-size:10px;white-space:nowrap;color:#171717}
+    .luna-lavka-product-buy button{border:0;border-radius:8px;background:#ffe500;color:#171717;padding:7px 9px;font-size:9px;font-weight:950}
+    .luna-lavka-product-buy button:disabled{opacity:.4}
+    .luna-lavka-empty{margin:0 10px;padding:23px 8px;background:#fff;border-radius:12px;text-align:center;color:#888;font-size:10px}
+    .luna-lavka-footnote{text-align:center;padding:11px 8px 2px;color:#999;font-size:8px}
     .luna-shop-product b{font-size:12px}
     .luna-shop-product small{font-size:10px;color:#778274;line-height:1.3}
     .luna-shop-product button{border-radius:9px;background:#244f3b;color:white;padding:8px;font-size:10px;font-weight:900;margin-top:auto}
@@ -270,8 +309,26 @@
       $('#luna-forward',phoneScreen).addEventListener('click',()=>{if(Number.isFinite(audio.duration))audio.currentTime=Math.min(audio.duration,audio.currentTime+15);});
     } else if (name==='lavka') {
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
-      phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+'<div class="luna-phone-content"><p>Покупки за общий баланс</p>'+(items.length?items.map(x=>'<div class="luna-mini-card">'+(x.image_url?'<img class="lavka-item-image" src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">' : '')+'<b>'+esc(x.icon)+' '+esc(x.title)+'</b><br>'+fmt(x.price)+'<br><button class="luna-mini-btn" data-consume="'+esc(x.item_id)+'">Купить</button></div>').join(''):'<div class="luna-empty" style="color:#fff">Каталог пока пуст.<br>Позже добавим товары и цены.</div>')+'</div>';
-      phoneScreen.querySelectorAll('[data-consume]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'consume',itemId:b.dataset.consume});toast2('Покупка оформлена!');renderPhoneApp('lavka')}catch(e){toast2(e.message)}}));
+      const renderLavka = filter => {
+        const shown=items.filter(x=>filter==='all'||(filter==='food'?Number(x.effect?.hunger)>0:Number(x.effect?.thirst)>0));
+        const balance=Number(data.balance||0);
+        phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+
+          '<div class="luna-phone-content luna-lavka-screen">'+
+            '<div class="luna-lavka-hero"><div class="luna-lavka-brand"><span class="luna-lavka-mark">Я</span><span>Лавка Луны</span></div><div class="luna-lavka-headline">Мур-мур.<br>Всё нужное — рядом.</div><div class="luna-lavka-delivery"><span>🐾</span><span><b>Доставим прямо домой</b><small>Закажи вкусняшки для Луны</small></span><span class="luna-lavka-arrow">›</span></div></div>'+
+            '<div class="luna-lavka-wallet"><span><small>ТВОЙ БАЛАНС</small><b>'+fmt(balance)+'</b></span><span class="luna-lavka-wallet-icon">₽</span></div>'+
+            '<div class="luna-lavka-section-head"><b>Что будем заказывать?</b><small>'+shown.length+' товаров</small></div>'+
+            '<div class="luna-lavka-tabs"><button data-lavka-filter="all" class="'+(filter==='all'?'active':'')+'">Всё</button><button data-lavka-filter="food" class="'+(filter==='food'?'active':'')+'">🍗 Еда</button><button data-lavka-filter="drink" class="'+(filter==='drink'?'active':'')+'">🥛 Напитки</button></div>'+
+            (shown.length?'<div class="luna-lavka-grid">'+shown.map(x=>'<article class="luna-lavka-product">'+
+              '<div class="luna-lavka-product-art">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">':'<span>'+esc(x.icon||'🐾')+'</span>')+'</div>'+
+              '<div class="luna-lavka-product-info"><b>'+esc(x.title)+'</b><small>'+(Number(x.effect?.hunger)>0?'Для сытости Луны':Number(x.effect?.thirst)>0?'Чтобы утолить жажду':'Вкусное для Луны')+'</small></div>'+
+              '<div class="luna-lavka-product-buy"><strong>'+fmt(x.price)+'</strong><button data-consume="'+esc(x.item_id)+'" '+(balance<Number(x.price)?'disabled':'')+'>Купить</button></div>'+
+            '</article>').join('')+'</div>':'<div class="luna-lavka-empty">В этой категории пока пусто 🐾</div>')+
+            '<div class="luna-lavka-footnote">Оплата списывается с общего баланса КАЮК BET</div>'+
+          '</div>';
+        phoneScreen.querySelectorAll('[data-lavka-filter]').forEach(b=>b.addEventListener('click',()=>renderLavka(b.dataset.lavkaFilter)));
+        phoneScreen.querySelectorAll('[data-consume]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'consume',itemId:b.dataset.consume});toast2('Покупка оформлена!');renderPhoneApp('lavka')}catch(e){toast2(e.message)}}));
+      };
+      renderLavka('all');
 
     } else if (name==='bank') {
       const bank=data.bank||{}, card=bank.card||{}, loan=bank.loan;
