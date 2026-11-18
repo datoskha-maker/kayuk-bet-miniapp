@@ -97,6 +97,12 @@
     #food-overlay .panel{background:#f8f1e3;color:#26342b}
     .luna-food-choice{width:48%;padding:18px 8px;border-radius:16px;background:#fffaf0;border:1px solid #e5dac6;color:#26342b;font-weight:900;font-size:15px}
     .luna-food-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    #luna-placement-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+    #luna-placement-layer .luna-placed-item{position:absolute;left:0;top:0;width:100px;max-width:38vw;max-height:34vh;object-fit:contain;transform:translate(-50%,-50%);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 3px 5px #0005)}
+    #luna-placement-layer .luna-placed-item.editing{outline:2px dashed #8bd5f5;outline-offset:5px;cursor:move}
+    #luna-placement-toolbar{position:absolute;z-index:12;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 104px);display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;background:rgba(10,25,40,.94);border:1px solid #ffffff55;border-radius:14px;color:#fff;font-size:11px;backdrop-filter:blur(9px)}
+    #luna-placement-toolbar button{border:0;border-radius:9px;padding:9px 12px;background:#8bd5f5;color:#17394b;font-weight:900}
+    #luna-placement-toolbar .luna-place-done{background:#fff;color:#17394b}
     .luna-shop-cats{display:flex;gap:6px;overflow:auto;padding:3px 0 10px}
     .luna-shop-cats button{white-space:nowrap;border:1px solid #d8cbb6;background:#fffaf0;color:#324237;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:800}
     .luna-shop-cats button.active{background:#173653;color:#fff}
@@ -371,6 +377,111 @@
     }
     bindBack();
   }
+  let placementEditId = null;
+  let placementDraft = null;
+  let placementDrag = null;
+  function ensurePlacementLayer() {
+    let layer=$('#luna-placement-layer');
+    if(!layer){layer=document.createElement('div');layer.id='luna-placement-layer';$('#game')?.appendChild(layer);}
+    return layer;
+  }
+  function renderRoomPlacements() {
+    const layer=ensurePlacementLayer(); if(!layer) return;
+    const placements=data?.placements||[];
+    layer.innerHTML=placements.map(p=>{
+      const item=(data.catalog||[]).find(x=>x.item_id===p.item_id);
+      if(!item?.image_url) return '';
+      const isEditing=placementEditId===p.item_id;
+      return '<img class="luna-placed-item '+(isEditing?'editing':'')+'" data-placement-item="'+esc(p.item_id)+'" src="'+esc(item.image_url)+'" alt="'+esc(item.title)+'" draggable="false" style="left:'+Number(p.x)+'%;top:'+Number(p.y)+'%;width:'+Math.round(100*Number(p.scale))+'px">';
+    }).join('');
+    layer.querySelectorAll('[data-placement-item]').forEach(el=>{
+      el.addEventListener('pointerdown',e=>{
+        if(placementEditId!==el.dataset.placementItem) return;
+        e.preventDefault();
+        const p=(data.placements||[]).find(x=>x.item_id===placementEditId);
+        if(!placementDraft && p) placementDraft={x:Number(p.x),y:Number(p.y),scale:Number(p.scale)};
+        placementDrag={pointerId:e.pointerId};
+        el.setPointerCapture?.(e.pointerId);
+      });
+      el.addEventListener('pointermove',e=>{
+        if(!placementDrag || placementDrag.pointerId!==e.pointerId || !placementDraft) return;
+        const rect=layer.getBoundingClientRect();
+        placementDraft.x=Math.max(2,Math.min(98,(e.clientX-rect.left)/rect.width*100));
+        placementDraft.y=Math.max(2,Math.min(98,(e.clientY-rect.top)/rect.height*100));
+        el.style.left=placementDraft.x+'%'; el.style.top=placementDraft.y+'%';
+      });
+      el.addEventListener('pointerup',async e=>{
+        if(!placementDrag || placementDrag.pointerId!==e.pointerId) return;
+        placementDrag=null;
+        await savePlacementDraft();
+      });
+      el.addEventListener('pointercancel',()=>{placementDrag=null;});
+    });
+    renderPlacementToolbar();
+  }
+  function renderPlacementToolbar() {
+    $('#luna-placement-toolbar')?.remove();
+    if(!placementEditId || !placementDraft) return;
+    const item=(data.catalog||[]).find(x=>x.item_id===placementEditId);
+    const bar=document.createElement('div'); bar.id='luna-placement-toolbar';
+    bar.innerHTML='<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(item?.title||'Предмет')+'</span><button data-place-smaller>−</button><button data-place-bigger>+</button><button class="luna-place-done" data-place-done>Готово</button>';
+    $('#game').appendChild(bar);
+    bar.querySelector('[data-place-smaller]').addEventListener('click',()=>changePlacementScale(-0.15));
+    bar.querySelector('[data-place-bigger]').addEventListener('click',()=>changePlacementScale(0.15));
+    bar.querySelector('[data-place-done]').addEventListener('click',finishPlacement);
+  }
+  async function savePlacementDraft() {
+    if(!placementEditId || !placementDraft) return;
+    try {
+      const saved=await api('POST',{action:'placement_save',itemId:placementEditId,position:placementDraft});
+      const rows=data.placements||[];
+      const index=rows.findIndex(x=>x.item_id===placementEditId);
+      if(index>=0) rows[index]=saved.placement; else rows.push(saved.placement);
+      data.placements=rows;
+      renderRoomPlacements();
+    } catch(e) { toast2(e.message||'Не удалось сохранить расположение'); }
+  }
+  async function changePlacementScale(delta) {
+    if(!placementDraft) return;
+    placementDraft.scale=Math.max(0.25,Math.min(3,Math.round((placementDraft.scale+delta)*100)/100));
+    const el=$('#luna-placement-layer [data-placement-item="'+placementEditId+'"]');
+    if(el) el.style.width=Math.round(100*placementDraft.scale)+'px';
+    await savePlacementDraft();
+  }
+  function finishPlacement() {
+    placementEditId=null; placementDraft=null; placementDrag=null;
+    renderRoomPlacements();
+    toast2('Расположение предмета сохранено');
+  }
+  async function beginPlacement(itemId) {
+    const item=(data?.catalog||[]).find(x=>x.item_id===itemId);
+    if(!item || !['scratchers','toys','interior'].includes(item.category)) return;
+    const roomButton=$('.nav-btn[data-scene="room"]');
+    roomButton?.click();
+    placementEditId=itemId;
+    const existing=(data.placements||[]).find(x=>x.item_id===itemId);
+    placementDraft=existing?{x:Number(existing.x),y:Number(existing.y),scale:Number(existing.scale)}:{x:50,y:65,scale:1};
+    const layer=ensurePlacementLayer();
+    const row={item_id:itemId,x:placementDraft.x,y:placementDraft.y,scale:placementDraft.scale};
+    const idx=(data.placements||[]).findIndex(x=>x.item_id===itemId);
+    if(idx>=0) data.placements[idx]=row; else (data.placements||(data.placements=[])).push(row);
+    renderRoomPlacements();
+    toast2('Перетащи предмет по домику, размер меняй кнопками − и +');
+  }
+  function applySceneBackground(sceneName) {
+    if(!data) return;
+    const slot=sceneName==='room'?'house':sceneName==='food'?'food':'stadium';
+    const itemId=data.state?.equipped?.[slot];
+    const item=(data.catalog||[]).find(x=>x.item_id===itemId);
+    const defaults={stadium:'https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg',room:'https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1985.png',food:'https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1986.png'};
+    const bg=$('#scene-bg');
+    if(bg) bg.src=item?.image_url||defaults[sceneName]||defaults.stadium;
+    if(sceneName==='room') renderRoomPlacements();
+  }
+  document.addEventListener('click',e=>{
+    const nav=e.target.closest?.('.nav-btn[data-scene]');
+    if(nav) applySceneBackground(nav.dataset.scene);
+  });
   function renderShop() {
     if (!data) return;
     $('#luna-shop-balance').textContent=fmt(data.balance);
@@ -380,10 +491,17 @@
     const items=shopCategory==='purchases'?(data.catalog||[]).filter(x=>inventory.has(x.item_id)):(data.catalog||[]).filter(x=>x.category===shopCategory);
     $('#luna-shop-grid').innerHTML=items.length?items.map(x=>{
       const slot=x.category, equipped=data.state?.equipped?.[slot]===x.item_id, owned=inventory.has(x.item_id);
-      return '<div class="luna-shop-product">'+(x.image_url?'<img class="item-image" src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">' : '<div class="emoji">'+esc(x.icon)+'</div>')+'<b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+(shopCategory==='purchases'?(equipped?'<button data-unequip="'+esc(slot)+'" class="secondary">Снять</button>':'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'">Установить</button>'): '<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>')+'</div>';
+      let purchaseAction='';
+      if(shopCategory==='purchases') {
+        if(['stadium','house','food'].includes(slot)) purchaseAction=equipped?'<button disabled>Установлено ✓</button>':'<button data-equip="'+esc(x.item_id)+'" data-slot="'+esc(slot)+'">Установить</button>';
+        else if(['scratchers','toys','interior'].includes(slot)) purchaseAction='<button data-place="'+esc(x.item_id)+'">Установить</button>';
+        else purchaseAction='<button disabled>Куплено ✓</button>';
+      } else purchaseAction='<button data-buy="'+esc(x.item_id)+'" '+(owned?'disabled':'')+'>'+(owned?'Куплено ✓':fmt(x.price)+' · Купить')+'</button>';
+      return '<div class="luna-shop-product">'+(x.image_url?'<img class="item-image" src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">' : '<div class="emoji">'+esc(x.icon)+'</div>')+'<b>'+esc(x.title)+'</b><small>'+esc(x.description)+'</small>'+purchaseAction+'</div>';
     }).join(''):'<div class="luna-empty" style="grid-column:1/-1">В этом разделе пока пусто.<br>Наполним его предметами и ценами следующим этапом 🐾</div>';
     $('#luna-shop-grid').querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'purchase',itemId:b.dataset.buy});renderShop();toast2('Покупка сохранена в инвентаре')}catch(e){toast2(e.message)}}));
-    $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:b.dataset.slot,itemId:b.dataset.equip});renderShop();toast2('Предмет установлен')}catch(e){toast2(e.message)}}));
+    $('#luna-shop-grid').querySelectorAll('[data-equip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'equip',slot:b.dataset.slot,itemId:b.dataset.equip});applySceneBackground(b.dataset.slot==='house'?'room':b.dataset.slot==='food'?'food':'stadium');renderShop();toast2('Фон установлен')}catch(e){toast2(e.message)}}));
+    $('#luna-shop-grid').querySelectorAll('[data-place]').forEach(b=>b.addEventListener('click',()=>beginPlacement(b.dataset.place)));
     $('#luna-shop-grid').querySelectorAll('[data-unequip]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'unequip',slot:b.dataset.unequip});renderShop();toast2('Предмет снят')}catch(e){toast2(e.message)}}));
   }
   function renderFoodChoices() {
@@ -406,6 +524,7 @@
     renderStats2();
     renderPhoneHome();
     renderShop();
+    applySceneBackground('stadium');
     const oldShop = $('#shop-overlay');
     oldShop?.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>oldShop.classList.remove('open')));
     $('#phone-overlay')?.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>$('#phone-overlay').classList.remove('open')));
