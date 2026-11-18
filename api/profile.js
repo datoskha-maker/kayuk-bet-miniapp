@@ -101,7 +101,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST' || req.query?.scope === 'luna') {
     if (req.method === 'GET') {
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ] = await Promise.all([
+      const [stateQ, catalogQ, inventoryQ, giftQ, cardQ, loanQ, weeklyLoansQ, activityQ, placementsQ] = await Promise.all([
         supabase.from('luna_state').select('*').eq('user_id', profile.id).maybeSingle(),
         supabase.from('luna_catalog').select('item_id,category,title,description,price,icon,effect,image_url,sort_order').eq('active', true).order('sort_order'),
         supabase.from('luna_inventory').select('item_id,purchased_at').eq('user_id', profile.id),
@@ -109,9 +109,10 @@ export default async function handler(req, res) {
         supabase.from('bank_cards').select('account_number,design,gold_purchased').eq('user_id', profile.id).maybeSingle(),
         supabase.from('bank_loans').select('id,principal,total_due,due_at,created_at,late_days_applied').eq('user_id', profile.id).eq('status','active').maybeSingle(),
         supabase.from('bank_loans').select('principal,created_at').eq('user_id', profile.id).gte('created_at', weekAgo),
-        supabase.from('luna_activity').select('event_type,details,created_at').eq('user_id', profile.id).order('created_at',{ascending:false}).limit(50)
+        supabase.from('luna_activity').select('event_type,details,created_at').eq('user_id', profile.id).order('created_at',{ascending:false}).limit(50),
+        supabase.from('luna_placements').select('id,item_id,x,y,scale,updated_at').eq('user_id', profile.id)
       ]);
-      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ,activityQ].find(q => q.error);
+      const queryError = [stateQ,catalogQ,inventoryQ,giftQ,cardQ,loanQ,weeklyLoansQ,activityQ,placementsQ].find(q => q.error);
       if (queryError) return res.status(500).json({ error: 'Could not load Luna data' });
       let state = stateQ.data;
       if (!state) {
@@ -136,6 +137,7 @@ export default async function handler(req, res) {
         inventory: inventoryQ.data || [],
         dailyGift: giftQ.data || null,
         activity: activityQ.data || [],
+        placements: placementsQ.data || [],
         loan,
         bank: {
           card: cardQ.data || null,
@@ -182,6 +184,16 @@ export default async function handler(req, res) {
       const saved = await supabase.from('luna_state').upsert({ user_id: profile.id, equipped, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('equipped').single();
       if (saved.error) return res.status(500).json({ error: 'Could not save card design' });
       return res.status(200).json({ ok: true, equipped: saved.data.equipped });
+    } else if (body.action === 'placement_save' && typeof body.itemId === 'string' && body.position && typeof body.position === 'object') {
+      const owned = await supabase.from('luna_inventory').select('item_id').eq('user_id', profile.id).eq('item_id', body.itemId).maybeSingle();
+      if (owned.error || !owned.data) return res.status(400).json({ error: 'Item is not owned' });
+      const item = await supabase.from('luna_catalog').select('category').eq('item_id', body.itemId).maybeSingle();
+      if (item.error || !item.data || !['scratchers','toys','interior'].includes(item.data.category)) return res.status(400).json({ error: 'This item cannot be placed in the house' });
+      const x = Number(body.position.x), y = Number(body.position.y), scale = Number(body.position.scale);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(scale) || x < 0 || x > 100 || y < 0 || y > 100 || scale < 0.25 || scale > 3) return res.status(400).json({ error: 'Invalid placement position' });
+      const saved = await supabase.from('luna_placements').upsert({ user_id: profile.id, item_id: body.itemId, x, y, scale, updated_at: new Date().toISOString() }, { onConflict: 'user_id,item_id' }).select('id,item_id,x,y,scale,updated_at').single();
+      if (saved.error) return res.status(500).json({ error: 'Could not save item placement' });
+      return res.status(200).json({ ok: true, placement: saved.data });
     } else if (body.action === 'equip' && typeof body.slot === 'string' && typeof body.itemId === 'string') {
       const allowed = ['stadium','house','food','bed','scratchers','toys','interior'];
       if (!allowed.includes(body.slot)) return res.status(400).json({ error: 'Invalid equipment slot' });
