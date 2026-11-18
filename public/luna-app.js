@@ -159,6 +159,51 @@
     .luna-lavka-product-buy button:disabled{opacity:.4}
     .luna-lavka-empty{margin:0 10px;padding:23px 8px;background:#fff;border-radius:12px;text-align:center;color:#888;font-size:10px}
     .luna-lavka-footnote{text-align:center;padding:11px 8px 2px;color:#999;font-size:8px}
+    .luna-lavka-nav{display:flex;gap:5px;padding:0 10px 13px}
+    .luna-lavka-nav button{flex:1;border:1px solid #e4e2dc;border-radius:10px;background:#fff;color:#333;padding:9px 4px;font-size:9px;font-weight:900}
+    .luna-lavka-nav button.active{background:#17394b;color:#a9e5ff;border-color:#17394b}
+    .luna-lavka-nav i{font-style:normal;background:#8bd5f5;color:#17394b;border-radius:9px;padding:1px 5px;margin-left:2px}
+    .luna-lavka-qty,.luna-lavka-cart-qty{display:flex;align-items:center;justify-content:center;gap:10px}
+    .luna-lavka-qty button,.luna-lavka-cart-qty button{width:25px;height:25px;border:0;border-radius:8px;background:#eaf7fc;color:#17394b;font-size:16px;font-weight:900}
+    .luna-lavka-qty b,.luna-lavka-cart-qty b{font-size:11px;min-width:10px;text-align:center}
+    .luna-lavka-cart-list,.luna-lavka-orders{padding:0 10px;display:flex;flex-direction:column;gap:7px}
+    .luna-lavka-cart-row{display:flex;align-items:center;gap:7px;padding:8px;background:#fff;border:1px solid #eeece6;border-radius:11px}
+    .luna-lavka-cart-art{width:42px;height:42px;flex:none;border-radius:8px;background:#f7f6f2;display:grid;place-items:center;overflow:hidden;font-size:20px}
+    .luna-lavka-cart-art img{width:100%;height:100%;object-fit:contain}
+    .luna-lavka-cart-meta{min-width:0;flex:1}
+    .luna-lavka-cart-meta b,.luna-lavka-cart-meta small{display:block}
+    .luna-lavka-cart-meta b{font-size:9px;line-height:1.2}
+    .luna-lavka-cart-meta small{font-size:8px;color:#888;margin-top:3px}
+    .luna-lavka-cart-qty{gap:4px}
+    .luna-lavka-cart-qty button{width:21px;height:23px}
+    .luna-lavka-cart-row>strong{font-size:8px;white-space:nowrap}
+    .luna-lavka-total{display:flex;justify-content:space-between;align-items:center;margin:12px 10px;padding:11px;background:#fff;border-radius:10px;font-size:10px}
+    .luna-lavka-total b{font-size:13px}
+    .luna-lavka-checkout{display:block;width:calc(100% - 20px);margin:0 10px;border:0;border-radius:11px;padding:12px;background:#17394b;color:#a9e5ff;font-size:11px;font-weight:950}
+    .luna-lavka-checkout:disabled{opacity:.45}
+    .luna-lavka-warning{margin:8px 10px;color:#b44848;font-size:9px}
+    .luna-lavka-address{margin:10px;padding:10px;background:#fff;border:1px solid #e9e7e1;border-radius:10px;display:flex;flex-direction:column;gap:3px}
+    .luna-lavka-address small{font-size:8px;letter-spacing:1px;color:#888}
+    .luna-lavka-address b{font-size:10px}
+    .luna-lavka-address span{font-size:9px;color:#777}
+    .luna-lavka-order-card{display:flex;align-items:center;gap:8px;text-align:left;padding:11px;border:1px solid #eeece6;border-radius:11px;background:#fff;color:#171717}
+    .luna-lavka-order-card span{display:flex;flex-direction:column;gap:4px;flex:1}
+    .luna-lavka-order-card b{font-size:10px}
+    .luna-lavka-order-card small{font-size:8px;color:#888}
+    .luna-lavka-order-card strong{font-size:9px}
+    .luna-lavka-order-card i{font-size:19px;color:#999;font-style:normal}
+    .luna-lavka-back-orders{margin:0 10px 9px;border:0;background:transparent;color:#17394b;font-size:10px;font-weight:900}
+    .luna-lavka-order-detail{margin:0 10px;padding:10px;background:#fff;border-radius:12px;border:1px solid #eeece6}
+    .luna-lavka-order-status{font-size:13px;font-weight:950;margin-bottom:7px}
+    .luna-lavka-progress{height:5px;border-radius:5px;background:#e8edf0;overflow:hidden;margin-bottom:12px}
+    .luna-lavka-progress i{display:block;height:100%;background:#49add9;border-radius:5px}
+    .luna-lavka-map-title{font-size:10px;font-weight:900;margin:7px 0}
+    .luna-lavka-map{height:205px;border-radius:10px;overflow:hidden;background:#e9eef0;position:relative;z-index:0}
+    .luna-lavka-map-loading{height:100%;display:grid;place-items:center;color:#65737a;font-size:10px}
+    .luna-lavka-map-note,.luna-lavka-muted{font-size:8px;color:#888;margin:6px 0}
+    .luna-lavka-order-items{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+    .luna-lavka-order-items>div{display:flex;justify-content:space-between;gap:8px;font-size:9px}
+    .luna-courier-marker{width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 8px #0005;display:grid;place-items:center;font-size:18px;border:2px solid #278fc2}
     .luna-shop-product b{font-size:12px}
     .luna-shop-product small{font-size:10px;color:#778274;line-height:1.3}
     .luna-shop-product button{border-radius:9px;background:#244f3b;color:white;padding:8px;font-size:10px;font-weight:900;margin-top:auto}
@@ -324,27 +369,120 @@
       $('#luna-forward',phoneScreen).addEventListener('click',()=>{if(Number.isFinite(audio.duration))audio.currentTime=Math.min(audio.duration,audio.currentTime+15);});
     } else if (name==='lavka') {
       const items=(data.catalog||[]).filter(x=>x.category==='lavka');
-      const renderLavka = filter => {
+      let activeTab='products', filter='all', selectedOrderId=null, mapTimer=null, statusTimer=null;
+      const cartRows=()=> (data.cart||[]).map(row=>({...items.find(x=>x.item_id===row.item_id),quantity:Number(row.quantity||0)})).filter(x=>x.item_id);
+      const orderStatus={
+        accepted:'Заказ принят',preparing:'Собираем заказ',courier_picked_up:'Курьер забрал заказ',
+        in_transit:'Курьер едет к тебе',delivered:'Заказ доставлен'
+      };
+      const order=()=> (data.orders||[]).find(x=>x.id===selectedOrderId);
+      const stopTimers=()=>{if(mapTimer)clearInterval(mapTimer);if(statusTimer)clearInterval(statusTimer);mapTimer=null;statusTimer=null;};
+      const setCartQty=async(itemId,quantity)=>{
+        try{await act({action:'lavka_cart_set',itemId,quantity});renderLavka();}
+        catch(e){toast2(e.message);}
+      };
+      const renderLavka=()=>{
+        stopTimers();
+        const balance=Number(data.balance||0), cart=cartRows(), cartTotal=cart.reduce((s,x)=>s+Number(x.price||0)*x.quantity,0);
+        const orders=data.orders||[], currentOrder=order();
         const shown=items.filter(x=>filter==='all'||(filter==='food'?Number(x.effect?.hunger)>0:Number(x.effect?.thirst)>0));
-        const balance=Number(data.balance||0);
+        let body='';
+        if(activeTab==='products'){
+          body='<div class="luna-lavka-section-head"><b>Что будем заказывать?</b><small>'+shown.length+' товаров</small></div>'+
+            '<div class="luna-lavka-tabs"><button data-lavka-filter="all" class="'+(filter==='all'?'active':'')+'">Всё</button><button data-lavka-filter="food" class="'+(filter==='food'?'active':'')+'">🍗 Еда</button><button data-lavka-filter="drink" class="'+(filter==='drink'?'active':'')+'">🥛 Напитки</button></div>'+
+            (shown.length?'<div class="luna-lavka-grid">'+shown.map(x=>{
+              const qty=Number((data.cart||[]).find(q=>q.item_id===x.item_id)?.quantity||0);
+              return '<article class="luna-lavka-product"><div class="luna-lavka-product-art">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">':'<span>'+esc(x.icon||'🐾')+'</span>')+'</div>'+
+                '<div class="luna-lavka-product-info"><b>'+esc(x.title)+'</b><small>'+(Number(x.effect?.hunger)>0?'Для сытости Луны':Number(x.effect?.thirst)>0?'Чтобы утолить жажду':'Вкусное для Луны')+'</small></div>'+
+                '<div class="luna-lavka-product-buy"><strong>'+fmt(x.price)+'</strong><button data-lavka-add="'+esc(x.item_id)+'">В корзину</button></div>'+
+                (qty?'<div class="luna-lavka-qty"><button data-lavka-change="'+esc(x.item_id)+'" data-delta="-1">−</button><b>'+qty+'</b><button data-lavka-change="'+esc(x.item_id)+'" data-delta="1">+</button></div>':'')+
+              '</article>';
+            }).join('')+'</div>':'<div class="luna-lavka-empty">В этой категории пока пусто 🐾</div>');
+        } else if(activeTab==='cart'){
+          body='<div class="luna-lavka-section-head"><b>Твоя корзина</b><small>'+cart.reduce((s,x)=>s+x.quantity,0)+' шт.</small></div>'+
+            (cart.length?'<div class="luna-lavka-cart-list">'+cart.map(x=>'<div class="luna-lavka-cart-row"><div class="luna-lavka-cart-art">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="">':esc(x.icon||'🐾'))+'</div><div class="luna-lavka-cart-meta"><b>'+esc(x.title)+'</b><small>'+fmt(x.price)+' за шт.</small></div><div class="luna-lavka-cart-qty"><button data-lavka-change="'+esc(x.item_id)+'" data-delta="-1">−</button><b>'+x.quantity+'</b><button data-lavka-change="'+esc(x.item_id)+'" data-delta="1">+</button></div><strong>'+fmt(Number(x.price)*x.quantity)+'</strong></div>').join('')+
+              '<div class="luna-lavka-total"><span>Итого</span><b>'+fmt(cartTotal)+'</b></div>'+
+              '<button class="luna-lavka-checkout" id="lavka-checkout" '+(balance<cartTotal?'disabled':'')+'>Оформить заказ</button>'+
+              (balance<cartTotal?'<div class="luna-lavka-warning">Недостаточно средств на общем балансе КАЮК BET.</div>':'')+
+              '<div class="luna-lavka-address"><small>АДРЕС ДОСТАВКИ</small><b>Варшавское шоссе, 14с7</b><span>Москва, 117105</span></div>'
+              :'<div class="luna-lavka-empty">Корзина пока пуста. Добавь товары из Лавки 🐾</div>');
+        } else {
+          if(currentOrder){
+            const age=Math.max(0,(Date.now()-new Date(currentOrder.created_at).getTime())/1000);
+            const progress=currentOrder.status==='delivered'?100:Math.min(100,Math.round(age/180*100));
+            body='<button class="luna-lavka-back-orders" id="lavka-orders-back">← Все заказы</button>'+
+              '<div class="luna-lavka-order-detail"><div class="luna-lavka-order-status" id="lavka-order-status">'+esc(orderStatus[currentOrder.status]||'Заказ оформлен')+'</div>'+
+              '<div class="luna-lavka-progress"><i style="width:'+progress+'%"></i></div>'+
+              '<div class="luna-lavka-map-title">Курьер на карте</div><div id="lavka-map" class="luna-lavka-map"><div class="luna-lavka-map-loading">Загружаем карту…</div></div>'+
+              '<div class="luna-lavka-map-note">Реальная карта улиц · движение курьера симулируется</div>'+
+              '<div class="luna-lavka-address"><small>АДРЕС ДОСТАВКИ</small><b>'+esc(currentOrder.address)+'</b><span>55.695123, 37.617632</span></div>'+
+              '<div class="luna-lavka-order-items">'+(currentOrder.luna_lavka_order_items||[]).map(x=>'<div><span>'+esc(x.title)+' × '+x.quantity+'</span><b>'+fmt(Number(x.unit_price)*Number(x.quantity))+'</b></div>').join('')+'</div>'+
+              '<div class="luna-lavka-total"><span>Оплачено</span><b>'+fmt(currentOrder.total)+'</b></div>'+
+              '<div class="luna-lavka-muted">Заказ № '+esc(currentOrder.id.slice(0,8).toUpperCase())+'</div></div>';
+          } else {
+            body='<div class="luna-lavka-section-head"><b>История заказов</b><small>'+orders.length+' заказов</small></div>'+
+              (orders.length?'<div class="luna-lavka-orders">'+orders.map(x=>'<button class="luna-lavka-order-card" data-lavka-open-order="'+x.id+'"><span><b>'+esc(orderStatus[x.status]||'Заказ оформлен')+'</b><small>'+new Date(x.created_at).toLocaleString('ru-RU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+'</small></span><strong>'+fmt(x.total)+'</strong><i>›</i></button>').join('')+'</div>':'<div class="luna-lavka-empty">Здесь появятся твои заказы.</div>');
+          }
+        }
         phoneScreen.innerHTML=phoneHeader('Яндекс Лавка')+
           '<div class="luna-phone-content luna-lavka-screen">'+
             '<div class="luna-lavka-hero"><div class="luna-lavka-brand"><span class="luna-lavka-mark">Я</span><span>Лавка Луны</span></div><div class="luna-lavka-headline">Мур-мур.<br>Всё нужное — рядом.</div><div class="luna-lavka-delivery"><span>🐾</span><span><b>Доставим прямо домой</b><small>Закажи вкусняшки для Луны</small></span><span class="luna-lavka-arrow">›</span></div></div>'+
             '<div class="luna-lavka-wallet"><span><small>ТВОЙ БАЛАНС</small><b>'+fmt(balance)+'</b></span><span class="luna-lavka-wallet-icon">₽</span></div>'+
-            '<div class="luna-lavka-section-head"><b>Что будем заказывать?</b><small>'+shown.length+' товаров</small></div>'+
-            '<div class="luna-lavka-tabs"><button data-lavka-filter="all" class="'+(filter==='all'?'active':'')+'">Всё</button><button data-lavka-filter="food" class="'+(filter==='food'?'active':'')+'">🍗 Еда</button><button data-lavka-filter="drink" class="'+(filter==='drink'?'active':'')+'">🥛 Напитки</button></div>'+
-            (shown.length?'<div class="luna-lavka-grid">'+shown.map(x=>'<article class="luna-lavka-product">'+
-              '<div class="luna-lavka-product-art">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="'+esc(x.title)+'" loading="lazy">':'<span>'+esc(x.icon||'🐾')+'</span>')+'</div>'+
-              '<div class="luna-lavka-product-info"><b>'+esc(x.title)+'</b><small>'+(Number(x.effect?.hunger)>0?'Для сытости Луны':Number(x.effect?.thirst)>0?'Чтобы утолить жажду':'Вкусное для Луны')+'</small></div>'+
-              '<div class="luna-lavka-product-buy"><strong>'+fmt(x.price)+'</strong><button data-consume="'+esc(x.item_id)+'" '+(balance<Number(x.price)?'disabled':'')+'>Купить</button></div>'+
-            '</article>').join('')+'</div>':'<div class="luna-lavka-empty">В этой категории пока пусто 🐾</div>')+
-            '<div class="luna-lavka-footnote">Оплата списывается с общего баланса КАЮК BET</div>'+
-          '</div>';
-        phoneScreen.querySelectorAll('[data-lavka-filter]').forEach(b=>b.addEventListener('click',()=>renderLavka(b.dataset.lavkaFilter)));
-        phoneScreen.querySelectorAll('[data-consume]').forEach(b=>b.addEventListener('click',async()=>{try{await act({action:'consume',itemId:b.dataset.consume});toast2('Покупка оформлена!');renderPhoneApp('lavka')}catch(e){toast2(e.message)}}));
+            '<div class="luna-lavka-nav"><button data-lavka-tab="products" class="'+(activeTab==='products'?'active':'')+'">Товары</button><button data-lavka-tab="cart" class="'+(activeTab==='cart'?'active':'')+'">Корзина <i>'+cart.reduce((s,x)=>s+x.quantity,0)+'</i></button><button data-lavka-tab="orders" class="'+(activeTab==='orders'?'active':'')+'">Заказы</button></div>'+
+            body+'<div class="luna-lavka-footnote">Оплата списывается с общего баланса КАЮК BET</div></div>';
+        phoneScreen.querySelectorAll('[data-lavka-tab]').forEach(b=>b.addEventListener('click',()=>{activeTab=b.dataset.lavkaTab;selectedOrderId=null;renderLavka();}));
+        phoneScreen.querySelectorAll('[data-lavka-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.lavkaFilter;renderLavka();}));
+        phoneScreen.querySelectorAll('[data-lavka-add]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.lavkaAdd;const q=Number((data.cart||[]).find(x=>x.item_id===id)?.quantity||0);setCartQty(id,q+1);}));
+        phoneScreen.querySelectorAll('[data-lavka-change]').forEach(b=>b.addEventListener('click',()=>{const id=b.dataset.lavkaChange;const q=Number((data.cart||[]).find(x=>x.item_id===id)?.quantity||0);setCartQty(id,Math.max(0,Math.min(20,q+Number(b.dataset.delta))));}));
+        phoneScreen.querySelectorAll('[data-lavka-open-order]').forEach(b=>b.addEventListener('click',()=>{selectedOrderId=b.dataset.lavkaOpenOrder;renderLavka();}));
+        $('#lavka-orders-back',phoneScreen)?.addEventListener('click',()=>{selectedOrderId=null;renderLavka();});
+        $('#lavka-checkout',phoneScreen)?.addEventListener('click',async()=>{
+          try{const result=await act({action:'lavka_checkout',orderKey:crypto.randomUUID()});selectedOrderId=result.order_id;activeTab='orders';toast2('Заказ оформлен! Курьер уже собирается.');renderLavka();}
+          catch(e){toast2(e.message);}
+        });
+        if(activeTab==='orders'&&currentOrder) initLavkaMap(currentOrder);
       };
-      renderLavka('all');
-
+      const initLavkaMap=async(currentOrder)=>{
+        const mapEl=$('#lavka-map',phoneScreen);if(!mapEl)return;
+        try{
+          if(!window.L){
+            if(!document.querySelector('link[data-lavka-leaflet]')){const link=document.createElement('link');link.rel='stylesheet';link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';link.dataset.lavkaLeaflet='1';document.head.appendChild(link);}
+            await new Promise((resolve,reject)=>{const script=document.querySelector('script[data-lavka-leaflet]');if(script){script.addEventListener('load',resolve,{once:true});script.addEventListener('error',reject,{once:true});if(window.L)resolve();return;}const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.dataset.lavkaLeaflet='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});
+          }
+          if(!$('#lavka-map',phoneScreen))return;
+          const L=window.L,dest=[55.695123,37.617632],origin=[55.70015,37.6141];
+          const map=L.map('lavka-map',{zoomControl:true,scrollWheelZoom:false}).setView(dest,15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+          const destination=L.circleMarker(dest,{radius:8,color:'#fff',weight:3,fillColor:'#e33b55',fillOpacity:1}).addTo(map).bindPopup('Адрес доставки');
+          const courierIcon=L.divIcon({className:'',html:'<div class="luna-courier-marker">🛵</div>',iconSize:[30,30],iconAnchor:[15,15]});
+          const courier=L.marker(origin,{icon:courierIcon}).addTo(map);
+          let coords=[origin,dest];
+          try{
+            const route=await fetch('https://router.project-osrm.org/route/v1/driving/'+origin[1]+','+origin[0]+';'+dest[1]+','+dest[0]+'?overview=full&geometries=geojson');
+            const routeData=await route.json();if(routeData.routes?.[0]?.geometry?.coordinates?.length){coords=routeData.routes[0].geometry.coordinates.map(p=>[p[1],p[0]]);}
+          }catch(e){}
+          if(!$('#lavka-map',phoneScreen))return;
+          L.polyline(coords,{color:'#278fc2',weight:5,opacity:.88}).addTo(map);
+          destination.addTo(map);
+          map.fitBounds(L.latLngBounds(coords),{padding:[18,18]});
+          const started=new Date(currentOrder.created_at).getTime()+60000;
+          const move=()=>{
+            const status=(data.orders||[]).find(x=>x.id===currentOrder.id)?.status||currentOrder.status;
+            const progress=status==='delivered'?1:Math.max(0,Math.min(1,(Date.now()-started)/120000));
+            const segment=(coords.length-1)*progress,index=Math.min(coords.length-2,Math.floor(segment)),part=segment-index;
+            const a=coords[index]||dest,b=coords[index+1]||dest;
+            courier.setLatLng([a[0]+(b[0]-a[0])*part,a[1]+(b[1]-a[1])*part]);
+            if(status==='delivered')courier.setLatLng(dest);
+          };
+          move();mapTimer=setInterval(move,1500);
+          statusTimer=setInterval(async()=>{
+            try{await api('POST',{action:'lavka_order_tick'});const latest=await api();data=latest;const fresh=(data.orders||[]).find(x=>x.id===currentOrder.id);const label=$('#lavka-order-status',phoneScreen);if(fresh&&label)label.textContent=orderStatus[fresh.status]||'Заказ оформлен';move();if(fresh?.status==='delivered'){clearInterval(statusTimer);statusTimer=null;renderStats2();}}
+            catch(e){}
+          },6000);
+          setTimeout(()=>map.invalidateSize(),250);
+        }catch(e){mapEl.innerHTML='<div class="luna-lavka-map-loading">Не удалось загрузить карту. Проверь интернет-соединение.</div>';}
+      };
+      renderLavka();
     } else if (name==='bank') {
       const bank=data.bank||{}, card=bank.card||{}, loan=bank.loan;
       const balance=Number(data.balance||0), account=card.account_number||'----';
