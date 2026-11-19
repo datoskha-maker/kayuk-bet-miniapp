@@ -12,6 +12,7 @@
     if (!response.ok) throw new Error(data.error || 'Не удалось выполнить действие');
     return data;
   };
+  const adminApi = async () => { const response=await fetch('/api/profile?scope=luna-admin',{headers:{'x-telegram-init-data':initData}});const result=await response.json().catch(()=>({}));if(!response.ok)throw new Error(result.error||'Нет доступа к панели');return result; };
 
   const style = document.createElement('style');
   style.textContent = `
@@ -337,19 +338,51 @@
   function phoneHeader(title, back='home') {
     return '<div class="luna-phone-head"><span>'+esc(title)+'</span><button class="luna-phone-back" data-phone-back="'+back+'">← Назад</button></div>';
   }
+  let adminMonitorTimer=null;
   function renderPhoneHome() {
     if (!phoneScreen) return;
-    phoneScreen.innerHTML = '<div class="luna-phone-head"><span>ЛУНА PHONE 🐾</span><span>●●●</span></div><div class="luna-phone-menu">'+[
-      ['📸','Фото','photos'],['🎵','Музыка','music'],['🛍️','Яндекс Лавка','lavka'],
-      ['🏦','Кошка Банк','bank'],['🎁','Подарок','gift'],['🤳','Камера','camera']
-    ].map(x=>'<button class="luna-phone-app" data-phone-app="'+x[2]+'"><span>'+x[0]+'</span><span>'+x[1]+'</span></button>').join('')+'</div>';
-    phoneScreen.querySelectorAll('[data-phone-app]').forEach(b=>b.addEventListener('click',()=>renderPhoneApp(b.dataset.phoneApp)));
+    if(adminMonitorTimer){clearInterval(adminMonitorTimer);adminMonitorTimer=null;}
+    const apps=[['📸','Фото','photos'],['🎵','Музыка','music'],['🛍️','Яндекс Лавка','lavka'],['🏦','Кошка Банк','bank'],['🎁','Подарок','gift'],['🤳','Камера','camera']];
+    if(data?.isAdmin)apps.push(['🛡️','Администратор','admin']);
+    phoneScreen.innerHTML = '<div class="luna-phone-head"><span>ЛУНА PHONE 🐾</span><span>●●●</span></div><div class="luna-phone-menu">'+apps.map(x=>'<button class="luna-phone-app" data-phone-app="'+x[2]+'"><span>'+x[0]+'</span><span>'+x[1]+'</span></button>').join('')+'</div>';
+    phoneScreen.querySelectorAll('[data-phone-app]').forEach(b=>b.addEventListener('click',()=>renderPhoneApp(b.dataset.phone-app)));
   }
   function bindBack() { phoneScreen.querySelectorAll('[data-phone-back]').forEach(b=>b.addEventListener('click',renderPhoneHome)); }
+  async function renderAdminMonitor(){
+    if(!phoneScreen)return;
+    phoneScreen.innerHTML=phoneHeader('Администратор 🛡️')+'<div class="luna-phone-content"><div style="text-align:center;padding:16px">Загружаем картину игры…</div></div>';
+    const load=async()=>{
+      try{
+        const report=await adminApi(),players=report.players||[];
+        const active=players.filter(p=>(p.activity||[]).some(a=>Date.now()-new Date(a.created_at).getTime()<24*3600000)).length;
+        const sumBalance=players.reduce((s,p)=>s+Number(p.balance||0),0),recent=(report.activity||[]).slice(0,30);
+        const selectedId=phoneScreen.dataset.adminPlayer||'',chosen=players.find(p=>p.id===selectedId);
+        const stat=v=>Math.round(Number(v||0)),labels={phone_open:'Открыл экран',music_play:'Включил музыку',music_pause:'Остановил музыку',camera_snap:'Снимок камеры',game_action:'Действие в игре'};
+        const eventText=a=>{const d=a.details||{};return (labels[a.event_type]||a.event_type||'Событие')+(d.screen?' · '+d.screen:'')+(d.track?' · '+d.track:'')+(d.action?' · '+d.action:'');};
+        const dateText=t=>{try{return new Date(t).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+        const stats=p=>p.state?['Сытость '+stat(p.state.hunger)+'%','Жажда '+stat(p.state.thirst)+'%','Настроение '+stat(p.state.mood)+'%','Энергия '+stat(p.state.energy)+'%','Уют '+stat(p.state.comfort)+'%'].join(' · '):'Показатели ещё не созданы';
+        const playerRows=players.map(p=>'<button data-admin-player="'+esc(p.id)+'" style="display:block;width:100%;text-align:left;background:#ffffff10;border:1px solid #ffffff20;border-radius:10px;padding:9px;margin:5px 0;color:#fff"><b>'+esc(p.name)+'</b><div style="font-size:10px;opacity:.75;margin-top:3px">'+esc(p.username?'@'+p.username:'Игрок')+' · '+fmt(p.balance)+'</div><div style="font-size:10px;margin-top:3px">'+esc(stats(p))+'</div></button>').join('');
+        const feed=recent.map(a=>{const p=players.find(x=>x.id===a.user_id);return '<div style="padding:7px 5px;border-bottom:1px solid #ffffff12"><b>'+esc(p?.name||'Игрок')+'</b><div style="opacity:.8;font-size:10px">'+esc(eventText(a))+'</div><small style="opacity:.55">'+esc(dateText(a.created_at))+'</small></div>'}).join('');
+        const details=chosen?'<div class="luna-mini-card"><b>'+esc(chosen.name)+' — подробно</b><p>'+esc(stats(chosen))+'</p><p>Баланс: '+fmt(chosen.balance)+'</p><p>Инвентарь: '+(chosen.inventory||[]).length+' предметов · Комната: '+(chosen.placements||[]).length+' предметов</p><p>Корзина: '+(chosen.cart||[]).length+' позиций</p><p><b>Заказы</b></p>'+((chosen.orders||[]).slice(0,5).map(o=>'<div style="font-size:10px;padding:5px 0">'+esc(o.status)+' · '+fmt(o.total)+' · '+esc(dateText(o.created_at))+'</div>').join('')||'Нет заказов')+'<p><b>Последние действия</b></p>'+((chosen.activity||[]).slice(0,10).map(a=>'<div style="font-size:10px;padding:5px 0">'+esc(eventText(a))+' · '+esc(dateText(a.created_at))+'</div>').join('')||'Нет записей')+'</div>':'';
+        const output='<div class="luna-phone-content"><div class="luna-mini-card"><b>Обзор игры</b><p>Игроков: '+players.length+' · Активны за 24 ч: '+active+'</p><p>Суммарный баланс: '+fmt(sumBalance)+'</p><p>Обновлено: '+esc(dateText(report.updatedAt))+'</p><button class="luna-mini-btn" id="admin-refresh">↻ Обновить</button></div><div class="luna-mini-card"><b>Игроки — нажми на игрока</b>'+playerRows+'</div>'+details+'<div class="luna-mini-card"><b>Общая лента событий</b>'+ (feed||'Нет событий')+'</div></div>';
+        if(phoneScreen&&phoneScreen.querySelector('[data-admin-root]'))phoneScreen.querySelector('[data-admin-root]').innerHTML=output;
+        else phoneScreen.innerHTML=phoneHeader('Администратор 🛡️')+'<div data-admin-root>'+output+'</div>';
+        phoneScreen.dataset.adminPlayer=selectedId;
+        phoneScreen.querySelectorAll('[data-admin-player]').forEach(b=>b.onclick=()=>{phoneScreen.dataset.adminPlayer=b.dataset.adminPlayer;load();});
+        phoneScreen.querySelector('#admin-refresh')?.addEventListener('click',load);
+      }catch(e){phoneScreen.innerHTML=phoneHeader('Администратор 🛡️')+'<div class="luna-phone-content"><p>'+esc(e.message)+'</p><button class="luna-mini-btn" id="admin-refresh">Повторить</button></div>';phoneScreen.querySelector('#admin-refresh')?.addEventListener('click',load);}
+    };
+    await load();
+    if(adminMonitorTimer)clearInterval(adminMonitorTimer);
+    adminMonitorTimer=setInterval(load,30000);
+  }
   function renderPhoneApp(name) {
     if (!data) return;
+    if(name!=='admin'&&adminMonitorTimer){clearInterval(adminMonitorTimer);adminMonitorTimer=null;}
     recordActivity('phone_open',{screen:String(name).slice(0,60)});
-    if (name==='photos') {
+    if(name==='admin'){
+      renderAdminMonitor();
+    } else     if (name==='photos') {
       phoneScreen.innerHTML=phoneHeader('Фото Луны')+'<div class="luna-phone-content"><div class="luna-empty" style="color:#fff">📷<br>Альбом пока пуст.<br>Сюда добавим фотографии и видео Луны.</div></div>';
     } else if (name==='music') {
       const tracks=[{id:'don',title:'Danza Kuduro',artist:'Don Omar',art:'don'},{id:'billie',title:"Billie Eilish when the party's over",artist:'Billie Eilish',art:'billie'}];
