@@ -549,7 +549,7 @@
     await submitReward();
   }
   function close(){
-    // Pause the round, then fully release the temporary edge-to-edge layout.
+    // Pause the current round without destroying its state.
     if(state.running&&!state.finished){
       state.paused=true;
       stopBackground();
@@ -560,32 +560,58 @@
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
 
-    // Remove every fullscreen flag and viewport override before navigating.
+    // Release every immersive flag and viewport override.
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
     document.documentElement.style.removeProperty('--slice-viewport-height');
     document.documentElement.style.removeProperty('--slice-stable-height');
-    document.body.style.removeProperty('position');
-    document.body.style.removeProperty('inset');
-    document.body.style.removeProperty('width');
-    document.body.style.removeProperty('height');
-    document.body.style.removeProperty('padding');
-    document.body.style.removeProperty('overflow');
-    document.documentElement.style.removeProperty('width');
-    document.documentElement.style.removeProperty('height');
-    document.documentElement.style.removeProperty('overflow');
+    ['position','inset','left','right','top','bottom','width','min-width','max-width','height','min-height','padding','overflow','transform'].forEach(k=>{
+      document.body.style.removeProperty(k);
+      document.documentElement.style.removeProperty(k);
+    });
 
+    // Navigate directly instead of calling page('home'): page() performs a
+    // smooth scroll while the Telegram WebView is changing its viewport.
+    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='home'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p==='home'));
     try{tg?.enableVerticalSwipes?.();}catch(e){}
-    if(typeof window.page==='function')window.page('home');
-    else document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='home'));
 
-    // Let iOS/Telegram restore the normal WebView viewport before the next
-    // layout pass. A delayed resize from the game must not keep the home page narrow.
+    // Force iOS Safari/Telegram to recalculate the normal app layout after
+    // removing the fixed full-screen game viewport. Do not refresh Phaser
+    // while its page is hidden; that can cache a zero/narrow game viewport.
+    const app=document.querySelector('.app');
+    const main=document.querySelector('main');
+    if(app){
+      app.style.setProperty('display','block','important');
+      app.style.setProperty('width','100%','important');
+      app.style.setProperty('max-width','560px','important');
+      app.style.setProperty('height','auto','important');
+      app.style.setProperty('min-height','0','important');
+      app.style.setProperty('margin','0 auto','important');
+    }
+    if(main){
+      main.style.setProperty('display','block','important');
+      main.style.setProperty('width','100%','important');
+      main.style.setProperty('height','auto','important');
+      main.style.setProperty('min-height','0','important');
+      main.style.setProperty('padding','15px','important');
+      main.style.setProperty('overflow','visible','important');
+    }
+    window.scrollTo(0,0);
     requestAnimationFrame(()=>{
-      window.scrollTo(0,0);
+      window.dispatchEvent(new Event('resize'));
       requestAnimationFrame(()=>{
-        window.dispatchEvent(new Event('resize'));
-        if(state.game&&!state.running)state.game.scale.refresh();
+        if(app)['display','width','max-width','height','min-height','margin'].forEach(k=>app.style.removeProperty(k));
+        if(main)['display','width','height','min-height','padding','overflow'].forEach(k=>main.style.removeProperty(k));
+        document.body.style.removeProperty('position');
+        document.body.style.removeProperty('inset');
+        document.body.style.removeProperty('width');
+        document.body.style.removeProperty('height');
+        document.body.style.removeProperty('overflow');
+        document.documentElement.style.removeProperty('width');
+        document.documentElement.style.removeProperty('height');
+        document.documentElement.style.removeProperty('overflow');
+        window.scrollTo(0,0);
       });
     });
   }
