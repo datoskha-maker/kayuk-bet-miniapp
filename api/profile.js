@@ -51,6 +51,36 @@ export default async function handler(req, res) {
   const user = auth.user;
 
   const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  if (req.query?.scope === 'luna-admin') {
+    if (!process.env.ADMIN_TELEGRAM_ID || String(user.id) !== String(process.env.ADMIN_TELEGRAM_ID)) {
+      return res.status(403).json({ error: 'Admin access denied' });
+    }
+    if (req.method !== 'GET') return res.status(405).json({ error: 'Admin monitor is read-only' });
+    const [profilesQ, statesQ, balancesQ, inventoriesQ, activitiesQ, ordersQ, cartsQ, placementsQ] = await Promise.all([
+      supabase.from('profiles').select('id,telegram_id,username,display_name').order('created_at',{ascending:false}).limit(500),
+      supabase.from('luna_state').select('*'),
+      supabase.from('balances').select('user_id,balance'),
+      supabase.from('luna_inventory').select('user_id,item_id,purchased_at'),
+      supabase.from('luna_activity').select('user_id,event_type,details,created_at').order('created_at',{ascending:false}).limit(150),
+      supabase.from('luna_lavka_orders').select('user_id,id,status,total,created_at,delivered_at,luna_lavka_order_items(title,quantity,item_id)').order('created_at',{ascending:false}).limit(100),
+      supabase.from('luna_lavka_cart').select('user_id,item_id,quantity,updated_at'),
+      supabase.from('luna_placements').select('user_id,item_id,x,y,scale,updated_at')
+    ]);
+    const err=[profilesQ,statesQ,balancesQ,inventoriesQ,activitiesQ,ordersQ,cartsQ,placementsQ].find(q=>q.error);
+    if(err)return res.status(500).json({error:'Admin monitor data query failed'});
+    const profiles=profilesQ.data||[], states=statesQ.data||[], balances=balancesQ.data||[], inventories=inventoriesQ.data||[], activities=activitiesQ.data||[], orders=ordersQ.data||[], carts=cartsQ.data||[], placements=placementsQ.data||[];
+    const players=profiles.map(p=>({
+      id:p.id,telegram_id:p.telegram_id,username:p.username,name:p.display_name||p.username||'Игрок',
+      balance:Number(balances.find(b=>b.user_id===p.id)?.balance||0),
+      state:states.find(s=>s.user_id===p.id)||null,
+      inventory:inventories.filter(i=>i.user_id===p.id),
+      activity:activities.filter(a=>a.user_id===p.id).slice(0,20),
+      orders:orders.filter(o=>o.user_id===p.id).slice(0,10),
+      cart:carts.filter(x=>x.user_id===p.id),
+      placements:placements.filter(x=>x.user_id===p.id)
+    }));
+    return res.status(200).json({isAdmin:true,players,activity:activities,orders:orders.slice(0,50),updatedAt:new Date().toISOString()});
+  }
   let { data: profile, error } = await supabase
     .from('profiles')
     .select('id, telegram_id, username, display_name')
