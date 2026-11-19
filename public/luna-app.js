@@ -377,9 +377,32 @@
       };
       const order=()=> (data.orders||[]).find(x=>x.id===selectedOrderId);
       const stopTimers=()=>{if(mapTimer)clearInterval(mapTimer);if(statusTimer)clearInterval(statusTimer);mapTimer=null;statusTimer=null;};
-      const setCartQty=async(itemId,quantity)=>{
-        try{await act({action:'lavka_cart_set',itemId,quantity});renderLavka();}
-        catch(e){toast2(e.message);}
+      const cartSaveTimers=new Map(), cartSaveQueue=new Map();
+      const persistCartQty=(itemId,quantity)=>{
+        cartSaveQueue.set(itemId,quantity);
+        const oldTimer=cartSaveTimers.get(itemId);if(oldTimer)clearTimeout(oldTimer);
+        cartSaveTimers.set(itemId,setTimeout(async()=>{
+          cartSaveTimers.delete(itemId);
+          const latest=cartSaveQueue.get(itemId);cartSaveQueue.delete(itemId);
+          try{await api('POST',{action:'lavka_cart_set',itemId,quantity:latest});}
+          catch(e){toast2(e.message||'Не удалось сохранить корзину');try{data=await api();renderLavka();}catch(_){}}
+        },180));
+      };
+      const flushCartWrites=async()=>{
+        const pending=[...cartSaveQueue.entries()];
+        cartSaveQueue.clear();
+        for(const [itemId,quantity] of pending){
+          const timer=cartSaveTimers.get(itemId);if(timer)clearTimeout(timer);cartSaveTimers.delete(itemId);
+          await api('POST',{action:'lavka_cart_set',itemId,quantity});
+        }
+      };
+      const setCartQty=(itemId,quantity)=>{
+        const q=Math.max(0,Math.min(20,Number(quantity)||0));
+        const rows=(data.cart||[]).filter(x=>x.item_id!==itemId);
+        if(q>0)rows.push({item_id:itemId,quantity:q,updated_at:new Date().toISOString()});
+        data.cart=rows;
+        renderLavka();
+        persistCartQty(itemId,q);
       };
       const renderLavka=()=>{
         stopTimers();
@@ -409,7 +432,7 @@
         } else {
           if(currentOrder){
             const age=Math.max(0,(Date.now()-new Date(currentOrder.created_at).getTime())/1000);
-            const progress=currentOrder.status==='delivered'?100:Math.min(100,Math.round(age/180*100));
+            const progress=currentOrder.status==='delivered'?100:Math.min(100,Math.round(age/60*100));
             body='<button class="luna-lavka-back-orders" id="lavka-orders-back">← Все заказы</button>'+
               '<div class="luna-lavka-order-detail"><div class="luna-lavka-order-status" id="lavka-order-status">'+esc(orderStatus[currentOrder.status]||'Заказ оформлен')+'</div>'+
               '<div class="luna-lavka-progress"><i style="width:'+progress+'%"></i></div>'+
@@ -437,8 +460,14 @@
         phoneScreen.querySelectorAll('[data-lavka-open-order]').forEach(b=>b.addEventListener('click',()=>{selectedOrderId=b.dataset.lavkaOpenOrder;renderLavka();}));
         $('#lavka-orders-back',phoneScreen)?.addEventListener('click',()=>{selectedOrderId=null;renderLavka();});
         $('#lavka-checkout',phoneScreen)?.addEventListener('click',async()=>{
-          try{const result=await act({action:'lavka_checkout',orderKey:crypto.randomUUID()});selectedOrderId=result.order_id;activeTab='orders';toast2('Заказ оформлен! Курьер уже собирается.');renderLavka();}
-          catch(e){toast2(e.message);}
+          const button=$('#lavka-checkout',phoneScreen);if(!button||button.dataset.busy==='1')return;
+          button.dataset.busy='1';button.textContent='Оформляем заказ…';
+          try{
+            await flushCartWrites();
+            const result=await api('POST',{action:'lavka_checkout',orderKey:crypto.randomUUID()});
+            data=await api();
+            selectedOrderId=result.order_id;activeTab='orders';toast2('Заказ оформлен! Доставка до 1 минуты 🛵');renderLavka();
+          }catch(e){toast2(e.message||'Не удалось оформить заказ');if(button)button.dataset.busy='';}
         });
         if(activeTab==='orders'&&currentOrder) initLavkaMap(currentOrder);
       };
@@ -447,10 +476,10 @@
         const destinationUrl='https://yandex.ru/map-widget/v1/?ll=37.617632%2C55.695123&z=16&pt=37.617632%2C55.695123%2Cpm2rdm';
         mapEl.innerHTML='<iframe title="Яндекс Карты — адрес доставки" src="'+destinationUrl+'" width="100%" height="100%" frameborder="0" allowfullscreen="true" style="border:0;display:block"></iframe><div class="luna-yandex-courier" id="lavka-courier">🛵</div>';
         const courier=$('#lavka-courier',phoneScreen);
-        const started=new Date(currentOrder.created_at).getTime()+60000;
+        const started=new Date(currentOrder.created_at).getTime()+20000;
         const move=()=>{
           const status=(data.orders||[]).find(x=>x.id===currentOrder.id)?.status||currentOrder.status;
-          const progress=status==='delivered'?1:Math.max(0,Math.min(1,(Date.now()-started)/120000));
+          const progress=status==='delivered'?1:Math.max(0,Math.min(1,(Date.now()-started)/40000));
           courier.style.left=(12+progress*74)+'%';
           courier.style.top=(78-progress*60)+'%';
           if(status==='delivered'){courier.style.left='86%';courier.style.top='18%';if(mapTimer){clearInterval(mapTimer);mapTimer=null;}}
