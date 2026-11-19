@@ -345,7 +345,7 @@
     const apps=[['📸','Фото','photos'],['🎵','Музыка','music'],['🛍️','Яндекс Лавка','lavka'],['🏦','Кошка Банк','bank'],['🎁','Подарок','gift'],['🤳','Камера','camera']];
     if(data?.isAdmin)apps.push(['🛡️','Администратор','admin']);
     phoneScreen.innerHTML = '<div class="luna-phone-head"><span>ЛУНА PHONE 🐾</span><span>●●●</span></div><div class="luna-phone-menu">'+apps.map(x=>'<button class="luna-phone-app" data-phone-app="'+x[2]+'"><span>'+x[0]+'</span><span>'+x[1]+'</span></button>').join('')+'</div>';
-    phoneScreen.querySelectorAll('[data-phone-app]').forEach(b=>b.addEventListener('click',()=>renderPhoneApp(b.dataset.phone-app)));
+    phoneScreen.querySelectorAll('[data-phone-app]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();renderPhoneApp(b.dataset.phoneApp);}));
   }
   function bindBack() { phoneScreen.querySelectorAll('[data-phone-back]').forEach(b=>b.addEventListener('click',renderPhoneHome)); }
   async function renderAdminMonitor(){
