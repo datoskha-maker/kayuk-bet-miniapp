@@ -417,7 +417,7 @@
         cartSaveTimers.set(itemId,setTimeout(()=>{
           cartSaveTimers.delete(itemId);
           const latest=cartSaveQueue.get(itemId);cartSaveQueue.delete(itemId);
-          const promise=api('POST',{action:'lavka_cart_set',itemId,quantity:latest})
+          const promise=api('POST',{action:'lavka_cart_set',itemId,quantity:latest}).then(()=>recordActivity('game_action',{action:'lavka_cart_set',itemId,quantity:latest}))
             .catch(async e=>{toast2(e.message||'Не удалось сохранить корзину');try{data=await api();renderLavka();}catch(_){} })
             .finally(()=>cartSavePromises.delete(itemId));
           cartSavePromises.set(itemId,promise);
@@ -502,6 +502,7 @@
           try{
             await flushCartWrites();
             const result=await api('POST',{action:'lavka_checkout',orderKey:crypto.randomUUID()});
+            await recordActivity('game_action',{action:'lavka_checkout',orderId:result.order_id,total:result.total});
             data=await api();
             selectedOrderId=result.order_id;activeTab='orders';toast2('Заказ оформлен! Доставка до 1 минуты 🛵');renderLavka();
           }catch(e){toast2(e.message||'Не удалось оформить заказ');if(button)button.dataset.busy='';}
