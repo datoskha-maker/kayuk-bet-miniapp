@@ -549,22 +549,45 @@
     await submitReward();
   }
   function close(){
-    // Return to the regular KAYUK BET page layout. SLICE fullscreen is only
-    // a CSS state; leaving it means removing those classes and navigating home.
+    // Pause the round, then fully release the temporary edge-to-edge layout.
     if(state.running&&!state.finished){
       state.paused=true;
       stopBackground();
       state.pointer=null;
       state.swipeHits=[];
       state.scene?.scene.pause();
-      stopBackground();
       document.body.classList.remove('slice-playing');
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
+
+    // Remove every fullscreen flag and viewport override before navigating.
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
+    document.documentElement.style.removeProperty('--slice-viewport-height');
+    document.documentElement.style.removeProperty('--slice-stable-height');
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('inset');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('height');
+    document.body.style.removeProperty('padding');
+    document.body.style.removeProperty('overflow');
+    document.documentElement.style.removeProperty('width');
+    document.documentElement.style.removeProperty('height');
+    document.documentElement.style.removeProperty('overflow');
+
     try{tg?.enableVerticalSwipes?.();}catch(e){}
     if(typeof window.page==='function')window.page('home');
+    else document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='home'));
+
+    // Let iOS/Telegram restore the normal WebView viewport before the next
+    // layout pass. A delayed resize from the game must not keep the home page narrow.
+    requestAnimationFrame(()=>{
+      window.scrollTo(0,0);
+      requestAnimationFrame(()=>{
+        window.dispatchEvent(new Event('resize'));
+        if(state.game&&!state.running)state.game.scale.refresh();
+      });
+    });
   }
   function syncViewport(){
     // SLICE owns these viewport variables only while its immersive screen is open.
