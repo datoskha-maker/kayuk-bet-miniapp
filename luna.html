@@ -17,7 +17,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
 .brand{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:15px;padding:9px 12px;box-shadow:0 5px 20px #0002}
 .brand b{display:block;font-size:15px;letter-spacing:.5px}.brand small{display:block;font-size:10px;opacity:.72;margin-top:2px}
-#back-to-kayuk{display:inline-flex;align-items:center;margin-top:7px;padding:5px 8px;border:1px solid #ffffff42;border-radius:9px;background:#ffffff18;color:#fff;text-decoration:none;font-size:10px;font-weight:800;letter-spacing:0;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}#back-to-kayuk:active{transform:scale(.97);background:#ffffff30}
+#back-to-kayuk{position:fixed;z-index:50;top:calc(var(--safe-top) + 12px);left:12px;display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border:1px solid #8fb9e8;border-radius:12px;background:rgba(12,28,48,.94);box-shadow:0 4px 16px #0008;color:#fff;text-decoration:none;font-size:12px;font-weight:900;letter-spacing:.1px;pointer-events:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent}#back-to-kayuk:active{transform:scale(.97);background:#21496d}
 .stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
 .stat{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:12px;padding:7px 9px;min-width:62px;text-align:center}
 .stat .label{font-size:9px;opacity:.8;display:block}.stat .value{font-size:12px;font-weight:800;display:block;margin-top:2px}
@@ -57,10 +57,11 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 </head>
 <body>
 <div id="game">
+ <a id="back-to-kayuk" href="/" aria-label="Вернуться на главный экран КАЮК BET">← КАЮК BET</a>
  <img id="scene-bg" src="IMG_1984.jpeg" alt="">
  <div id="scene-shade"></div>
  <div id="top-ui">
-  <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small><a id="back-to-kayuk" href="/" aria-label="Вернуться на главный экран КАЮК BET">← Вернуться в КАЮК BET</a></div>
+  <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small></div>
   <div class="stats">
    <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
    <div class="stat"><span class="label">💧 Жажда</span><span class="value" id="thirst-v">80%</span></div>
