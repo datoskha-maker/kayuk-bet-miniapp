@@ -169,6 +169,7 @@ export default async function handler(req, res) {
         profile,
         balance,
         state,
+        isAdmin: Boolean(process.env.ADMIN_TELEGRAM_ID && String(user.id) === String(process.env.ADMIN_TELEGRAM_ID)),
         catalog: catalogQ.data || [],
         inventory: inventoryQ.data || [],
         dailyGift: giftQ.data || null,
