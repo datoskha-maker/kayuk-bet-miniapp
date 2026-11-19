@@ -377,26 +377,30 @@
       };
       const order=()=> (data.orders||[]).find(x=>x.id===selectedOrderId);
       const stopTimers=()=>{if(mapTimer)clearInterval(mapTimer);if(statusTimer)clearInterval(statusTimer);mapTimer=null;statusTimer=null;};
-      const cartSaveTimers=new Map(), cartSaveQueue=new Map();
+      const cartSaveTimers=new Map(), cartSaveQueue=new Map(), cartSavePromises=new Map();
       const persistCartQty=(itemId,quantity)=>{
         cartSaveQueue.set(itemId,quantity);
         const oldTimer=cartSaveTimers.get(itemId);if(oldTimer)clearTimeout(oldTimer);
-        cartSaveTimers.set(itemId,setTimeout(async()=>{
+        cartSaveTimers.set(itemId,setTimeout(()=>{
           cartSaveTimers.delete(itemId);
           const latest=cartSaveQueue.get(itemId);cartSaveQueue.delete(itemId);
-          try{await api('POST',{action:'lavka_cart_set',itemId,quantity:latest});}
-          catch(e){toast2(e.message||'Не удалось сохранить корзину');try{data=await api();renderLavka();}catch(_){}}
+          const promise=api('POST',{action:'lavka_cart_set',itemId,quantity:latest})
+            .catch(async e=>{toast2(e.message||'Не удалось сохранить корзину');try{data=await api();renderLavka();}catch(_){} })
+            .finally(()=>cartSavePromises.delete(itemId));
+          cartSavePromises.set(itemId,promise);
         },180));
       };
       const flushCartWrites=async()=>{
         const pending=[...cartSaveQueue.entries()];
         cartSaveQueue.clear();
+        const tasks=[];
         for(const [itemId,quantity] of pending){
           const timer=cartSaveTimers.get(itemId);if(timer)clearTimeout(timer);cartSaveTimers.delete(itemId);
-          await api('POST',{action:'lavka_cart_set',itemId,quantity});
+          const promise=api('POST',{action:'lavka_cart_set',itemId,quantity});
+          cartSavePromises.set(itemId,promise);tasks.push(promise);
         }
-      };
-      const setCartQty=(itemId,quantity)=>{
+        await Promise.all([...tasks,...cartSavePromises.values()]);
+      };const setCartQty=(itemId,quantity)=>{
         const q=Math.max(0,Math.min(20,Number(quantity)||0));
         const rows=(data.cart||[]).filter(x=>x.item_id!==itemId);
         if(q>0)rows.push({item_id:itemId,quantity:q,updated_at:new Date().toISOString()});
