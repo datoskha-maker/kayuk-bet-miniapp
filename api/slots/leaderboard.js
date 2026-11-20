@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   for (let offset = 0; ; offset += pageSize) {
     const { data: page, error: spinsError } = await supabase
       .from('slot_spins')
-      .select('id, user_id, stake, payout, payout')
+      .select('id, user_id, stake, payout, private_admin_mode')
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1);
 
@@ -63,15 +63,17 @@ export default async function handler(req, res) {
 
   const profileById = new Map((profiles || []).map(p => [p.id, p]));
   const totals = new Map();
-  const casinoTotals = { spins: 0, staked: 0, paid: 0 };
+  const casinoTotals = { spins: 0, staked: 0, paid: 0, testSpins: 0 };
   for (const spin of spins || []) {
     casinoTotals.spins += 1;
+    if (spin.private_admin_mode === true) casinoTotals.testSpins += 1;
     casinoTotals.staked += Number(spin.stake) || 0;
     casinoTotals.paid += Number(spin.payout) || 0;
     const key = spin.user_id;
-    if (!totals.has(key)) totals.set(key, { user_id: key, spins: 0, staked: 0, paid: 0 });
+    if (!totals.has(key)) totals.set(key, { user_id: key, spins: 0, testSpins: 0, staked: 0, paid: 0 });
     const row = totals.get(key);
     row.spins += 1;
+    if (spin.private_admin_mode === true) row.testSpins += 1;
     row.staked += Number(spin.stake) || 0;
     row.paid += Number(spin.payout) || 0;
   }
@@ -81,6 +83,7 @@ export default async function handler(req, res) {
       user_id: row.user_id,
       name: profile.display_name || (profile.username ? '@' + profile.username : 'Игрок Каюка'),
       spins: row.spins,
+      testSpins: row.testSpins,
       staked: row.staked,
       paid: row.paid,
       net: row.paid - row.staked
