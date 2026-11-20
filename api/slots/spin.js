@@ -44,14 +44,8 @@ function verifyTelegramInitData(initData, botToken) {
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-
-  // Fail closed: casino spins stay disabled until the owner explicitly enables them.
-  if (process.env.FOOTBALL_SLOTS_ENABLED !== 'true') {
-    return res.status(503).json({ error: 'Казино временно закрыто на проверку.' });
-  }
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -60,39 +54,56 @@ export default async function handler(req, res) {
     SUPABASE_URL: supabaseUrl,
     SUPABASE_SERVICE_ROLE_KEY: serviceKey
   } = process.env;
-
   if (!botToken || !supabaseUrl || !serviceKey) {
     return res.status(500).json({ error: 'Server configuration missing' });
   }
 
-  const telegramUser = verifyTelegramInitData(
-    req.headers['x-telegram-init-data'],
-    botToken
-  );
-
+  const telegramUser = verifyTelegramInitData(req.headers['x-telegram-init-data'], botToken);
   if (!telegramUser?.id) {
-    return res.status(401).json({
-      error: 'Telegram authentication failed. Reopen the Mini App.'
-    });
+    return res.status(401).json({ error: 'Telegram authentication failed. Reopen the Mini App.' });
   }
 
   let body = req.body;
   if (typeof body === 'string') {
-    try {
-      body = JSON.parse(body);
-    } catch {
-      return res.status(400).json({ error: 'Invalid JSON' });
+    try { body = JSON.parse(body); }
+    catch { return res.status(400).json({ error: 'Invalid JSON' }); }
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false }
+  });
+  const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
+  const isAdmin = !!adminId && String(telegramUser.id) === adminId;
+
+  // Private admin control shares this existing API route to stay within Vercel Hobby limits.
+  if (req.method === 'GET' || typeof body?.enabled === 'boolean') {
+    if (!isAdmin) return res.status(404).json({ error: 'Not found' });
+    if (req.method === 'GET') {
+      const { data, error } = await supabase.from('slot_admin_settings')
+        .select('lucky_mode_enabled').eq('id', true).single();
+      if (error) return res.status(500).json({ error: 'Settings unavailable' });
+      return res.status(200).json({ enabled: !!data.lucky_mode_enabled });
     }
+    const { error } = await supabase.from('slot_admin_settings')
+      .update({ lucky_mode_enabled: body.enabled, updated_at: new Date().toISOString() })
+      .eq('id', true);
+    if (error) return res.status(500).json({ error: 'Could not update setting' });
+    return res.status(200).json({ enabled: body.enabled });
+  }
+
+  // Fail closed: regular spins stay disabled until explicitly enabled in Vercel.
+  if (process.env.FOOTBALL_SLOTS_ENABLED !== 'true') {
+    return res.status(503).json({ error: 'Казино временно закрыто на проверку.' });
+  }
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const stake = Number(body?.stake);
   if (!Number.isSafeInteger(stake) || stake < 10 || stake > 100000) {
     return res.status(400).json({ error: 'Invalid stake' });
   }
-
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false }
-  });
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -104,18 +115,12 @@ export default async function handler(req, res) {
     console.error('Football slots profile lookup failed:', profileError.message);
     return res.status(500).json({ error: 'Profile lookup failed' });
   }
-
   if (!profile) {
-    return res.status(404).json({
-      error: 'Player profile not found. Open the main app first.'
-    });
+    return res.status(404).json({ error: 'Player profile not found. Open the main app first.' });
   }
 
-  // Only the configured owner can activate the private lucky mode.
-  // The setting is read server-side; client-supplied flags are ignored.
   let luckyMode = false;
-  const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
-  if (adminId && String(telegramUser.id) === adminId) {
+  if (isAdmin) {
     const { data: setting, error: settingError } = await supabase
       .from('slot_admin_settings')
       .select('lucky_mode_enabled')
@@ -128,7 +133,6 @@ export default async function handler(req, res) {
     luckyMode = !!setting?.lucky_mode_enabled;
   }
 
-  // The database RPC atomically debits, determines the outcome, pays and records it.
   const { data, error } = await supabase.rpc('spin_football_slots', {
     p_user_id: profile.id,
     p_stake: stake,
@@ -142,12 +146,8 @@ export default async function handler(req, res) {
     if (error.message?.includes('Invalid stake')) {
       return res.status(400).json({ error: 'Недопустимая ставка' });
     }
-
     console.error('Football slots RPC failed:', error.message);
-    return res.status(500).json({
-      error: 'Не удалось выполнить вращение. Попробуй позже.'
-    });
+    return res.status(500).json({ error: 'Не удалось выполнить вращение. Попробуй позже.' });
   }
-
   return res.status(200).json(data);
 }
