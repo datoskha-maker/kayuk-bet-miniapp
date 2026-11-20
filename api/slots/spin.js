@@ -111,11 +111,28 @@ export default async function handler(req, res) {
     });
   }
 
-  // The database RPC must atomically debit the stake, determine the result,
-  // credit any payout and record the spin. Never calculate payouts in the client.
+  // Only the configured owner can activate the private lucky mode.
+  // The setting is read server-side; client-supplied flags are ignored.
+  let luckyMode = false;
+  const adminId = String(process.env.ADMIN_TELEGRAM_ID || '');
+  if (adminId && String(telegramUser.id) === adminId) {
+    const { data: setting, error: settingError } = await supabase
+      .from('slot_admin_settings')
+      .select('lucky_mode_enabled')
+      .eq('id', true)
+      .maybeSingle();
+    if (settingError) {
+      console.error('Private slot setting lookup failed:', settingError.message);
+      return res.status(500).json({ error: 'Не удалось проверить настройки слотов.' });
+    }
+    luckyMode = !!setting?.lucky_mode_enabled;
+  }
+
+  // The database RPC atomically debits, determines the outcome, pays and records it.
   const { data, error } = await supabase.rpc('spin_football_slots', {
     p_user_id: profile.id,
-    p_stake: stake
+    p_stake: stake,
+    p_lucky_mode: luckyMode
   });
 
   if (error) {
