@@ -881,21 +881,18 @@ let privateSlotLuckEnabled = false;
 async function loadPrivateSlotControl(){
   const mount=document.getElementById('privateSlotLuckMount');
   if(!mount)return;
-  let telegramId=String(tg?.initDataUnsafe?.user?.id||'');if(!telegramId){try{telegramId=String(JSON.parse(new URLSearchParams(tg?.initData||'').get('user')||'{}').id||'')}catch(e){telegramId=''}}
-  const clientAdmin=telegramId==='460962158';
-  if(!clientAdmin){mount.innerHTML='';return;}
-  const renderButton=()=>{mount.innerHTML='<button type="button" class="private-slot-luck'+(privateSlotLuckEnabled?' enabled':'')+'" id="privateSlotLuckButton" onclick="togglePrivateSlotLuck()">'+(privateSlotLuckEnabled?'🍀 ЛИЧНАЯ УДАЧА: ВКЛ':'🍀 ЛИЧНАЯ УДАЧА: ВЫКЛ')+'</button>'};
-  renderButton();
-  if(!tg?.initData){mount.insertAdjacentHTML('beforeend','<div class="muted" style="text-align:center;margin-top:6px">Telegram initData отсутствует — управление недоступно</div>');return;}
+  mount.innerHTML='';
+  if(!tg?.initData)return;
+  // Server-side verified owner check: render the secret control only if the
+  // authenticated API confirms this Telegram account is the configured admin.
   try{
     const response=await fetch('/api/slots/spin',{headers:{'x-telegram-init-data':tg.initData},cache:'no-store'});
-    if(!response.ok)throw new Error('HTTP '+response.status);
+    if(!response.ok)return;
     const data=await response.json();
     privateSlotLuckEnabled=!!data.enabled;
-    renderButton();
+    mount.innerHTML='<button type="button" class="private-slot-luck'+(privateSlotLuckEnabled?' enabled':'')+'" id="privateSlotLuckButton" onclick="togglePrivateSlotLuck()">'+(privateSlotLuckEnabled?'🍀 ЛИЧНАЯ УДАЧА: ВКЛ':'🍀 ЛИЧНАЯ УДАЧА: ВЫКЛ')+'</button>';
   }catch(e){
     console.error('Private slot control load failed:',e);
-    mount.insertAdjacentHTML('beforeend','<div class="muted" style="text-align:center;margin-top:6px">Настройка не загрузилась ('+esc(e.message)+')</div>');
   }
 }
 async function togglePrivateSlotLuck(){
