@@ -881,7 +881,7 @@ let privateSlotLuckEnabled = false;
 async function loadPrivateSlotControl(){
   if(!tg?.initData)return;
   try{
-    const response=await fetch('/api/slots/admin-luck',{headers:{'x-telegram-init-data':tg.initData},cache:'no-store'});
+    const response=await fetch('/api/slots/spin',{headers:{'x-telegram-init-data':tg.initData},cache:'no-store'});
     if(!response.ok)return;
     const data=await response.json();
     privateSlotLuckEnabled=!!data.enabled;
@@ -895,7 +895,7 @@ async function togglePrivateSlotLuck(){
   if(!button)return;
   button.disabled=true;
   try{
-    const response=await fetch('/api/slots/admin-luck',{method:'POST',headers:{'Content-Type':'application/json','x-telegram-init-data':tg.initData},body:JSON.stringify({enabled:!privateSlotLuckEnabled})});
+    const response=await fetch('/api/slots/spin',{method:'POST',headers:{'Content-Type':'application/json','x-telegram-init-data':tg.initData},body:JSON.stringify({enabled:!privateSlotLuckEnabled})});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Не удалось изменить режим');
     privateSlotLuckEnabled=!!data.enabled;
