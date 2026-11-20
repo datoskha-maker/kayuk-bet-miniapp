@@ -881,7 +881,7 @@ let privateSlotLuckEnabled = false;
 async function loadPrivateSlotControl(){
   const mount=document.getElementById('privateSlotLuckMount');
   if(!mount)return;
-  const telegramId=String(tg?.initDataUnsafe?.user?.id||new URLSearchParams(tg?.initData||'').get('user')&&JSON.parse(new URLSearchParams(tg.initData).get('user')).id||'');
+  let telegramId=String(tg?.initDataUnsafe?.user?.id||'');if(!telegramId){try{telegramId=String(JSON.parse(new URLSearchParams(tg?.initData||'').get('user')||'{}').id||'')}catch(e){telegramId=''}}
   const clientAdmin=telegramId==='460962158';
   if(!clientAdmin){mount.innerHTML='';return;}
   const renderButton=()=>{mount.innerHTML='<button type="button" class="private-slot-luck'+(privateSlotLuckEnabled?' enabled':'')+'" id="privateSlotLuckButton" onclick="togglePrivateSlotLuck()">'+(privateSlotLuckEnabled?'🍀 ЛИЧНАЯ УДАЧА: ВКЛ':'🍀 ЛИЧНАЯ УДАЧА: ВЫКЛ')+'</button>'};
