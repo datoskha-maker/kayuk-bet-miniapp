@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Admin access denied' });
     }
     if (req.method !== 'GET') return res.status(405).json({ error: 'Admin monitor is read-only' });
-    const [profilesQ, statesQ, balancesQ, inventoriesQ, activitiesQ, ordersQ, cartsQ, placementsQ, financeQ] = await Promise.all([
+    const [profilesQ, statesQ, balancesQ, inventoriesQ, activitiesQ, ordersQ, cartsQ, placementsQ, financeQ, bankLoansQ] = await Promise.all([
       supabase.from('profiles').select('id,telegram_id,username,display_name').order('created_at',{ascending:false}).limit(500),
       supabase.from('luna_state').select('*'),
       supabase.from('balances').select('user_id,balance'),
@@ -65,11 +65,13 @@ export default async function handler(req, res) {
       supabase.from('luna_lavka_orders').select('user_id,id,status,total,created_at,delivered_at,luna_lavka_order_items(title,quantity,item_id)').order('created_at',{ascending:false}).limit(100),
       supabase.from('luna_lavka_cart').select('user_id,item_id,quantity,updated_at'),
       supabase.from('luna_placements').select('user_id,item_id,x,y,scale,updated_at'),
-      supabase.from('luna_financial_totals').select('user_id,credited_total,debited_total,credit_operations,debit_operations')
+      supabase.from('luna_financial_totals').select('user_id,credited_total,debited_total,credit_operations,debit_operations'),
+      supabase.from('bank_loans').select('id,user_id,principal,total_due,due_at,status,late_days_applied,created_at,closed_at,defaulted_at').order('created_at',{ascending:false}).limit(1000)
     ]);
-    const err=[profilesQ,statesQ,balancesQ,inventoriesQ,activitiesQ,ordersQ,cartsQ,placementsQ,financeQ].find(q=>q.error);
+    const err=[profilesQ,statesQ,balancesQ,inventoriesQ,activitiesQ,ordersQ,cartsQ,placementsQ,financeQ,bankLoansQ].find(q=>q.error);
     if(err)return res.status(500).json({error:'Admin monitor data query failed'});
     const profiles=profilesQ.data||[], states=statesQ.data||[], balances=balancesQ.data||[], inventories=inventoriesQ.data||[], activities=activitiesQ.data||[], orders=ordersQ.data||[], carts=cartsQ.data||[], placements=placementsQ.data||[], finance=financeQ.data||[];
+    const bankLoans=(bankLoansQ.data||[]).map(l=>{const lateDays=Math.max(0,Math.floor((Date.now()-new Date(l.due_at).getTime())/86400000));const unappliedLateDays=Math.max(0,lateDays-Number(l.late_days_applied||0));return {...l,lateDays,currentDue:Math.ceil(Number(l.total_due||0)*Math.pow(1.1,unappliedLateDays))};});
     const players=profiles.map(p=>({
       id:p.id,telegram_id:p.telegram_id,username:p.username,name:p.display_name||p.username||'Игрок',
       balance:Number(balances.find(b=>b.user_id===p.id)?.balance||0),
@@ -82,7 +84,10 @@ export default async function handler(req, res) {
       placements:placements.filter(x=>x.user_id===p.id)
     }));
     const financeTotals=players.reduce((a,p)=>({credited:a.credited+p.finance.credited,debited:a.debited+p.finance.debited,net:a.net+p.finance.net,creditOperations:a.creditOperations+p.finance.creditOperations,debitOperations:a.debitOperations+p.finance.debitOperations}),{credited:0,debited:0,net:0,creditOperations:0,debitOperations:0});
-    return res.status(200).json({isAdmin:true,players,activity:activities,orders:orders.slice(0,50),financeTotals,updatedAt:new Date().toISOString()});
+    const bankRegistry=bankLoans.map(l=>{const p=profiles.find(x=>x.id===l.user_id);return {...l,playerName:p?.display_name||p?.username||'Игрок',username:p?.username||null,telegram_id:p?.telegram_id??null};});
+    const activeLoans=bankRegistry.filter(l=>l.status==='active');
+    const bankTotals={loans:bankRegistry.length,activeLoans:activeLoans.length,issued:bankRegistry.reduce((s,l)=>s+Number(l.principal||0),0),outstanding:activeLoans.reduce((s,l)=>s+Number(l.currentDue||0),0),overdue:activeLoans.filter(l=>Number(l.lateDays||0)>0).length};
+    return res.status(200).json({isAdmin:true,players,activity:activities,orders:orders.slice(0,50),financeTotals,bankRegistry,bankTotals,updatedAt:new Date().toISOString()});
   }
   let { data: profile, error } = await supabase
     .from('profiles')
