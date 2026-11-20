@@ -48,6 +48,20 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
   let introTargetX = 0;
   let tapLocked = false;
 
+  // Play the existing Dynasty sound only from the direct user tap (iOS/Telegram friendly).
+  const dynastySound = new Audio('https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%B4%D0%B8%D0%BD%D0%B0%D1%81%D1%82%D0%B8%D1%8F.mp3');
+  dynastySound.preload = 'auto';
+  dynastySound.volume = 1;
+
+  function playDynastySound() {
+    dynastySound.pause();
+    dynastySound.currentTime = 0;
+    const playback = dynastySound.play();
+    if (playback && typeof playback.catch === 'function') {
+      playback.catch(error => console.warn('[Luna 3D] Dynasty sound could not play:', error));
+    }
+  }
+
   function findClip(name) {
     const wanted = name.toLowerCase().replace(/[^a-z0-9]/g, '');
     return clips.find(c => c.name.toLowerCase().replace(/[^a-z0-9]/g, '') === wanted)
@@ -267,6 +281,7 @@ import { GLTFLoader } from 'https://esm.sh/three@0.170.0/examples/jsm/loaders/GL
     tapLocked = true;
     interactionBusy = true;
     character.rotation.y = 0;
+    playDynastySound();
     playOnce('Stand_On_Hind_Legs_Cat', () => startWalking());
   }, { passive: false });
 
