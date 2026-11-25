@@ -150,6 +150,7 @@ declare
   v_count integer;
   v_sb_paid bigint;
   v_bb_paid bigint;
+  v_board text[];
 begin
   select * into v_room from public.poker_rooms where id=p_room_id for update;
   if not found then raise exception 'Комната не найдена'; end if;
@@ -218,7 +219,13 @@ begin
   if v_turn is null then
     select min(seat) into v_turn from public.poker_game_players where game_id=v_game_id and not folded and not all_in;
   end if;
-  update public.poker_games set current_turn_seat=v_turn where id=v_game_id;
+  if v_turn is null then
+    v_board:=v_deck[14:16]||v_deck[18:18]||v_deck[20:20];
+    update public.poker_games set status='showdown',board=v_board,current_turn_seat=null,
+      action_deadline=null,last_action='all_in_showdown' where id=v_game_id;
+  else
+    update public.poker_games set current_turn_seat=v_turn where id=v_game_id;
+  end if;
   update public.poker_rooms set status='playing',started_at=coalesce(started_at,now()) where id=p_room_id;
   return v_game_id;
 end;
