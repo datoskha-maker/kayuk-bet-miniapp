@@ -1,6 +1,7 @@
 -- KAYUK POKER: atomic player actions and betting-round progression.
 alter table public.poker_game_players
   add column if not exists acted_this_street boolean not null default false;
+alter table public.poker_game_players add column if not exists raise_locked boolean not null default false;
 
 create or replace function public.poker_act(
   p_user_id uuid,
@@ -55,28 +56,48 @@ begin
     update public.poker_games set pot=pot+v_pay where id=v_game.id;
   elsif p_action in ('bet','raise','all_in') then
     if p_action='all_in' then
-      v_target := v_player.street_contribution+v_player.stack;
+      v_target:=v_player.street_contribution+v_player.stack;
+      v_pay:=v_player.stack;
+      if v_target<=v_game.current_bet then
+        update public.poker_game_players set stack=0,street_contribution=v_target,
+          hand_contribution=hand_contribution+v_pay,all_in=true,acted_this_street=true,last_action='all-in'
+          where id=v_player.id;
+        update public.poker_games set pot=pot+v_pay where id=v_game.id;
+      else
+        update public.poker_game_players set stack=0,street_contribution=v_target,
+          hand_contribution=hand_contribution+v_pay,all_in=true,acted_this_street=true,last_action='all-in'
+          where id=v_player.id;
+        if v_target-v_game.current_bet>=v_game.min_raise then
+          update public.poker_game_players set acted_this_street=false,raise_locked=false
+            where game_id=v_game.id and user_id<>p_user_id and not folded and not all_in;
+        else
+          update public.poker_game_players set raise_locked=true
+            where game_id=v_game.id and user_id<>p_user_id and acted_this_street and not folded and not all_in;
+        end if;
+        update public.poker_games set pot=pot+v_pay,current_bet=v_target,
+          min_raise=case when v_target-v_game.current_bet>=v_game.min_raise
+            then v_target-v_game.current_bet else min_raise end where id=v_game.id;
+      end if;
     else
-      v_target := p_amount;
-    end if;
-    if v_target <= v_game.current_bet then raise exception 'Новая ставка должна быть выше текущей'; end if;
-    if v_target > v_player.street_contribution+v_player.stack then raise exception 'Недостаточно фишек'; end if;
-    if p_action='bet' and v_game.current_bet<>0 then raise exception 'Ставка уже открыта: используй raise'; end if;
-    if p_action='raise' and v_target < v_game.current_bet+v_game.min_raise then raise exception 'Минимальное повышение: %',v_game.min_raise; end if;
-    v_pay:=v_target-v_player.street_contribution;
-    update public.poker_game_players set
-      stack=stack-v_pay,street_contribution=v_target,
-      hand_contribution=hand_contribution+v_pay,
-      all_in=(stack-v_pay=0),acted_this_street=true,
-      last_action=case when stack-v_pay=0 then 'all-in' else p_action end
-      where id=v_player.id;
-    if v_target-v_game.current_bet >= v_game.min_raise then
-      update public.poker_game_players set acted_this_street=false
+      v_target:=p_amount;
+      if v_target<=v_game.current_bet then raise exception 'Новая ставка должна быть выше текущей'; end if;
+      if v_target>v_player.street_contribution+v_player.stack then raise exception 'Недостаточно фишек'; end if;
+      if p_action='bet' and v_game.current_bet<>0 then raise exception 'Ставка уже открыта: используй raise'; end if;
+      if p_action='bet' and v_target<v_game.min_raise then raise exception 'Минимальная ставка: %',v_game.min_raise; end if;
+      if p_action='raise' and v_player.raise_locked then raise exception 'Повышение не переоткрыто коротким олл-ин'; end if;
+      if p_action='raise' and v_target<v_game.current_bet+v_game.min_raise then raise exception 'Минимальное повышение: %',v_game.min_raise; end if;
+      v_pay:=v_target-v_player.street_contribution;
+      update public.poker_game_players set
+        stack=stack-v_pay,street_contribution=v_target,
+        hand_contribution=hand_contribution+v_pay,
+        all_in=(stack-v_pay=0),acted_this_street=true,
+        last_action=case when stack-v_pay=0 then 'all-in' else p_action end
+        where id=v_player.id;
+      update public.poker_game_players set acted_this_street=false,raise_locked=false
         where game_id=v_game.id and user_id<>p_user_id and not folded and not all_in;
+      update public.poker_games set pot=pot+v_pay,current_bet=v_target,
+        min_raise=v_target-v_game.current_bet where id=v_game.id;
     end if;
-    update public.poker_games set pot=pot+v_pay,current_bet=v_target,
-      min_raise=case when v_target-v_game.current_bet >= v_game.min_raise
-        then v_target-v_game.current_bet else min_raise end where id=v_game.id;
   else
     raise exception 'Неизвестное действие';
   end if;
@@ -85,7 +106,7 @@ begin
   select count(*) into v_active from public.poker_game_players where game_id=v_game.id and not folded;
   if v_active=1 then
     select user_id into v_winner from public.poker_game_players where game_id=v_game.id and not folded limit 1;
-    update public.poker_game_players set stack=stack+v_game.pot where game_id=v_game.id and user_id=v_winner;
+    update public.poker_game_players set stack=stack+v_game.pot,last_action='winner' where game_id=v_game.id and user_id=v_winner;
     update public.poker_room_players rp set stack=gp.stack
       from public.poker_game_players gp where gp.game_id=v_game.id and gp.user_id=rp.user_id and rp.room_id=p_room_id;
     update public.poker_games set status='complete',current_turn_seat=null,action_deadline=null,last_action='fold_win' where id=v_game.id;
@@ -111,7 +132,7 @@ begin
       update public.poker_games set status='showdown',current_turn_seat=null,action_deadline=null,board=v_board,last_action='showdown_required' where id=v_game.id;
       return jsonb_build_object('status','showdown','pot',v_game.pot,'board',v_board);
     end if;
-    update public.poker_game_players set street_contribution=0,acted_this_street=false
+    update public.poker_game_players set street_contribution=0,acted_this_street=false,raise_locked=false
       where game_id=v_game.id and not folded;
     select min(seat) into v_next from public.poker_game_players
       where game_id=v_game.id and seat>v_game.dealer_seat and not folded and not all_in;
