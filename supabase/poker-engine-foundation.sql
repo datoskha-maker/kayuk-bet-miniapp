@@ -96,8 +96,8 @@ begin
     v_code := upper(substr(encode(gen_random_bytes(5),'hex'),1,6));
     exit when not exists(select 1 from public.poker_rooms where code=v_code);
   end loop;
-  insert into public.poker_rooms(code,title,capacity,buy_in,host_user_id)
-  values(v_code,left(trim(p_title),48),p_capacity,p_buy_in,p_user_id) returning * into v_room;
+  insert into public.poker_rooms(code,title,capacity,buy_in,host_user_id,created_by)
+  values(v_code,left(trim(p_title),48),p_capacity,p_buy_in,p_user_id,p_user_id) returning * into v_room;
   insert into public.poker_room_players(room_id,user_id,seat,stack) values(v_room.id,p_user_id,1,p_buy_in);
   return jsonb_build_object('room_id',v_room.id,'code',v_room.code,'status',v_room.status,'capacity',v_room.capacity,'buy_in',v_room.buy_in);
 end;
