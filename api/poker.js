@@ -34,7 +34,13 @@ export default async function handler(req, res) {
         ? await supabase.from('profiles').select('id,username,display_name').in('id', ids)
         : { data: [], error: null };
       if (playersError) return send(res, 500, { error: 'Не удалось загрузить имена игроков' });
-      const { data: game } = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('room_id', room.id).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+      let { data: game } = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('room_id', room.id).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+      if (game?.status === 'showdown') {
+        const { error: settleError } = await supabase.rpc('poker_settle_showdown', { p_room_id: room.id });
+        if (settleError) return send(res, 500, { error: 'Не удалось рассчитать комбинации и банк' });
+        const refreshed = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('id', game.id).maybeSingle();
+        game = refreshed.data;
+      }
       const { data: gamePlayers } = game ? await supabase.from('poker_game_players').select('user_id,seat,stack,street_contribution,folded,all_in,last_action').eq('game_id', game.id).order('seat') : { data: [], error: null };
       const { data: myGameSeat } = game ? await supabase.from('poker_game_players').select('hole_cards,stack,street_contribution,last_action').eq('game_id', game.id).eq('user_id', profile.id).maybeSingle() : { data: null };
       return send(res, 200, { room, game, game_players: gamePlayers || [], my_game_seat: myGameSeat, players: (seats || []).map(s => {
