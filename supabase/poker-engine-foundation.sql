@@ -93,7 +93,7 @@ begin
   update public.balances set balance=balance-p_buy_in,updated_at=now() where user_id=p_user_id;
   insert into public.transactions(user_id,amount,type,note) values(p_user_id,-p_buy_in,'poker_buyin','Бай-ин в покерную комнату');
   loop
-    v_code := upper(substr(encode(gen_random_bytes(5),'hex'),1,6));
+    v_code := upper(substr(md5(random()::text||clock_timestamp()::text),1,6));
     exit when not exists(select 1 from public.poker_rooms where code=v_code);
   end loop;
   insert into public.poker_rooms(code,title,capacity,buy_in,host_user_id,created_by)
