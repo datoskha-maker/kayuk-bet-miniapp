@@ -21,6 +21,7 @@ function openPokerLobby(){
  showModal('♠ Выбрать стол','Создай комнату для друзей или присоединяйся к открытой.',
  '<div class="field-label">КОЛИЧЕСТВО МЕСТ</div><select id="pokerSize" class="select-field"><option value="2">2 игрока</option><option value="3">3 игрока</option><option value="4" selected>4 игрока</option><option value="5">5 игроков</option><option value="6">6 игроков</option></select><button class="lobby-btn" onclick="createPoker()">＋ СОЗДАТЬ СТОЛ</button><div class="field-label">ОТКРЫТЫЕ КОМНАТЫ</div><div id="pokerRooms" class="poker-modal-list">Загрузка…</div><button class="lobby-btn" onclick="loadPokerRooms()">↻ ОБНОВИТЬ</button>',
  '<button class="secondary-modal" onclick="closeModal()">ЗАКРЫТЬ</button>');
+ const foot=document.querySelector('.modal-foot');if(foot)foot.textContent='Комнаты синхронизируются через сервер КАЮК BET.';
  loadPokerRooms();
 }
 function pokerSafe(value){return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
@@ -32,8 +33,8 @@ async function loadPokerRooms(){
   el.querySelectorAll('[data-poker-room]').forEach(button=>button.addEventListener('click',()=>joinPoker(button.dataset.pokerRoom)));
  }catch(e){el.textContent=e.message}
 }
-async function createPoker(){try{const d=await pokerCall('POST',{action:'create',capacity:Number(document.getElementById('pokerSize').value)});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
-async function joinPoker(id){try{const d=await pokerCall('POST',{action:'join',roomId:id});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
+async function createPoker(){document.getElementById('pokerWaitMusic').play().catch(()=>{});try{const d=await pokerCall('POST',{action:'create',capacity:Number(document.getElementById('pokerSize').value)});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
+async function joinPoker(id){document.getElementById('pokerWaitMusic').play().catch(()=>{});try{const d=await pokerCall('POST',{action:'join',roomId:id});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
 function enterPokerWait(room,balance){
  closeModal();pokerRoom=room;pokerMoney=Number(balance||0);pokerStarting=false;
  document.getElementById('pokerWait').classList.add('on');
