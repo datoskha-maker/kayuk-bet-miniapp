@@ -64,6 +64,7 @@ begin
           where id=v_player.id;
         update public.poker_games set pot=pot+v_pay where id=v_game.id;
       else
+        if v_player.raise_locked then raise exception 'Повышение не переоткрыто коротким олл-ин'; end if;
         update public.poker_game_players set stack=0,street_contribution=v_target,
           hand_contribution=hand_contribution+v_pay,all_in=true,acted_this_street=true,last_action='all-in'
           where id=v_player.id;
