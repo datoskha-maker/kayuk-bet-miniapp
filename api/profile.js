@@ -135,6 +135,94 @@ export default async function handler(req, res) {
   }
 
 
+
+  // KAYUK CASINO poker lobby. Reuses this existing function route to avoid adding a Vercel function.
+  if (req.query?.scope === 'poker') {
+    const roomSelect = 'id,code,capacity,status,created_at,created_by,poker_room_players(seat,user_id,joined_at,profiles(display_name,username))';
+    const getRoom = async (roomId) => {
+      const { data, error } = await supabase.from('poker_rooms').select(roomSelect).eq('id', roomId).maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return { ...data, players: (data.poker_room_players || []).sort((a,b) => a.seat-b.seat).map(p => ({
+        seat:p.seat, user_id:p.user_id, joined_at:p.joined_at,
+        name:p.profiles?.display_name || p.profiles?.username || 'Игрок',
+        isMe:p.user_id===profile.id
+      })) };
+    };
+    if (req.method === 'GET') {
+      const roomId = String(req.query?.roomId || '');
+      if (roomId) {
+        const room = await getRoom(roomId);
+        if (!room) return res.status(404).json({error:'Комната не найдена'});
+        const member = room.players.some(p => p.user_id === profile.id);
+        if (!member) return res.status(403).json({error:'Ты не состоишь в этой комнате'});
+        return res.status(200).json({room,balance:Number(balanceRow.balance||0),playerId:profile.id});
+      }
+      const {data,error} = await supabase.from('poker_rooms').select(roomSelect)
+        .eq('status','waiting').order('created_at',{ascending:false}).limit(40);
+      if (error) return res.status(500).json({error:'Не удалось загрузить список столов'});
+      const rooms=(data||[]).map(room=>({...room,players:(room.poker_room_players||[]).sort((a,b)=>a.seat-b.seat).map(p=>({
+        seat:p.seat,user_id:p.user_id,name:p.profiles?.display_name||p.profiles?.username||'Игрок'
+      }))}));
+      return res.status(200).json({rooms,balance:Number(balanceRow.balance||0),playerId:profile.id});
+    }
+    if (req.method !== 'POST') return res.status(405).json({error:'Метод не поддерживается'});
+    let body=req.body;
+    if(typeof body==='string'){try{body=JSON.parse(body)}catch{body=null}}
+    const action=String(body?.action||'');
+    if(action==='create'){
+      const capacity=Number(body?.capacity);
+      if(!Number.isInteger(capacity)||capacity<2||capacity>6) return res.status(400).json({error:'Выбери от 2 до 6 игроков'});
+      let created=null;
+      for(let attempt=0;attempt<4&&!created;attempt++){
+        const code=crypto.randomBytes(3).toString('hex').toUpperCase();
+        const result=await supabase.from('poker_rooms').insert({code,created_by:profile.id,capacity,status:'waiting'})
+          .select('id,code,capacity,status').single();
+        if(!result.error) created=result.data;
+        else if(result.error.code!=='23505') return res.status(500).json({error:'Не удалось создать стол'});
+      }
+      if(!created) return res.status(503).json({error:'Не удалось подобрать код комнаты. Попробуй ещё раз'});
+      const joined=await supabase.rpc('poker_join_room',{p_room_id:created.id,p_user_id:profile.id});
+      if(joined.error){await supabase.from('poker_rooms').update({status:'cancelled'}).eq('id',created.id);return res.status(500).json({error:'Не удалось занять место за созданным столом'});}
+      return res.status(200).json({ok:true,room:await getRoom(created.id),join:joined.data});
+    }
+    if(action==='join'){
+      const roomId=String(body?.roomId||'');
+      if(!/^[0-9a-f-]{36}$/i.test(roomId)) return res.status(400).json({error:'Некорректная комната'});
+      const joined=await supabase.rpc('poker_join_room',{p_room_id:roomId,p_user_id:profile.id});
+      if(joined.error){
+        const msg=String(joined.error.message||'');
+        const known=msg.includes('ROOM_NOT_FOUND')?'Комната не найдена':msg.includes('ROOM_NOT_WAITING')?'Игра уже началась':msg.includes('ROOM_FULL')?'Свободных мест больше нет':msg.includes('PLAYER_ALREADY_IN_ROOM')?'Ты уже находишься в другой игровой комнате':'Не удалось войти в комнату';
+        return res.status(409).json({error:known});
+      }
+      return res.status(200).json({ok:true,room:await getRoom(roomId),join:joined.data});
+    }
+    if(action==='leave'){
+      const roomId=String(body?.roomId||'');
+      const room=await getRoom(roomId);
+      if(!room||!room.players.some(p=>p.user_id===profile.id)) return res.status(404).json({error:'Комната не найдена'});
+      if(room.status!=='waiting') return res.status(409).json({error:'Игра уже запускается — выйти из комнаты ожидания нельзя'});
+      const {error:delError}=await supabase.from('poker_room_players').delete().eq('room_id',roomId).eq('user_id',profile.id);
+      if(delError) return res.status(500).json({error:'Не удалось выйти из комнаты'});
+      const remaining=room.players.filter(p=>p.user_id!==profile.id);
+      if(!remaining.length) await supabase.from('poker_rooms').update({status:'cancelled',updated_at:new Date().toISOString()}).eq('id',roomId);
+      else if(room.created_by===profile.id) await supabase.from('poker_rooms').update({created_by:remaining[0].user_id,updated_at:new Date().toISOString()}).eq('id',roomId);
+      return res.status(200).json({ok:true});
+    }
+    if(action==='activate'){
+      const roomId=String(body?.roomId||'');
+      const {data:member,error:memberError}=await supabase.from('poker_room_players').select('id').eq('room_id',roomId).eq('user_id',profile.id).maybeSingle();
+      if(memberError||!member) return res.status(403).json({error:'Нет доступа к этой игре'});
+      const {data:activated,error:activateError}=await supabase.from('poker_rooms').update({status:'playing',updated_at:new Date().toISOString()})
+        .eq('id',roomId).eq('status','starting').select('id,status').maybeSingle();
+      if(activateError) return res.status(500).json({error:'Не удалось запустить стол'});
+      const room=await getRoom(roomId);
+      if(!room||!['starting','playing'].includes(room.status)) return res.status(409).json({error:'Стол ещё не готов'});
+      return res.status(200).json({ok:true,room});
+    }
+    return res.status(400).json({error:'Неизвестное действие'});
+  }
+
   // Luna uses this existing profile function to stay within the Vercel Hobby function limit.
   if (req.method === 'POST' || req.query?.scope === 'luna') {
     const lunaTick = await supabase.rpc('luna_tick_user', { p_user_id: profile.id });
