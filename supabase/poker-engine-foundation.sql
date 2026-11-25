@@ -148,6 +148,8 @@ declare
   v_bb integer;
   v_turn integer;
   v_count integer;
+  v_sb_paid bigint;
+  v_bb_paid bigint;
 begin
   select * into v_room from public.poker_rooms where id=p_room_id for update;
   if not found then raise exception 'Комната не найдена'; end if;
@@ -201,13 +203,15 @@ begin
     end if;
   end if;
 
-  update public.poker_game_players set stack=stack-10,street_contribution=10,
-    hand_contribution=10,all_in=(stack=10),last_action='small blind'
-    where game_id=v_game_id and seat=v_sb;
-  update public.poker_game_players set stack=stack-20,street_contribution=20,
-    hand_contribution=20,all_in=(stack=20),last_action='big blind'
-    where game_id=v_game_id and seat=v_bb;
-  update public.poker_games set pot=30,current_bet=20 where id=v_game_id;
+  update public.poker_game_players set stack=stack-least(stack,10),
+    street_contribution=least(stack,10),hand_contribution=least(stack,10),
+    all_in=(stack<=10),last_action='small blind'
+    where game_id=v_game_id and seat=v_sb returning street_contribution into v_sb_paid;
+  update public.poker_game_players set stack=stack-least(stack,20),
+    street_contribution=least(stack,20),hand_contribution=least(stack,20),
+    all_in=(stack<=20),last_action='big blind'
+    where game_id=v_game_id and seat=v_bb returning street_contribution into v_bb_paid;
+  update public.poker_games set pot=v_sb_paid+v_bb_paid,current_bet=greatest(v_sb_paid,v_bb_paid),min_raise=20 where id=v_game_id;
 
   select min(seat) into v_turn from public.poker_game_players
     where game_id=v_game_id and seat>v_bb and not folded and not all_in;
