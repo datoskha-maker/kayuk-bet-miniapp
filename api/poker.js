@@ -21,6 +21,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const roomId = String(req.query?.room_id || '');
     if (roomId) {
+      const { data: membership, error: memberError } = await supabase.from('poker_room_players')
+        .select('user_id').eq('room_id', roomId).eq('user_id', profile.id).maybeSingle();
+      if (memberError) return send(res, 500, { error: 'Не удалось проверить участие за столом' });
+      if (!membership) return send(res, 403, { error: 'Ты не участник этой комнаты' });
       const { error: timeoutError } = await supabase.rpc('poker_auto_timeout', { p_room_id: roomId });
       if (timeoutError) return send(res, 500, { error: 'Не удалось проверить таймер хода' });
       const { data: room, error } = await supabase.from('poker_rooms').select('*').eq('id', roomId).maybeSingle();
