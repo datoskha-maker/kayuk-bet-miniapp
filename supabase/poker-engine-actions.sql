@@ -149,7 +149,7 @@ begin
       update public.poker_games set status='showdown',board=v_board,current_turn_seat=null,action_deadline=null,last_action='all_in_showdown' where id=v_game.id;
       return jsonb_build_object('status','showdown','pot',v_game.pot,'board',v_board);
     end if;
-    update public.poker_games set status=v_stage,board=v_board,current_bet=0,
+    update public.poker_games set status=v_stage,board=v_board,current_bet=0,min_raise=20,
       current_turn_seat=v_next,action_deadline=now()+interval '30 seconds',last_action='street_advanced'
       where id=v_game.id;
     return jsonb_build_object('status',v_stage,'pot',v_game.pot,'board',v_board,'current_turn_seat',v_next);
