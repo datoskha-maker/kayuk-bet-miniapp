@@ -90,10 +90,12 @@ export default async function handler(req, res) {
   let result;
   if (body.action === 'create') {
     const capacity = Number(body.capacity);
+    const buyIn = Number(body.buy_in);
     const title = String(body.title || 'Стол друзей').trim();
     if (!Number.isInteger(capacity) || capacity < 2 || capacity > 6) return send(res, 400, { error: 'Выбери от 2 до 6 игроков' });
+    if (!Number.isSafeInteger(buyIn) || buyIn < 500 || buyIn > 50000) return send(res, 400, { error: 'Бай-ин должен быть от 500 до 50 000' });
     const { data, error } = await supabase.rpc('poker_create_room', {
-      p_user_id: profile.id, p_title: title, p_capacity: capacity, p_buy_in: Number(body.buy_in)
+      p_user_id: profile.id, p_title: title, p_capacity: capacity, p_buy_in: buyIn
     });
     result = { data, error };
   } else if (body.action === 'join') {
