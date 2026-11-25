@@ -119,6 +119,11 @@ begin
       select min(seat) into v_next from public.poker_game_players where game_id=v_game.id and not folded and not all_in;
     end if;
     if v_next is null then
+      if v_stage='flop' then
+        v_board:=v_board||v_game.deck[18:18]||v_game.deck[20:20];
+      elsif v_stage='turn' then
+        v_board:=v_board||v_game.deck[20:20];
+      end if;
       update public.poker_games set status='showdown',board=v_board,current_turn_seat=null,action_deadline=null,last_action='all_in_showdown' where id=v_game.id;
       return jsonb_build_object('status','showdown','pot',v_game.pot,'board',v_board);
     end if;
