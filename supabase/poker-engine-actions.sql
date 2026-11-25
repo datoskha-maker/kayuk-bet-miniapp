@@ -81,6 +81,7 @@ begin
     raise exception 'Неизвестное действие';
   end if;
 
+  select * into v_game from public.poker_games where id=v_game.id;
   select count(*) into v_active from public.poker_game_players where game_id=v_game.id and not folded;
   if v_active=1 then
     select user_id into v_winner from public.poker_game_players where game_id=v_game.id and not folded limit 1;
