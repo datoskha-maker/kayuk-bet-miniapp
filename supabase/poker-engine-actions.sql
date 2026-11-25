@@ -99,13 +99,13 @@ begin
   if v_pending=0 then
     v_board:=v_game.board;
     if v_game.status='preflop' then
-      v_board:=v_board||v_game.deck[53:55];
+      v_board:=v_board||v_game.deck[14:16];
       v_stage:='flop';
     elsif v_game.status='flop' then
-      v_board:=v_board||v_game.deck[56:56];
+      v_board:=v_board||v_game.deck[18:18];
       v_stage:='turn';
     elsif v_game.status='turn' then
-      v_board:=v_board||v_game.deck[57:57];
+      v_board:=v_board||v_game.deck[20:20];
       v_stage:='river';
     else
       update public.poker_games set status='showdown',current_turn_seat=null,action_deadline=null,board=v_board,last_action='showdown_required' where id=v_game.id;
