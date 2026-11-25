@@ -23,10 +23,14 @@ function openPokerLobby(){
  '<button class="secondary-modal" onclick="closeModal()">ЗАКРЫТЬ</button>');
  loadPokerRooms();
 }
+function pokerSafe(value){return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 async function loadPokerRooms(){
  const el=document.getElementById('pokerRooms');if(!el)return;
- try{const d=await pokerCall('GET');el.innerHTML=(d.rooms||[]).length?d.rooms.map(r=>'<div class="poker-modal-room"><div>♠</div><div class="poker-modal-room-info"><b>Стол '+r.code+'</b><small>'+r.players.length+' / '+r.capacity+' · '+r.players.map(p=>p.name).join(', ')+'</small></div><button onclick="joinPoker(\\''+r.id+'\\')">ВОЙТИ</button></div>').join(''):'<div class="empty-copy">Свободных столов пока нет.</div>'}
- catch(e){el.textContent=e.message}
+ try{
+  const d=await pokerCall('GET'),rooms=d.rooms||[];
+  el.innerHTML=rooms.length?rooms.map(r=>'<div class="poker-modal-room"><div>♠</div><div class="poker-modal-room-info"><b>Стол '+pokerSafe(r.code)+'</b><small>'+r.players.length+' / '+r.capacity+' · '+r.players.map(p=>pokerSafe(p.name)).join(', ')+'</small></div><button data-poker-room="'+pokerSafe(r.id)+'">ВОЙТИ</button></div>').join(''):'<div class="empty-copy">Свободных столов пока нет.</div>';
+  el.querySelectorAll('[data-poker-room]').forEach(button=>button.addEventListener('click',()=>joinPoker(button.dataset.pokerRoom)));
+ }catch(e){el.textContent=e.message}
 }
 async function createPoker(){try{const d=await pokerCall('POST',{action:'create',capacity:Number(document.getElementById('pokerSize').value)});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
 async function joinPoker(id){try{const d=await pokerCall('POST',{action:'join',roomId:id});enterPokerWait(d.room,d.balance)}catch(e){pokerToast(e.message)}}
@@ -43,7 +47,7 @@ function drawPokerWait(room){
  document.getElementById('pokerCode').textContent='TABLE · '+room.code;
  document.getElementById('pokerCount').textContent=players.length+' / '+capacity;
  document.getElementById('pokerFill').style.width=(players.length/capacity*100)+'%';
- document.getElementById('pokerPlayers').innerHTML=Array.from({length:capacity},(_,i)=>{const p=players.find(x=>Number(x.seat)===i+1);return '<div class="poker-player">'+(p?'♙ '+p.name+(p.isMe?' · ТЫ':''):'◯ Ожидание игрока…')+'</div>'}).join('');
+ document.getElementById('pokerPlayers').innerHTML=Array.from({length:capacity},(_,i)=>{const p=players.find(x=>Number(x.seat)===i+1);return '<div class="poker-player">'+(p?'♙ '+pokerSafe(p.name)+(p.isMe?' · ТЫ':''):'◯ Ожидание игрока…')+'</div>'}).join('');
 }
 async function pollPokerRoom(){
  if(!pokerRoom||pokerStarting)return;
