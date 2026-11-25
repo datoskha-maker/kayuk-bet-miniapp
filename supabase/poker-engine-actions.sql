@@ -70,10 +70,13 @@ begin
       all_in=(stack-v_pay=0),acted_this_street=true,
       last_action=case when stack-v_pay=0 then 'all-in' else p_action end
       where id=v_player.id;
-    update public.poker_game_players set acted_this_street=false
-      where game_id=v_game.id and user_id<>p_user_id and not folded and not all_in;
+    if v_target-v_game.current_bet >= v_game.min_raise then
+      update public.poker_game_players set acted_this_street=false
+        where game_id=v_game.id and user_id<>p_user_id and not folded and not all_in;
+    end if;
     update public.poker_games set pot=pot+v_pay,current_bet=v_target,
-      min_raise=greatest(min_raise,v_target-v_game.current_bet) where id=v_game.id;
+      min_raise=case when v_target-v_game.current_bet >= v_game.min_raise
+        then v_target-v_game.current_bet else min_raise end where id=v_game.id;
   else
     raise exception 'Неизвестное действие';
   end if;
