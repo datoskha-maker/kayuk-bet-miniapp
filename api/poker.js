@@ -21,6 +21,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const roomId = String(req.query?.room_id || '');
     if (roomId) {
+      const { error: timeoutError } = await supabase.rpc('poker_auto_timeout', { p_room_id: roomId });
+      if (timeoutError) return send(res, 500, { error: 'Не удалось проверить таймер хода' });
       const { data: room, error } = await supabase.from('poker_rooms').select('*').eq('id', roomId).maybeSingle();
       if (error) return send(res, 500, { error: 'Не удалось загрузить комнату' });
       if (!room) return send(res, 404, { error: 'Комната не найдена' });
@@ -89,6 +91,18 @@ export default async function handler(req, res) {
     if (!/^[A-F0-9]{6}$/.test(code)) return send(res, 400, { error: 'Проверь код комнаты' });
     const { data, error } = await supabase.rpc('poker_join_room', { p_user_id: profile.id, p_code: code });
     result = { data, error };
+  } else if (body.action === 'play') {
+    const roomId = String(body.room_id || '');
+    const move = String(body.move || '');
+    const allowed = ['fold','check','call','bet','raise','all_in'];
+    const amount = Number(body.amount || 0);
+    if (!/^[0-9a-f-]{36}$/i.test(roomId) || !allowed.includes(move) || !Number.isSafeInteger(amount) || amount < 0) {
+      return send(res, 400, { error: 'Некорректное действие за столом' });
+    }
+    const { data, error } = await supabase.rpc('poker_act', {
+      p_user_id: profile.id, p_room_id: roomId, p_action: move, p_amount: amount
+    });
+    result = { data, error };
   } else if (body.action === 'leave') {
     const roomId = String(body.room_id || '');
     if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
@@ -101,7 +115,7 @@ export default async function handler(req, res) {
   if (result.error) {
     const message = String(result.error.message || 'Poker action failed');
     console.warn('[poker]', result.error.code, message);
-    return send(res, /не найден|уже находишься|нет свободных мест|уже запускается|нельзя покинуть|не находишься|должно быть/i.test(message) ? 409 : 500, { error: message });
+    return send(res, /не найден|уже находишься|нет свободных мест|уже запускается|нельзя покинуть|не находишься|должно быть|сейчас ход|нельзя чекнуть|минимальное повышение|недостаточно фишек|нет ставки|уже не можешь|активная раздача|не участник/i.test(message) ? 409 : 500, { error: message });
   }
   return send(res, 200, { ok: true, ...result.data });
 }
