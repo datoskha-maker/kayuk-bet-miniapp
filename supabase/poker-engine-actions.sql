@@ -143,3 +143,24 @@ $$;
 
 revoke all on function public.poker_act(uuid,uuid,text,bigint) from public,anon,authenticated;
 grant execute on function public.poker_act(uuid,uuid,text,bigint) to service_role;
+
+
+create or replace function public.poker_auto_timeout(p_room_id uuid)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp
+as $$
+declare v_game public.poker_games; v_user uuid;
+begin
+  select * into v_game from public.poker_games
+   where room_id=p_room_id and status not in ('complete','showdown')
+   order by hand_no desc limit 1 for update;
+  if not found or v_game.action_deadline is null or now()<=v_game.action_deadline then
+    return jsonb_build_object('processed',false);
+  end if;
+  select user_id into v_user from public.poker_game_players
+   where game_id=v_game.id and seat=v_game.current_turn_seat and not folded and not all_in;
+  if v_user is null then return jsonb_build_object('processed',false); end if;
+  return public.poker_act(v_user,p_room_id,'fold',0)||jsonb_build_object('processed',true,'timed_out_user_id',v_user);
+end;
+$$;
+revoke all on function public.poker_auto_timeout(uuid) from public,anon,authenticated;
+grant execute on function public.poker_auto_timeout(uuid) to service_role;
