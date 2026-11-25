@@ -30,7 +30,7 @@ create table if not exists public.poker_games (
   unique(room_id,hand_no)
 );
 
-create table if not exists public.poker_game_players (
+alter table public.poker_room_players add column if not exists stack bigint not null default 0 check (stack >= 0);\n\ncreate table if not exists public.poker_game_players (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.poker_games(id) on delete cascade,
   room_id uuid not null references public.poker_rooms(id) on delete cascade,
@@ -96,7 +96,7 @@ begin
   end loop;
   insert into public.poker_rooms(code,title,capacity,buy_in,host_user_id)
   values(v_code,left(trim(p_title),48),p_capacity,p_buy_in,p_user_id) returning * into v_room;
-  insert into public.poker_room_players(room_id,user_id,seat) values(v_room.id,p_user_id,1);
+  insert into public.poker_room_players(room_id,user_id,seat,stack) values(v_room.id,p_user_id,1,p_buy_in);
   return jsonb_build_object('room_id',v_room.id,'code',v_room.code,'status',v_room.status,'capacity',v_room.capacity,'buy_in',v_room.buy_in);
 end;
 $$;
@@ -122,7 +122,7 @@ begin
   select s into v_seat from generate_series(1,v_room.capacity) s
    where not exists(select 1 from public.poker_room_players rp where rp.room_id=v_room.id and rp.seat=s)
    order by s limit 1;
-  insert into public.poker_room_players(room_id,user_id,seat) values(v_room.id,p_user_id,v_seat);
+  insert into public.poker_room_players(room_id,user_id,seat,stack) values(v_room.id,p_user_id,v_seat,v_room.buy_in);
   v_count:=v_count+1;
   if v_count=v_room.capacity then
     update public.poker_rooms set status='starting' where id=v_room.id;
@@ -155,7 +155,7 @@ begin
   returning id into v_game_id;
   for v_player in select rp.*,p.display_name,p.username from public.poker_room_players rp join public.profiles p on p.id=rp.user_id where rp.room_id=p_room_id order by rp.seat loop
     insert into public.poker_game_players(game_id,room_id,user_id,seat,stack,hole_cards)
-    values(v_game_id,p_room_id,v_player.user_id,v_player.seat,v_room.buy_in,
+    values(v_game_id,p_room_id,v_player.user_id,v_player.seat,v_player.stack,
       array[v_deck[(v_player.seat-1)*2+1],v_deck[(v_player.seat-1)*2+2]]);
   end loop;
   v_sb:=case when v_count=2 then v_dealer else (select min(seat) from public.poker_room_players where room_id=p_room_id and seat>v_dealer) end;
