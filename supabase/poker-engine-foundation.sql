@@ -137,38 +137,83 @@ $$;
 create or replace function public.poker_start_first_hand(p_room_id uuid)
 returns uuid language plpgsql security definer set search_path = public, pg_temp
 as $$
-declare v_room public.poker_rooms; v_game_id uuid; v_deck text[]; v_player record; v_dealer integer; v_sb integer; v_bb integer; v_turn integer; v_count integer;
+declare
+  v_room public.poker_rooms;
+  v_game_id uuid;
+  v_deck text[];
+  v_player record;
+  v_dealer integer;
+  v_previous_dealer integer;
+  v_sb integer;
+  v_bb integer;
+  v_turn integer;
+  v_count integer;
 begin
   select * into v_room from public.poker_rooms where id=p_room_id for update;
   if not found then raise exception 'Комната не найдена'; end if;
-  select count(*) into v_count from public.poker_room_players where room_id=p_room_id;
-  if v_count <> v_room.capacity then raise exception 'Ожидаем всех игроков'; end if;
   if exists(select 1 from public.poker_games where room_id=p_room_id and status not in ('complete','showdown')) then
     select id into v_game_id from public.poker_games where room_id=p_room_id order by hand_no desc limit 1;
     return v_game_id;
   end if;
+  select count(*) into v_count from public.poker_room_players where room_id=p_room_id and stack>0;
+  if v_count<2 then raise exception 'Для следующей раздачи нужны минимум два игрока с фишками'; end if;
+
+  select dealer_seat into v_previous_dealer from public.poker_games
+    where room_id=p_room_id order by hand_no desc limit 1;
+  if v_previous_dealer is null then
+    select min(seat) into v_dealer from public.poker_room_players where room_id=p_room_id and stack>0;
+  else
+    select min(seat) into v_dealer from public.poker_room_players
+      where room_id=p_room_id and stack>0 and seat>v_previous_dealer;
+    if v_dealer is null then
+      select min(seat) into v_dealer from public.poker_room_players where room_id=p_room_id and stack>0;
+    end if;
+  end if;
+
   v_deck:=public.poker_deck();
-  select coalesce(max(seat),0) into v_dealer from public.poker_games g
-   join public.poker_game_players gp on gp.game_id=g.id
-   where g.room_id=p_room_id and g.status='complete' and gp.user_id=v_room.host_user_id;
-  if v_dealer=0 then v_dealer:=1; end if;
   insert into public.poker_games(room_id,hand_no,status,dealer_seat,deck,current_bet,min_raise,action_deadline)
-  values(p_room_id,coalesce((select max(hand_no)+1 from public.poker_games where room_id=p_room_id),1),'preflop',v_dealer,v_deck,20,20,now()+interval '30 seconds')
+  values(p_room_id,coalesce((select max(hand_no)+1 from public.poker_games where room_id=p_room_id),1),
+    'preflop',v_dealer,v_deck,20,20,now()+interval '30 seconds')
   returning id into v_game_id;
-  for v_player in select rp.*,p.display_name,p.username from public.poker_room_players rp join public.profiles p on p.id=rp.user_id where rp.room_id=p_room_id order by rp.seat loop
+
+  for v_player in
+    select rp.* from public.poker_room_players rp
+    where rp.room_id=p_room_id and rp.stack>0 order by rp.seat
+  loop
     insert into public.poker_game_players(game_id,room_id,user_id,seat,stack,hole_cards)
     values(v_game_id,p_room_id,v_player.user_id,v_player.seat,v_player.stack,
       array[v_deck[(v_player.seat-1)*2+1],v_deck[(v_player.seat-1)*2+2]]);
   end loop;
-  v_sb:=case when v_count=2 then v_dealer else (select min(seat) from public.poker_room_players where room_id=p_room_id and seat>v_dealer) end;
-  if v_sb is null then select min(seat) into v_sb from public.poker_room_players where room_id=p_room_id; end if;
-  v_bb:=case when v_count=2 then (select min(seat) from public.poker_room_players where room_id=p_room_id and seat<>v_dealer) else (select min(seat) from public.poker_room_players where room_id=p_room_id and seat>v_sb) end;
-  if v_bb is null then select min(seat) into v_bb from public.poker_room_players where room_id=p_room_id; end if;
-  update public.poker_game_players set stack=stack-10,street_contribution=10,hand_contribution=10,last_action='small blind' where game_id=v_game_id and seat=v_sb;
-  update public.poker_game_players set stack=stack-20,street_contribution=20,hand_contribution=20,last_action='big blind' where game_id=v_game_id and seat=v_bb;
+
+  if v_count=2 then
+    v_sb:=v_dealer;
+    select min(seat) into v_bb from public.poker_room_players
+      where room_id=p_room_id and stack>0 and seat<>v_dealer;
+  else
+    select min(seat) into v_sb from public.poker_room_players
+      where room_id=p_room_id and stack>0 and seat>v_dealer;
+    if v_sb is null then select min(seat) into v_sb from public.poker_room_players where room_id=p_room_id and stack>0; end if;
+    select min(seat) into v_bb from public.poker_room_players
+      where room_id=p_room_id and stack>0 and seat>v_sb;
+    if v_bb is null then
+      select min(seat) into v_bb from public.poker_room_players
+        where room_id=p_room_id and stack>0 and seat<>v_sb;
+    end if;
+  end if;
+
+  update public.poker_game_players set stack=stack-10,street_contribution=10,
+    hand_contribution=10,all_in=(stack=10),last_action='small blind'
+    where game_id=v_game_id and seat=v_sb;
+  update public.poker_game_players set stack=stack-20,street_contribution=20,
+    hand_contribution=20,all_in=(stack=20),last_action='big blind'
+    where game_id=v_game_id and seat=v_bb;
   update public.poker_games set pot=30,current_bet=20 where id=v_game_id;
-  select min(seat) into v_turn from public.poker_game_players where game_id=v_game_id and seat>v_bb and not folded and not all_in;
-  if v_turn is null then select min(seat) into v_turn from public.poker_game_players where game_id=v_game_id and not folded and not all_in; end if;
+
+  select min(seat) into v_turn from public.poker_game_players
+    where game_id=v_game_id and seat>v_bb and not folded and not all_in;
+  if v_turn is null then
+    select min(seat) into v_turn from public.poker_game_players where game_id=v_game_id and not folded and not all_in;
+  end if;
   update public.poker_games set current_turn_seat=v_turn where id=v_game_id;
   update public.poker_rooms set status='playing',started_at=coalesce(started_at,now()) where id=p_room_id;
   return v_game_id;
