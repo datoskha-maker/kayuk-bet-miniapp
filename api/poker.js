@@ -109,6 +109,18 @@ export default async function handler(req, res) {
       p_user_id: profile.id, p_room_id: roomId, p_action: move, p_amount: amount
     });
     result = { data, error };
+  } else if (body.action === 'next_hand') {
+    const roomId = String(body.room_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
+    const { data: membership, error: memberError } = await supabase.from('poker_room_players')
+      .select('user_id').eq('room_id', roomId).eq('user_id', profile.id).maybeSingle();
+    if (memberError) return send(res, 500, { error: 'Не удалось проверить место за столом' });
+    if (!membership) return send(res, 403, { error: 'Ты не участник этого стола' });
+    const { data: lastGame } = await supabase.from('poker_games').select('status')
+      .eq('room_id', roomId).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+    if (lastGame?.status !== 'complete') return send(res, 409, { error: 'Сначала должна завершиться текущая раздача' });
+    const { data, error } = await supabase.rpc('poker_start_first_hand', { p_room_id: roomId });
+    result = { data: { game_id: data }, error };
   } else if (body.action === 'leave') {
     const roomId = String(body.room_id || '');
     if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
