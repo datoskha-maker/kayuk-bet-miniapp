@@ -32,7 +32,9 @@ export default async function handler(req, res) {
         ? await supabase.from('profiles').select('id,username,display_name').in('id', ids)
         : { data: [], error: null };
       if (playersError) return send(res, 500, { error: 'Не удалось загрузить имена игроков' });
-      return send(res, 200, { room, players: (seats || []).map(s => {
+      const { data: game } = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('room_id', room.id).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+      const { data: gamePlayers } = game ? await supabase.from('poker_game_players').select('user_id,seat,stack,street_contribution,folded,all_in,last_action').eq('game_id', game.id).order('seat') : { data: [], error: null };
+      return send(res, 200, { room, game, game_players: gamePlayers || [], players: (seats || []).map(s => {
         const p = (players || []).find(x => x.id === s.user_id);
         return { ...s, name: p?.display_name || p?.username || 'Игрок', is_me: s.user_id === profile.id };
       }), me: profile.id });
@@ -78,7 +80,7 @@ export default async function handler(req, res) {
     const title = String(body.title || 'Стол друзей').trim();
     if (!Number.isInteger(capacity) || capacity < 2 || capacity > 6) return send(res, 400, { error: 'Выбери от 2 до 6 игроков' });
     const { data, error } = await supabase.rpc('poker_create_room', {
-      p_user_id: profile.id, p_title: title, p_capacity: capacity
+      p_user_id: profile.id, p_title: title, p_capacity: capacity, p_buy_in: Number(body.buy_in)
     });
     result = { data, error };
   } else if (body.action === 'join') {
