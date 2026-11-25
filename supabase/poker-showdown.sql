@@ -121,6 +121,7 @@ declare
   v_previous bigint:=0;
   v_layer bigint;
   v_paid bigint:=0;
+  v_all_winners uuid[]:=array[]::uuid[];
   v_share bigint;
   v_remainder bigint;
 begin
@@ -165,20 +166,18 @@ begin
        where game_id=v_game.id and user_id=v_winner.user_id;
     end if;
     v_paid:=v_paid+v_layer;
+    v_all_winners:=v_all_winners||v_winners;
     v_previous:=v_level.cap;
   end loop;
 
   update public.poker_room_players rp set stack=gp.stack
    from public.poker_game_players gp
    where gp.game_id=v_game.id and gp.user_id=rp.user_id and rp.room_id=p_room_id;
-  update public.poker_game_players set last_action=case when user_id in (
-    select gp.user_id from public.poker_game_players gp
-    where gp.game_id=v_game.id and gp.stack>0
-  ) then coalesce(last_action,'showdown') else coalesce(last_action,'showdown') end
+  update public.poker_game_players set last_action=case when user_id=any(v_all_winners) then 'winner' else coalesce(last_action,'showdown') end
    where game_id=v_game.id;
   update public.poker_games set status='complete',current_turn_seat=null,action_deadline=null,
     last_action='showdown_complete',updated_at=now() where id=v_game.id;
-  return jsonb_build_object('settled',true,'pot',v_game.pot,'paid',v_paid,'board',v_game.board);
+  return jsonb_build_object('settled',true,'pot',v_game.pot,'paid',v_paid,'winners',v_all_winners,'board',v_game.board);
 end;
 $$;
 
