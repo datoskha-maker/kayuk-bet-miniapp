@@ -30,7 +30,9 @@ create table if not exists public.poker_games (
   unique(room_id,hand_no)
 );
 
-alter table public.poker_room_players add column if not exists stack bigint not null default 0 check (stack >= 0);\n\ncreate table if not exists public.poker_game_players (
+alter table public.poker_room_players add column if not exists stack bigint not null default 0 check (stack >= 0);
+
+create table if not exists public.poker_game_players (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.poker_games(id) on delete cascade,
   room_id uuid not null references public.poker_rooms(id) on delete cascade,
