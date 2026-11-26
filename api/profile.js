@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
+import pokerHandler from './_lib/poker-handler.js';
 
 function verifyTelegramInitData(initData, botToken) {
   if (!initData) return { user: null, reason: 'missing_init_data' };
@@ -32,6 +33,7 @@ function verifyTelegramInitData(initData, botToken) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.scope === 'poker') return pokerHandler(req, res);
   res.setHeader('Cache-Control', 'no-store');
   if (!['GET', 'POST'].includes(req.method)) {
     res.setHeader('Allow', 'GET, POST');
