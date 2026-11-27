@@ -66,7 +66,16 @@ export default async function handler(req, res) {
       ? await supabase.from('profiles').select('id,username,display_name').in('id', userIds)
       : { data: [], error: null };
     if (playersError) return send(res, 500, { error: 'Не удалось загрузить игроков' });
+    const { data: myMembership, error: myMembershipError } = await supabase.from('poker_room_players').select('room_id,seat').eq('user_id', profile.id).maybeSingle();
+    if (myMembershipError) return send(res, 500, { error: 'Не удалось проверить твою текущую комнату' });
+    let activeRoom = null;
+    if (myMembership?.room_id) {
+      const { data: candidate, error: candidateError } = await supabase.from('poker_rooms').select('id,code,title,status,capacity,buy_in,created_at').eq('id', myMembership.room_id).maybeSingle();
+      if (candidateError) return send(res, 500, { error: 'Не удалось загрузить твою текущую комнату' });
+      if (candidate && ['starting','playing'].includes(candidate.status)) activeRoom = { ...candidate, seat: myMembership.seat };
+    }
     return send(res, 200, {
+      active_room: activeRoom,
       rooms: (rooms || []).map(room => {
         const members = (seats || []).filter(s => s.room_id === room.id);
         return { ...room, players: members.map(s => {
