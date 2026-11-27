@@ -36,7 +36,7 @@
     sessionId:null, running:false, paused:false, finished:false, score:0, lives:3,
     maxCombo:0, streak:0, swipeCutCount:0, multiplier:1, wave:0, wavesSinceBomb:0,
     wavesSinceBonus:0, lastWaveAt:0, objects:[], particles:[], game:null,
-    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, bgm:null, sfx:[], debrisCount:0, pendingLaunches:0, roundToken:0,
+    scene:null, pointer:null, swipeHits:[], startBusy:false, audio:null, debrisCount:0, pendingLaunches:0, roundToken:0,
     rewardPending:false, rewardPayload:null, rewardSubmitting:false
   };
 
@@ -132,9 +132,7 @@
       const s=state.score;
       let n=s>=10000?6:s>=5000?7:s>=2500?8:9;
       if(state.lives===1) n+=2;
-      // Increase bomb frequency at the requested score milestones.
-      // Dividing the interval scales expected bomb frequency without
-      // making bombs more common in the early game or changing bonuses.
+      // Scale bomb frequency at the agreed score milestones.
       const frequencyMultiplier=s>=20000?4:s>=10000?3:s>=5000?2:1;
       return n/frequencyMultiplier;
     }
@@ -480,7 +478,7 @@
         state.scene?.scene.restart();
       }
     }catch(e){
-      state.running=false;stopBackground();if(typeof window.toast==='function')window.toast(e.message);
+      state.running=false;if(typeof window.toast==='function')window.toast(e.message);
       $('sliceStart').disabled=false;$('sliceStart').textContent='НАЧАТЬ ИГРУ';
     }finally{state.startBusy=false;}
   }
@@ -535,7 +533,7 @@
   }
   async function finish(){
     if(state.lives>0||state.finished||!state.sessionId)return;
-    state.finished=true;state.running=false;state.paused=false;stopBackground();stopBackground();
+    state.finished=true;state.running=false;state.paused=false;stopBackground();
     document.body.classList.remove('slice-playing');
     state.rewardPayload={sessionId:state.sessionId,score:state.score,maxCombo:state.maxCombo};
     state.rewardPending=true;
@@ -548,8 +546,7 @@
     $('slicePlayAgain').textContent='ПОВТОРИТЬ НАЧИСЛЕНИЕ';
     await submitReward();
   }
-  function close(){
-    // Pause the current round without destroying its state.
+  async function close(){
     if(state.running&&!state.finished){
       state.paused=true;
       stopBackground();
@@ -559,81 +556,34 @@
       document.body.classList.remove('slice-playing');
       if(typeof window.toast==='function')window.toast('Раунд на паузе. Очки начислятся только после потери всех 3 жизней.');
     }
-
-    // Release every immersive flag and viewport override.
     document.body.classList.remove('slice-fullscreen','slice-playing');
     document.documentElement.classList.remove('slice-fullscreen');
-    document.documentElement.style.removeProperty('--slice-viewport-height');
-    document.documentElement.style.removeProperty('--slice-stable-height');
-    ['position','inset','left','right','top','bottom','width','min-width','max-width','height','min-height','padding','overflow','transform'].forEach(k=>{
-      document.body.style.removeProperty(k);
-      document.documentElement.style.removeProperty(k);
-    });
-
-    // Navigate directly instead of calling page('home'): page() performs a
-    // smooth scroll while the Telegram WebView is changing its viewport.
-    document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='home'));
-    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p==='home'));
     try{tg?.enableVerticalSwipes?.();}catch(e){}
-
-    // Force iOS Safari/Telegram to recalculate the normal app layout after
-    // removing the fixed full-screen game viewport. Do not refresh Phaser
-    // while its page is hidden; that can cache a zero/narrow game viewport.
-    const app=document.querySelector('.app');
-    const main=document.querySelector('main');
-    if(app){
-      app.style.setProperty('display','block','important');
-      app.style.setProperty('width','100%','important');
-      app.style.setProperty('max-width','560px','important');
-      app.style.setProperty('height','auto','important');
-      app.style.setProperty('min-height','0','important');
-      app.style.setProperty('margin','0 auto','important');
-    }
-    if(main){
-      main.style.setProperty('display','block','important');
-      main.style.setProperty('width','100%','important');
-      main.style.setProperty('height','auto','important');
-      main.style.setProperty('min-height','0','important');
-      main.style.setProperty('padding','15px','important');
-      main.style.setProperty('overflow','visible','important');
-    }
-    window.scrollTo(0,0);
-    requestAnimationFrame(()=>{
-      window.dispatchEvent(new Event('resize'));
-      requestAnimationFrame(()=>{
-        if(app)['display','width','max-width','height','min-height','margin'].forEach(k=>app.style.removeProperty(k));
-        if(main)['display','width','height','min-height','padding','overflow'].forEach(k=>main.style.removeProperty(k));
-        document.body.style.removeProperty('position');
-        document.body.style.removeProperty('inset');
-        document.body.style.removeProperty('width');
-        document.body.style.removeProperty('height');
-        document.body.style.removeProperty('overflow');
-        document.documentElement.style.removeProperty('width');
-        document.documentElement.style.removeProperty('height');
-        document.documentElement.style.removeProperty('overflow');
-        window.scrollTo(0,0);
-      });
-    });
+    try{if(tg?.exitFullscreen)await tg.exitFullscreen();else if(document.fullscreenElement)await document.exitFullscreen();}catch(e){}
+    if(typeof window.page==='function')window.page('home');
   }
   function syncViewport(){
-    // SLICE owns these viewport variables only while its immersive screen is open.
-    // Telegram may emit delayed viewportChanged/resize events after returning home;
-    // ignore those so they cannot restore stale game dimensions on the main page.
-    if(!document.body.classList.contains('slice-fullscreen'))return;
     const height=Math.max(320,Number(tg?.viewportHeight)||window.visualViewport?.height||window.innerHeight||0);
     const stable=Math.max(320,Number(tg?.viewportStableHeight)||height);
     document.documentElement.style.setProperty('--slice-viewport-height',height+'px');
     document.documentElement.style.setProperty('--slice-stable-height',stable+'px');
     if(state.game){state.game.scale.refresh();}
   }
-  function enterFullscreen(){
+  function enterFullscreen(requestNative=false){
     document.body.classList.add('slice-fullscreen');
     document.documentElement.classList.add('slice-fullscreen');
     syncViewport();
-    // Keep the game immersive with CSS + Telegram expand(), without switching
-    // the Telegram WebView into native fullscreen. Native fullscreen transitions
-    // can leave a narrowed viewport on iOS after the game is closed.
     try{tg?.expand?.();}catch(e){}
+    if(!requestNative)return;
+    try{
+      if(tg?.requestFullscreen && (!tg.isVersionAtLeast || tg.isVersionAtLeast('8.0'))){
+        const result=tg.requestFullscreen();
+        if(result&&typeof result.catch==='function')result.catch(()=>{try{tg?.expand?.();}catch(e){}});
+      }else if(document.documentElement.requestFullscreen){
+        const result=document.documentElement.requestFullscreen();
+        if(result&&typeof result.catch==='function')result.catch(()=>{});
+      }
+    }catch(e){try{tg?.expand?.();}catch(_){}}
   }
   function open(){
     leaderboard();$('sliceBalance').textContent=$('balance')?.textContent||'—';enterFullscreen(false);
@@ -643,7 +593,6 @@
       startBackground();
       document.body.classList.add('slice-playing');
       state.scene?.scene.resume();
-      startBackground();
     }
   }
   function init(){
@@ -673,9 +622,10 @@
     if(gameHost){gameHost.style.width='100%';gameHost.style.height='100%';gameHost.style.minHeight='0';gameHost.style.touchAction='none';}
     syncViewport();
     tg?.onEvent?.('viewportChanged',syncViewport);
+    tg?.onEvent?.('fullscreenChanged',syncViewport);
     window.addEventListener('resize',syncViewport,{passive:true});
     window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
-    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden){state.scene?.scene.pause();state.bgm?.pause();}else if(state.running&&!state.paused){state.scene?.scene.resume();startBackground();}});
+    document.addEventListener('visibilitychange',()=>{if(!state.game)return;if(document.hidden)state.scene?.scene.pause();else if(state.running&&!state.paused)state.scene?.scene.resume();});
   }
   window.KayukSlice={open,close,leaderboard};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

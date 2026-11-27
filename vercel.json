@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/poker",
-      "destination": "/api/profile?scope=poker"
-    }
-  ]
-}
