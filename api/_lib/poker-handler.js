@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { verifyTelegramInitData } from './_lib/telegram.js';
+import { verifyTelegramInitData } from './telegram.js';
 
 function send(res, status, body) { return res.status(status).json(body); }
 
