@@ -107,21 +107,29 @@ const ring=new THREE.Mesh(new THREE.TorusGeometry(2.25,.12,12,64),new THREE.Mesh
 for(let n=0;n<16;n++){const a=n/16*Math.PI*2;const bulb=new THREE.Mesh(new THREE.SphereGeometry(.09,12,8),new THREE.MeshBasicMaterial({color:'#ffd99a'}));bulb.position.set(Math.cos(a)*2.25,0,Math.sin(a)*2.25);chandelier.add(bulb);const light=new THREE.PointLight(0xffcf83,1.3,5);light.position.copy(bulb.position);chandelier.add(light);}
 const playerBodies=[];
 const bodyColors=['#22252b','#31251d','#392d38','#202a34','#322e25'];
-// Opponents sit only across the far side of the table; keep the foreground clear for the first-person player.
+const skinColors=['#c99673','#b77f5c','#d2a27c','#a97655','#c28c68'];
+const hairColors=['#171412','#3a2a1e','#242128','#15191d','#31251c'];
+// Stylized, polished casino characters: softened silhouettes, facial details, jackets and hands.
 for(let s=0;s<5;s++){
- const a=-.88+(s/4)*1.76, x=Math.sin(a)*6.45,z=-Math.cos(a)*4.45;
+ const a=-.88+(s/4)*1.76,x=Math.sin(a)*6.45,z=-Math.cos(a)*4.45;
  const bust=new THREE.Group();bust.position.set(x,-.1,z);bust.rotation.y=Math.atan2(-x,4.4);
- const jacket=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.78,6,12),new THREE.MeshStandardMaterial({color:bodyColors[s],roughness:.72}));
- jacket.position.y=1.02;bust.add(jacket);
- const neck=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.3,12),new THREE.MeshStandardMaterial({color:'#b98667',roughness:.82}));neck.position.y=1.78;bust.add(neck);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.34,24,18),new THREE.MeshStandardMaterial({color:['#c99673','#b77f5c','#d2a27c','#a97655','#c28c68'][s],roughness:.82}));head.position.y=2.08;bust.add(head);
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.36,24,14,0,Math.PI*2,0,Math.PI*.56),new THREE.MeshStandardMaterial({color:['#171412','#3a2a1e','#242128','#15191d','#31251c'][s],roughness:.9}));hair.position.y=2.18;bust.add(hair);
- // Small facial features to break up the blank mannequin look.
- const eyeMat=new THREE.MeshStandardMaterial({color:'#211a16',roughness:.6});
- for(let side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,8,8),eyeMat);eye.position.set(side*.105,2.1,.29);bust.add(eye);}
- const arms=[];
- for(let side of [-1,1]){const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.48,5,10),new THREE.MeshStandardMaterial({color:bodyColors[s],roughness:.78}));upper.position.set(side*.49,.88,.15);upper.rotation.z=side*.38;bust.add(upper);const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.5,5,10),new THREE.MeshStandardMaterial({color:'#b98667',roughness:.82}));forearm.position.set(side*.72,.55,.55);forearm.rotation.x=-.5;forearm.rotation.z=side*.16;bust.add(forearm);arms.push(forearm);}
- const seat=new THREE.Mesh(new THREE.CylinderGeometry(.48,.54,.35,24),new THREE.MeshStandardMaterial({color:'#171311',roughness:.5}));seat.position.y=.12;bust.add(seat);
+ const mat=(color,rough=.72)=>new THREE.MeshStandardMaterial({color,roughness:rough});
+ const jacket=new THREE.Mesh(new THREE.CapsuleGeometry(.54,.82,8,18),mat(bodyColors[s],.64));jacket.position.y=1.03;bust.add(jacket);
+ // Shirt, lapels and jacket buttons
+ const shirt=new THREE.Mesh(new THREE.ConeGeometry(.25,.68,4),mat(['#e9e1d5','#d7d2ca','#d8c8b7','#e8e4de','#c9c4bb'][s]));shirt.position.set(0,1.3,.32);shirt.rotation.x=Math.PI;bust.add(shirt);
+ for(let side of [-1,1]){const lapel=new THREE.Mesh(new THREE.BoxGeometry(.12,.55,.055),mat(['#b9a17c','#9e8c76','#c0a88b','#8794a2','#a08b72'][s]));lapel.position.set(side*.16,1.25,.36);lapel.rotation.z=side*.28;bust.add(lapel);}
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.14,.17,.3,18),mat(skinColors[s]));neck.position.y=1.8;bust.add(neck);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.39,32,24),mat(skinColors[s],.85));head.scale.set(1,.98,.92);head.position.y=2.12;bust.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.41,32,20,0,Math.PI*2,0,Math.PI*.56),mat(hairColors[s],.9));hair.position.y=2.23;bust.add(hair);
+ // ears
+ for(let side of [-1,1]){const ear=new THREE.Mesh(new THREE.SphereGeometry(.09,14,10),mat(skinColors[s]));ear.scale.set(.6,1,1);ear.position.set(side*.37,2.1,0);bust.add(ear);}
+ // eyes, eyebrows, nose and smile are subtle but visible at the table distance
+ const white=mat('#f3e9df',.45),dark=mat('#241b17',.45),brow=mat(hairColors[s],.6);
+ for(let side of [-1,1]){const eyeWhite=new THREE.Mesh(new THREE.SphereGeometry(.065,16,12),white);eyeWhite.position.set(side*.12,2.13,.34);bust.add(eyeWhite);const pupil=new THREE.Mesh(new THREE.SphereGeometry(.027,12,10),dark);pupil.position.set(side*.12,2.13,.394);bust.add(pupil);const eyebrow=new THREE.Mesh(new THREE.BoxGeometry(.13,.035,.04),brow);eyebrow.position.set(side*.12,2.22,.35);eyebrow.rotation.z=side*.06;bust.add(eyebrow);}
+ const nose=new THREE.Mesh(new THREE.SphereGeometry(.055,12,10),mat('#b98260'));nose.scale.set(.7,1,1.1);nose.position.set(0,2.04,.38);bust.add(nose);
+ const mouth=new THREE.Mesh(new THREE.BoxGeometry(.12,.018,.025),mat('#754d3b'));mouth.position.set(0,1.96,.355);bust.add(mouth);
+ for(let side of [-1,1]){const upper=new THREE.Mesh(new THREE.CapsuleGeometry(.14,.52,8,14),mat(bodyColors[s]));upper.position.set(side*.5,.92,.16);upper.rotation.z=side*.42;bust.add(upper);const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.55,8,14),mat(skinColors[s]));forearm.position.set(side*.72,.57,.56);forearm.rotation.x=-.5;forearm.rotation.z=side*.16;bust.add(forearm);const hand=new THREE.Mesh(new THREE.SphereGeometry(.15,16,12),mat(skinColors[s]));hand.position.set(side*.78,.42,.8);bust.add(hand);}
+ const seat=new THREE.Mesh(new THREE.CylinderGeometry(.52,.56,.35,32),mat('#171311',.5));seat.position.y=.12;bust.add(seat);
  scene.add(bust);playerBodies.push(bust);
 }const table=new THREE.Group();scene.add(table);
 const rail=new THREE.Mesh(new THREE.CylinderGeometry(5.35,5.35,.42,96,1,false),new THREE.MeshStandardMaterial({color:'#352113',roughness:.42,metalness:.25}));rail.scale.set(1,.14,.64);rail.position.y=.15;table.add(rail);
@@ -132,7 +140,7 @@ const logoCanvas=document.createElement('canvas');logoCanvas.width=512;logoCanva
 const chipMat=(col)=>new THREE.MeshStandardMaterial({color:col,roughness:.3,metalness:.2});
 function chipStack(x,z,colors,qty=5){for(let j=0;j<qty;j++){let m=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.055,24),chipMat(colors[j%colors.length]));m.position.set(x,.52+j*.057,z);m.castShadow=true;table.add(m);let stripe=new THREE.Mesh(new THREE.TorusGeometry(.145,.012,4,24),new THREE.MeshStandardMaterial({color:'#eee4cc'}));stripe.rotation.x=Math.PI/2;stripe.position.set(x,.55+j*.057,z);table.add(stripe)}}
 chipStack(-3.2,1.5,['#b52b36','#f2f0e8','#24272c'],8);chipStack(3.2,1.5,['#183d94','#eee','#bf2636'],7);chipStack(-3.7,-1.2,['#276d48','#eee','#b42c34'],5);chipStack(3.7,-1.2,['#c49a50','#eee','#27272c'],6);
-function makeCard(label,back=false){let cv=document.createElement('canvas');cv.width=256;cv.height=360;let c=cv.getContext('2d');c.fillStyle=back?'#092045':'#fffaf0';c.fillRect(0,0,256,360);c.strokeStyle=back?'#d1ac5c':'#d9d2c4';c.lineWidth=8;c.strokeRect(8,8,240,344);if(back){c.fillStyle='#14305c';c.fillRect(20,20,216,320);c.strokeStyle='#d2ae5d';c.lineWidth=3;c.strokeRect(30,30,196,320);c.font='90px serif';c.fillStyle='#d2ae5d';c.textAlign='center';c.fillText('♠',128,210);c.font='20px serif';c.fillText('KAYUK',128,270)}else{let parts=label||'?';let red=parts.includes('♥')||parts.includes('♦');c.fillStyle=red?'#c22c37':'#121a22';c.textAlign='left';c.font='bold 48px sans-serif';c.fillText(parts,25,72);c.font='100px serif';c.textAlign='center';c.fillText(parts.slice(-1),128,210)}let t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t}
+function makeCard(label,back=false){let cv=document.createElement('canvas');cv.width=256;cv.height=360;let c=cv.getContext('2d');c.clearRect(0,0,256,360);c.shadowColor='#0009';c.shadowBlur=12;c.shadowOffsetY=5;c.fillStyle=back?'#092045':'#fffaf2';c.beginPath();c.roundRect(5,5,246,350,18);c.fill();c.shadowColor='transparent';c.shadowBlur=0;c.shadowOffsetY=0;c.strokeStyle=back?'#c9a55b':'#d6cdbd';c.lineWidth=7;c.beginPath();c.roundRect(10,10,236,340,15);c.stroke();if(back){let grad=c.createLinearGradient(0,0,256,360);grad.addColorStop(0,'#1c3c75');grad.addColorStop(1,'#07162f');c.fillStyle=grad;c.beginPath();c.roundRect(20,20,216,320,12);c.fill();c.strokeStyle='#d5b66e';c.lineWidth=2;c.beginPath();c.roundRect(28,28,200,304,10);c.stroke();c.strokeStyle='#6683ad';c.lineWidth=1;for(let i=0;i<9;i++){c.beginPath();c.moveTo(32+i*24,30);c.lineTo(224-i*24,330);c.stroke();c.beginPath();c.moveTo(224-i*24,30);c.lineTo(32+i*24,330);c.stroke();}c.fillStyle='#d8b86c';c.font='72px serif';c.textAlign='center';c.fillText('♠',128,205);c.font='bold 20px serif';c.fillText('KAYUK POKER',128,275);}else{let parts=label||'?';let red=parts.includes('♥')||parts.includes('♦');c.fillStyle=red?'#c22c37':'#141b25';c.textAlign='left';c.font='bold 48px Georgia,serif';c.fillText(parts,25,72);c.font='100px Georgia,serif';c.textAlign='center';c.fillText(parts.slice(-1),128,210);c.font='bold 38px Georgia,serif';c.textAlign='left';c.fillText(parts,28,315);c.save();c.translate(256,360);c.rotate(Math.PI);c.textAlign='left';c.fillText(parts,28,45);c.restore();}let t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t}
 function cardMesh(back=false){let mesh=new THREE.Mesh(new THREE.BoxGeometry(.62,.035,.88),new THREE.MeshStandardMaterial({color:'#fff',roughness:.35}));let face=new THREE.Mesh(new THREE.PlaneGeometry(.58,.84),new THREE.MeshBasicMaterial({map:makeCard('',back)}));face.rotation.x=-Math.PI/2;face.position.y=.02;mesh.add(face);return mesh}
 for(let i=0;i<5;i++){let m=cardMesh(true);m.position.set((i-2)*.72,.53,-.15);m.rotation.x=.03;table.add(m);cardMeshes.push(m)}
 const own1=cardMesh(true),own2=cardMesh(true);own1.position.set(-.4,.55,2.7);own2.position.set(.4,.55,2.7);own1.rotation.z=-.08;own2.rotation.z=.08;table.add(own1,own2);cardMeshes.push(own1,own2);
