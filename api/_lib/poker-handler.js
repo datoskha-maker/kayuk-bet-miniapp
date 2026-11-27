@@ -1,0 +1,157 @@
+import { createClient } from '@supabase/supabase-js';
+import { verifyTelegramInitData } from './telegram.js';
+
+function send(res, status, body) { return res.status(status).json(body); }
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  const { TELEGRAM_BOT_TOKEN: botToken, SUPABASE_URL: url, SUPABASE_SERVICE_ROLE_KEY: key } = process.env;
+  if (!botToken || !url || !key) return send(res, 500, { error: 'Server configuration missing' });
+
+  const telegramUser = verifyTelegramInitData(req.headers['x-telegram-init-data'], botToken);
+  if (!telegramUser?.id) return send(res, 401, { error: 'Telegram authentication failed. Reopen the Mini App.' });
+
+  const supabase = createClient(url, key, { auth: { persistSession: false } });
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles').select('id,telegram_id,username,display_name')
+    .eq('telegram_id', telegramUser.id).maybeSingle();
+  if (profileError) return send(res, 500, { error: 'Не удалось загрузить профиль игрока' });
+  if (!profile) return send(res, 404, { error: 'Профиль не найден. Открой КАЮК BET и повтори вход.' });
+
+  if (req.method === 'GET') {
+    const roomId = String(req.query?.room_id || '');
+    if (roomId) {
+      const { data: membership, error: memberError } = await supabase.from('poker_room_players')
+        .select('user_id').eq('room_id', roomId).eq('user_id', profile.id).maybeSingle();
+      if (memberError) return send(res, 500, { error: 'Не удалось проверить участие за столом' });
+      if (!membership) return send(res, 403, { error: 'Ты не участник этой комнаты' });
+      const { error: timeoutError } = await supabase.rpc('poker_auto_timeout', { p_room_id: roomId });
+      if (timeoutError) return send(res, 500, { error: 'Не удалось проверить таймер хода' });
+      const { data: room, error } = await supabase.from('poker_rooms').select('*').eq('id', roomId).maybeSingle();
+      if (error) return send(res, 500, { error: 'Не удалось загрузить комнату' });
+      if (!room) return send(res, 404, { error: 'Комната не найдена' });
+      const { data: seats, error: seatsError } = await supabase.from('poker_room_players')
+        .select('id,user_id,seat,joined_at').eq('room_id', room.id).order('seat');
+      if (seatsError) return send(res, 500, { error: 'Не удалось загрузить игроков' });
+      const ids = (seats || []).map(s => s.user_id);
+      const { data: players, error: playersError } = ids.length
+        ? await supabase.from('profiles').select('id,username,display_name').in('id', ids)
+        : { data: [], error: null };
+      if (playersError) return send(res, 500, { error: 'Не удалось загрузить имена игроков' });
+      let { data: game } = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('room_id', room.id).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+      if (game?.status === 'showdown') {
+        const { error: settleError } = await supabase.rpc('poker_settle_showdown', { p_room_id: room.id });
+        if (settleError) return send(res, 500, { error: 'Не удалось рассчитать комбинации и банк' });
+        const refreshed = await supabase.from('poker_games').select('id,hand_no,status,dealer_seat,current_turn_seat,current_bet,min_raise,pot,board,action_deadline,last_action').eq('id', game.id).maybeSingle();
+        game = refreshed.data;
+      }
+      const { data: gamePlayers } = game ? await supabase.from('poker_game_players').select('user_id,seat,stack,street_contribution,folded,all_in,last_action').eq('game_id', game.id).order('seat') : { data: [], error: null };
+      const { data: myGameSeat } = game ? await supabase.from('poker_game_players').select('hole_cards,stack,street_contribution,last_action').eq('game_id', game.id).eq('user_id', profile.id).maybeSingle() : { data: null };
+      return send(res, 200, { room, game, game_players: gamePlayers || [], my_game_seat: myGameSeat, players: (seats || []).map(s => {
+        const p = (players || []).find(x => x.id === s.user_id);
+        return { ...s, name: p?.display_name || p?.username || 'Игрок', is_me: s.user_id === profile.id };
+      }), me: profile.id });
+    }
+
+    const { data: rooms, error } = await supabase.from('poker_rooms').select('*')
+      .in('status', ['waiting','starting']).order('created_at', { ascending: false }).limit(40);
+    if (error) return send(res, 500, { error: 'Не удалось загрузить список столов' });
+    const ids = (rooms || []).map(r => r.id);
+    const { data: seats, error: seatsError } = ids.length
+      ? await supabase.from('poker_room_players').select('room_id,user_id,seat').in('room_id', ids).order('seat')
+      : { data: [], error: null };
+    if (seatsError) return send(res, 500, { error: 'Не удалось загрузить участников столов' });
+    const userIds = [...new Set((seats || []).map(s => s.user_id))];
+    const { data: players, error: playersError } = userIds.length
+      ? await supabase.from('profiles').select('id,username,display_name').in('id', userIds)
+      : { data: [], error: null };
+    if (playersError) return send(res, 500, { error: 'Не удалось загрузить игроков' });
+    return send(res, 200, {
+      rooms: (rooms || []).map(room => {
+        const members = (seats || []).filter(s => s.room_id === room.id);
+        return { ...room, players: members.map(s => {
+          const p = (players || []).find(x => x.id === s.user_id);
+          return { id: s.user_id, seat: s.seat, name: p?.display_name || p?.username || 'Игрок' };
+        }), player_count: members.length, is_member: members.some(s => s.user_id === profile.id) };
+      }),
+      me: profile.id
+    });
+  }
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return send(res, 405, { error: 'Method not allowed' });
+  }
+
+  let body = req.body;
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = null; } }
+  if (!body || typeof body !== 'object') return send(res, 400, { error: 'Некорректный запрос' });
+
+  let result;
+  if (body.action === 'create') {
+    const capacity = Number(body.capacity);
+    const buyIn = Number(body.buy_in);
+    const title = String(body.title || 'Стол друзей').trim();
+    if (!Number.isInteger(capacity) || capacity < 2 || capacity > 6) return send(res, 400, { error: 'Выбери от 2 до 6 игроков' });
+    if (!Number.isSafeInteger(buyIn) || buyIn < 500 || buyIn > 50000) return send(res, 400, { error: 'Бай-ин должен быть от 500 до 50 000' });
+    const { data, error } = await supabase.rpc('poker_create_room', {
+      p_user_id: profile.id, p_title: title, p_capacity: capacity, p_buy_in: buyIn
+    });
+    result = { data, error };
+  } else if (body.action === 'delete_room') {
+    const roomId = String(body.room_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
+    const { data: room, error: roomError } = await supabase.from('poker_rooms')
+      .select('id,created_by,host_user_id,status').eq('id', roomId).maybeSingle();
+    if (roomError) return send(res, 500, { error: 'Не удалось проверить комнату' });
+    if (!room) return send(res, 404, { error: 'Комната не найдена' });
+    if (room.created_by !== profile.id || room.host_user_id !== profile.id) return send(res, 403, { error: 'Удалить комнату может только её создатель' });
+    if (room.status !== 'waiting') return send(res, 409, { error: 'Можно удалить только комнату, которая ещё ожидает игроков' });
+    const { error } = await supabase.from('poker_rooms').delete().eq('id', roomId)
+      .eq('created_by', profile.id).eq('host_user_id', profile.id).eq('status', 'waiting');
+    result = { data: { deleted: true }, error };
+  } else if (body.action === 'join') {
+    const code = String(body.code || '').trim().toUpperCase();
+    if (!/^[A-F0-9]{6}$/.test(code)) return send(res, 400, { error: 'Проверь код комнаты' });
+    const { data, error } = await supabase.rpc('poker_join_room', { p_user_id: profile.id, p_code: code });
+    result = { data, error };
+  } else if (body.action === 'play') {
+    const roomId = String(body.room_id || '');
+    const move = String(body.move || '');
+    const allowed = ['fold','check','call','bet','raise','all_in'];
+    const amount = Number(body.amount || 0);
+    if (!/^[0-9a-f-]{36}$/i.test(roomId) || !allowed.includes(move) || !Number.isSafeInteger(amount) || amount < 0) {
+      return send(res, 400, { error: 'Некорректное действие за столом' });
+    }
+    const { data, error } = await supabase.rpc('poker_act', {
+      p_user_id: profile.id, p_room_id: roomId, p_action: move, p_amount: amount
+    });
+    result = { data, error };
+  } else if (body.action === 'next_hand') {
+    const roomId = String(body.room_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
+    const { data: membership, error: memberError } = await supabase.from('poker_room_players')
+      .select('user_id').eq('room_id', roomId).eq('user_id', profile.id).maybeSingle();
+    if (memberError) return send(res, 500, { error: 'Не удалось проверить место за столом' });
+    if (!membership) return send(res, 403, { error: 'Ты не участник этого стола' });
+    const { data: lastGame } = await supabase.from('poker_games').select('status')
+      .eq('room_id', roomId).order('hand_no', { ascending: false }).limit(1).maybeSingle();
+    if (lastGame?.status !== 'complete') return send(res, 409, { error: 'Сначала должна завершиться текущая раздача' });
+    const { data, error } = await supabase.rpc('poker_start_first_hand', { p_room_id: roomId });
+    result = { data: { game_id: data }, error };
+  } else if (body.action === 'leave') {
+    const roomId = String(body.room_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
+    const { data, error } = await supabase.rpc('poker_leave_room', { p_user_id: profile.id, p_room_id: roomId });
+    result = { data, error };
+  } else {
+    return send(res, 400, { error: 'Неизвестное действие' });
+  }
+
+  if (result.error) {
+    const message = String(result.error.message || 'Poker action failed');
+    console.warn('[poker]', result.error.code, message);
+    return send(res, /не найден|уже находишься|нет свободных мест|уже запускается|нельзя покинуть|не находишься|должно быть|сейчас ход|нельзя чекнуть|минимальное повышение|недостаточно фишек|нет ставки|уже не можешь|активная раздача|не участник|повышение не переоткрыто|минимальная ставка|новая ставка должна быть выше|ставка уже открыта/i.test(message) ? 409 : 500, { error: message });
+  }
+  return send(res, 200, { ok: true, ...result.data });
+}

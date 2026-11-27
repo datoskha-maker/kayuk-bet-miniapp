@@ -14,12 +14,16 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 #game{position:fixed;inset:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#263b31}
 #scene-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;user-select:none;-webkit-user-drag:none}
 #scene-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(7,15,12,.48),transparent 22%,transparent 65%,rgba(7,15,12,.32))}
-#top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;pointer-events:none}
-.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
+#top-ui{position:absolute;z-index:5;top:calc(var(--safe-top) + 10px);left:12px;right:12px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
+.brand{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:15px;padding:9px 12px;box-shadow:0 5px 20px #0002}
+.brand b{display:block;font-size:15px;letter-spacing:.5px}.brand small{display:block;font-size:10px;opacity:.72;margin-top:2px}
+#back-to-kayuk{position:fixed!important;z-index:2147483647!important;top:50%!important;left:10px!important;transform:translateY(-50%);display:inline-flex!important;align-items:center;justify-content:center;min-height:46px;padding:0 13px;border:2px solid #b9d9ff;border-radius:12px;background:#082b4b!important;box-shadow:0 5px 22px #000c;color:#fff!important;text-decoration:none;font-size:13px;font-weight:950;letter-spacing:.1px;pointer-events:auto!important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;opacity:1!important;visibility:visible!important}#back-to-kayuk:active{transform:translateY(-50%) scale(.97);background:#21496d!important}
+.stats{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:70%}
 .stat{background:var(--glass);backdrop-filter:blur(12px);border:1px solid #ffffff24;border-radius:12px;padding:7px 9px;min-width:62px;text-align:center}
 .stat .label{font-size:9px;opacity:.8;display:block}.stat .value{font-size:12px;font-weight:800;display:block;margin-top:2px}
-#nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:3px;align-items:center}
-.nav-btn{width:75.5px;height:75.5px;min-height:75.5px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
+#location-title{position:absolute;z-index:3;top:calc(var(--safe-top) + 76px);left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:99px;background:rgba(13,24,19,.48);border:1px solid #ffffff30;backdrop-filter:blur(8px);font-size:11px;font-weight:800;letter-spacing:1.2px;white-space:nowrap;text-shadow:0 2px 6px #0008}
+#nav{position:absolute;z-index:8;left:10px;bottom:calc(var(--safe-bottom) + 14px);display:flex;flex-direction:column;gap:7px}
+.nav-btn{width:68px;height:68px;min-height:68px;padding:0;border:0;border-radius:14px;background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:transform .15s;touch-action:manipulation}
 .nav-btn:active{transform:scale(.92)}
 .nav-btn.active{filter:drop-shadow(0 0 5px rgba(255,218,120,.9))}
 .nav-btn img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
@@ -48,25 +52,16 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 .phone-close{position:absolute;right:14px;top:calc(var(--safe-top) + 12px);z-index:3}
 #food-actions{position:absolute;z-index:6;left:92px;right:12px;bottom:calc(var(--safe-bottom) + 22px);display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 #food-actions button{background:rgba(20,43,31,.9);border:1px solid #ffffff55;border-radius:14px;padding:12px 14px;font-weight:800;font-size:12px;backdrop-filter:blur(10px)}
-@media(max-height:650px){.nav-btn{width:66.6px;height:66.6px;min-height:66.6px}.phone-nav-btn{width:66px;height:66px}}
-
-#luna-cat-stage{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;visibility:hidden}
-#luna-cat-stage canvas{display:block;width:100%;height:100%;pointer-events:none}
-#luna-cat-loading{position:absolute;z-index:4;left:50%;top:70%;transform:translate(-50%,-50%);padding:7px 11px;border-radius:10px;background:#14231dbb;color:#fff;font-size:10px;pointer-events:none;visibility:hidden}
-
-
-#back-to-kayuk{position:fixed!important;left:12px!important;top:50%!important;transform:translateY(-50%) scale(.5)!important;transform-origin:left center!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;min-height:48px!important;padding:0 14px!important;border:2px solid #d7eaff!important;border-radius:13px!important;background:linear-gradient(135deg,#176bc5,#083b83)!important;color:#fff!important;font-size:13px!important;font-weight:950!important;letter-spacing:.2px!important;text-decoration:none!important;box-shadow:0 5px 22px #000d,0 0 0 2px #ffffff20!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important}
-#back-to-kayuk:active{transform:translateY(-50%) scale(.48)!important}
+@media(max-height:650px){.nav-btn{width:60px;height:60px;min-height:60px}.phone-nav-btn{width:66px;height:66px}#location-title{top:calc(var(--safe-top) + 68px)}}
 </style>
 </head>
 <body>
 <a id="back-to-kayuk" href="/" aria-label="Вернуться на главный экран КАЮК BET">← КАЮК BET</a>
 <div id="game">
- <img id="scene-bg" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg" alt="">
+ <img id="scene-bg" src="IMG_1984.jpeg" alt="">
  <div id="scene-shade"></div>
- <div id="luna-cat-stage" aria-label="Луна — трёхмерная модель кошки"></div>
- <div id="luna-cat-loading">Луна загружается… 🐾</div>
  <div id="top-ui">
+  <div class="brand"><b>ЛУНА 🐾</b><small>ТВОЯ КОШКА</small></div>
   <div class="stats">
    <div class="stat"><span class="label">🍗 Сытость</span><span class="value" id="hunger-v">80%</span></div>
    <div class="stat"><span class="label">💧 Жажда</span><span class="value" id="thirst-v">80%</span></div>
@@ -75,6 +70,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
    <div class="stat"><span class="label">🏡 Уют</span><span class="value" id="comfort-v">80%</span></div>
   </div>
  </div>
+ <div id="location-title">СТАДИОН</div>
  <div id="room-actions">
   <button class="phone-nav-btn" id="phone-open" aria-label="Открыть телефон Луны" title="Телефон Луны">
    <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D1%82%D0%B5%D0%BB%D0%B5%D1%84%D0%BE%D0%BD%D0%B0.heic" alt="Телефон Луны">
@@ -83,7 +79,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  <div id="food-actions">
   <button id="feed-btn">🍗 Покормить</button>
   <button id="water-btn">💧 Напоить</button>
-  <button id="cafe-menu-open">📋 Меню</button>
  </div>
  <nav id="nav" aria-label="Игровая навигация">
   <button class="nav-btn active" data-scene="stadium" aria-label="Стадион" title="Стадион">
@@ -92,8 +87,8 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
   <button class="nav-btn" data-scene="room" aria-label="Демагоргон" title="Демагоргон">
    <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%B4%D0%BE%D0%BC%D0%B8%D0%BA%D0%B0.jpeg" alt="Демагоргон">
   </button>
-  <button class="nav-btn" data-scene="food" aria-label="Кафе" title="Кафе">
-   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_2090.png" alt="Кафе">
+  <button class="nav-btn" data-scene="food" aria-label="Питание" title="Питание">
+   <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%B5%D0%B4%D0%B0.jpeg" alt="Питание">
   </button>
   <button class="nav-btn" id="shop-open" aria-label="Магазин" title="Магазин">
    <img src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%BA%D0%BD%D0%BE%D0%BF%D0%BA%D0%B0%20%D0%BC%D0%B0%D0%B3%D0%B0%D0%B7%D0%B8%D0%BD%D0%B0.jpeg" alt="Магазин">
@@ -110,7 +105,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  <div id="phone-overlay" class="overlay">
   <button class="close phone-close" data-close="phone-overlay">×</button>
   <div class="phone-wrap">
-   <img class="phone-img" src="https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/%D0%98%D0%B7%D0%BE%D0%B1%D1%80%D0%B0%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%20HEIF.jpeg" alt="Телефон Луны">
+   <img class="phone-img" src="Изображение HEIF.jpeg" alt="Телефон Луны">
    <div class="phone-screen" id="phone-screen"><span>Экран телефона Луны<br>🐾</span></div>
   </div>
   <div class="phone-tools"><button id="phone-note">Заметка</button><button id="phone-color">Сменить экран</button></div>
@@ -121,13 +116,13 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
 (function(){
  const tg=window.Telegram&&window.Telegram.WebApp;
  if(tg){tg.ready();tg.expand();try{tg.setBackgroundColor("#17251f");tg.setHeaderColor("#17251f")}catch(e){}}
- const scenes={stadium:{title:"СТАДИОН",image:"https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1984.jpeg"},room:{title:"ДЕМАГОРГОН",image:"https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1985.png"},food:{title:"ПИТАНИЕ",image:"https://raw.githubusercontent.com/datoskha-maker/kayuk-bet-miniapp/main/IMG_1986.png"}};
+ const scenes={stadium:{title:"СТАДИОН",image:"IMG_1984.jpeg"},room:{title:"ДЕМАГОРГОН",image:"IMG_1985.png"},food:{title:"ПИТАНИЕ",image:"IMG_1986.png"}};
  const defaults={hunger:80,thirst:80,mood:80,energy:80,comfort:80,coins:500,owned:[],last:Date.now()};
  let state;try{state=Object.assign({},defaults,JSON.parse(localStorage.getItem("lunaPetState")||"{}"))}catch(e){state=Object.assign({},defaults)}
  function save(){state.last=Date.now();try{localStorage.setItem("lunaPetState",JSON.stringify(state))}catch(e){};renderStats()}
  function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2100)}
  function renderStats(){["hunger","thirst","mood","energy","comfort"].forEach(k=>{const el=document.getElementById(k+"-v");if(el)el.textContent=Math.round(state[k])+"%"});document.getElementById("coins-v").textContent=state.coins}
- function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"};window.dispatchEvent(new CustomEvent("luna-scene-change",{detail:{scene:name}}))}
+ function setScene(name){if(!scenes[name])return;document.getElementById("scene-bg").src=scenes[name].image;document.getElementById("location-title").textContent=scenes[name].title;document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.classList.toggle("active",b.dataset.scene===name));document.getElementById("room-actions").style.display=name==="room"?"flex":"none";document.getElementById("food-actions").style.display=name==="food"?"flex":"none";if(name==="stadium"){document.getElementById("room-actions").style.display="none"}}
  document.querySelectorAll(".nav-btn[data-scene]").forEach(b=>b.addEventListener("click",()=>setScene(b.dataset.scene)));
  document.getElementById("shop-open").addEventListener("click",()=>openOverlay("shop-overlay"));
  function openOverlay(id){document.getElementById(id).classList.add("open")}
@@ -148,10 +143,9 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;-webkit-tap-highlight-
  const decay=Math.floor(elapsed/60000)*0.35;
  if(decay>0){state.hunger=Math.max(0,state.hunger-decay);state.thirst=Math.max(0,state.thirst-decay*1.15);state.mood=Math.max(0,state.mood-decay*.55);state.energy=Math.max(0,state.energy-decay*.25);state.comfort=Math.max(0,state.comfort-decay*.12)}
  save();renderShop();setScene("stadium");
+ // Luna character intentionally omitted for this development phase.
  renderStats();
 })();
 </script>
- <script type="module" src="/luna-cat.js"></script>
- <script src="/luna-app.js"></script>
 </body>
 </html>
