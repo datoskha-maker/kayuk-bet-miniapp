@@ -98,6 +98,18 @@ export default async function handler(req, res) {
       p_user_id: profile.id, p_title: title, p_capacity: capacity, p_buy_in: buyIn
     });
     result = { data, error };
+  } else if (body.action === 'delete_room') {
+    const roomId = String(body.room_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(roomId)) return send(res, 400, { error: 'Некорректная комната' });
+    const { data: room, error: roomError } = await supabase.from('poker_rooms')
+      .select('id,created_by,host_user_id,status').eq('id', roomId).maybeSingle();
+    if (roomError) return send(res, 500, { error: 'Не удалось проверить комнату' });
+    if (!room) return send(res, 404, { error: 'Комната не найдена' });
+    if (room.created_by !== profile.id || room.host_user_id !== profile.id) return send(res, 403, { error: 'Удалить комнату может только её создатель' });
+    if (room.status !== 'waiting') return send(res, 409, { error: 'Можно удалить только комнату, которая ещё ожидает игроков' });
+    const { error } = await supabase.from('poker_rooms').delete().eq('id', roomId)
+      .eq('created_by', profile.id).eq('host_user_id', profile.id).eq('status', 'waiting');
+    result = { data: { deleted: true }, error };
   } else if (body.action === 'join') {
     const code = String(body.code || '').trim().toUpperCase();
     if (!/^[A-F0-9]{6}$/.test(code)) return send(res, 400, { error: 'Проверь код комнаты' });
